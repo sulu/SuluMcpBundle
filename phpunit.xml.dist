@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
-         bootstrap="vendor/autoload.php"
+         bootstrap="tests/test-bootstrap.php"
          colors="true"
          failOnWarning="true"
 >
@@ -25,7 +25,6 @@
     <php>
         <server name="APP_ENV" value="test" force="true"/>
         <server name="KERNEL_CLASS" value="Sulu\Bundle\McpBundle\Tests\Application\Kernel"/>
-        <server name="DATABASE_URL" value="sqlite:///%kernel.project_dir%/var/data_test.db"/>
         <server name="SEAL_DSN" value="memory://"/>
     </php>
 </phpunit>

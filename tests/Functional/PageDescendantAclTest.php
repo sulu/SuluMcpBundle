@@ -13,35 +13,12 @@ declare(strict_types=1);
 
 namespace Sulu\Bundle\McpBundle\Tests\Functional;
 
-use Doctrine\ORM\Query\AST\Node;
-use Doctrine\ORM\Query\SqlWalker;
-use Oro\ORM\Query\AST\Functions\Cast as OroCastFunction;
 use PHPUnit\Framework\Attributes\CoversClass;
 use Sulu\Bundle\McpBundle\Security\Exception\PermissionDeniedException;
 use Sulu\Bundle\McpBundle\Security\Permission\PageDescendantPermissionChecker;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Page\Domain\Model\Page;
-
-/**
- * Oro's CAST DQL function only emits MySQL/PostgreSQL SQL (FunctionFactory
- * throws "Not supported platform" otherwise), so AccessControlRepository's
- * CAST(...) query can't run against sqlite. Reuses Oro's parser and swaps in
- * SQLite's native CAST syntax, registered for this test only.
- */
-final class SqliteCastFunction extends OroCastFunction
-{
-    public function getSql(SqlWalker $sqlWalker): string
-    {
-        $value = $this->parameters[self::PARAMETER_KEY];
-        $expression = $value instanceof Node ? $value->dispatch($sqlWalker) : (string) $value;
-
-        $type = \strtolower((string) $this->parameters[self::TYPE_KEY]);
-        $sqliteType = \str_starts_with($type, 'int') || 'bigint' === $type ? 'INTEGER' : 'TEXT';
-
-        return "CAST({$expression} AS {$sqliteType})";
-    }
-}
 
 /**
  * PageDescendantPermissionChecker end to end against a real
@@ -62,13 +39,6 @@ final class PageDescendantAclTest extends FunctionalTestCase
         PermissionTypes::DELETE => false, PermissionTypes::ARCHIVE => false, PermissionTypes::LIVE => false,
         PermissionTypes::SECURITY => false,
     ];
-
-    protected function setUp(): void
-    {
-        parent::setUp();
-
-        $this->createSchemaFor(Page::class);
-    }
 
     public function testThrowsWhenOneDescendantDenied(): void
     {
@@ -160,9 +130,6 @@ final class PageDescendantAclTest extends FunctionalTestCase
     private function checker(): PageDescendantPermissionChecker
     {
         $container = self::getContainer();
-
-        // Registers the sqlite CAST shim (see SqliteCastFunction) for this query.
-        $this->entityManager->getConfiguration()->addCustomStringFunction('CAST', SqliteCastFunction::class);
 
         return new PageDescendantPermissionChecker(
             $container->get('sulu_page.page_repository'),

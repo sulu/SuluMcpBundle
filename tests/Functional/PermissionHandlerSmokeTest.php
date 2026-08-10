@@ -253,7 +253,9 @@ final class PermissionHandlerSmokeTest extends FunctionalTestCase
         self::assertInstanceOf(Response::class, $peopleAllowed);
         $text = $this->textOf($peopleAllowed);
         self::assertStringNotContainsString('your Sulu role does not grant', $text);
-        self::assertStringContainsString('Failed to list', $text);
+        // ContactBundle's tables are present against the real schema, so the call
+        // succeeds for real rather than hitting ContactListTool's missing-bundle catch.
+        self::assertStringContainsString('"type": "contact"', $text);
 
         $organizationsDenied = $this->handler()->handle(
             $this->callRequest('sulu_contact_list', ['type' => 'account']),
