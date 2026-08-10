@@ -4,10 +4,10 @@ framework:
             sync: 'sync://'
         routing:
 
-# dev/config/packages/sulu_security.yaml enables the checker for both
-# contexts (no context suffix, so SuluKernel loads it everywhere); the
-# website context needs it too because SuluMcpBundle's ToolPermissionChecker
-# autowires SecurityCheckerInterface regardless of context.
+# config_admin.yml and config_website.yml both import this file, so it loads
+# in both contexts; the website context needs the checker too because
+# SuluMcpBundle's ToolPermissionChecker autowires SecurityCheckerInterface
+# regardless of context.
 sulu_security:
     checker:
         enabled: true

@@ -22,7 +22,7 @@ use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 
 /**
  * Single-webspace scoping. Requires a second configured
- * webspace (dev/config/webspaces/intranet.xml) -- with only "website"
+ * webspace (config/webspaces/intranet.xml) -- with only "website"
  * configured, permittedWebspaceKeys() == ['website'] would hold even if the
  * resolver never filtered anything, so it wouldn't prove exclusion.
  */

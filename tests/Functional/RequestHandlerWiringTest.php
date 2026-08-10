@@ -33,13 +33,18 @@ use Sulu\Bundle\McpBundle\Capabilities\PermissionAwareCallToolHandler;
  * suite's PermissionEnforcementTest, in two halves:
  *
  * - testPermissionAwareHandlerDispatchesAheadOfDefaultCallToolHandler proves the
- *   real, fully-built "mcp.server" dispatches tools/call to
- *   PermissionAwareCallToolHandler before the SDK's own CallToolHandler ever gets a
- *   turn -- what config/services.yaml's mcp.request_handler tag exists to guarantee.
- *   Compiled containers strip tag metadata, and neither Mcp\Server nor
+ *   real, fully-built "mcp.server" registers PermissionAwareCallToolHandler and
+ *   dispatches tools/call to it before the SDK's own CallToolHandler ever gets a
+ *   turn. Compiled containers strip tag metadata, and neither Mcp\Server nor
  *   Mcp\Server\Protocol expose their built handler list publicly, so this can only
  *   be verified by reflecting into the real, fully-built Server's actual handler
  *   order -- there is no public accessor for it.
+ *   It does NOT prove that the explicit `mcp.request_handler` tag on
+ *   PermissionAwareCallToolHandler in config/services.yaml is load-bearing -- it
+ *   isn't. Symfony autoconfigures every RequestHandlerInterface with that same tag
+ *   regardless, and Mcp\Server\Builder::build() always merges custom handlers ahead
+ *   of its own default CallToolHandler, so this assertion would still pass with
+ *   that tag block deleted entirely.
  * - testNegativeControlBareCallToolHandlerDoesNotEnforcePermissions proves the
  *   other half: without that wrapper in front of it, the SDK's bare CallToolHandler
  *   enforces nothing at all.
@@ -52,6 +57,10 @@ final class RequestHandlerWiringTest extends FunctionalTestCase
         $server = self::getContainer()->get('mcp.server');
         self::assertInstanceOf(Server::class, $server);
 
+        // Pinned to symfony/mcp-bundle ^0.6 (currently 0.6.0): Server::$protocol and
+        // Protocol::$requestHandlers are `private readonly` with no public accessor.
+        // A ReflectionException here means the SDK renamed these internals, not that
+        // permission enforcement broke.
         $protocol = (new \ReflectionProperty(Server::class, 'protocol'))->getValue($server);
         self::assertInstanceOf(Protocol::class, $protocol);
 
