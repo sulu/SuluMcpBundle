@@ -23,8 +23,6 @@ Or write `.mcp.json` by hand:
 }
 ```
 
-This repo includes a working example at [`dev/.mcp.json`](../../dev/.mcp.json) pointing at the local dev server (`https://127.0.0.1:8000/admin/_mcp`).
-
 ## 2. Authenticate
 
 On first use, Claude Code triggers the OAuth flow in your browser via Dynamic Client Registration — no manual client setup needed. You log in to Sulu, approve the scopes, and Claude Code stores the token.
