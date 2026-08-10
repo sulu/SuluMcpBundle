@@ -1,16 +1,9 @@
 /.gitattributes export-ignore
 /.gitignore export-ignore
 /.github/ export-ignore
-/.mcp.json export-ignore
-/mcp.json export-ignore
 /.php-cs-fixer.dist.php export-ignore
-/AGENTS.md export-ignore
-/CLAUDE.md export-ignore
-/bin/ export-ignore
 /dev/ export-ignore
-/mate/ export-ignore
 /phpstan.neon export-ignore
 /phpunit.xml.dist export-ignore
 /rector.php export-ignore
-/rules/ export-ignore
 /tests/ export-ignore

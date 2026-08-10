@@ -41,12 +41,6 @@
         "phpstan/phpstan-phpunit": "^2.0",
         "phpunit/phpunit": "^10.3",
         "rector/rector": "^2.1",
-        "symfony/ai-mate": "^0.8.0",
-        "symfony/ai-symfony-mate-extension": "^0.8.0",
-        "symfony/ai-monolog-mate-extension": "^0.8.0",
-        "matesofmate/composer-extension": "^0.3.0",
-        "matesofmate/phpunit-extension": "^0.3.0",
-        "matesofmate/phpstan-extension": "^0.3.0",
         "cmsig/seal-memory-adapter": "^0.12.2"
     },
     "autoload": {
@@ -56,19 +50,7 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Sulu\\Bundle\\McpBundle\\Tests\\": "tests/",
-            "App\\Mate\\": "mate/src/"
-        }
-    },
-    "extra": {
-        "ai-mate": {
-            "extension": false,
-            "scan-dirs": [
-                "mate/src"
-            ],
-            "includes": [
-                "mate/config.php"
-            ]
+            "Sulu\\Bundle\\McpBundle\\Tests\\": "tests/"
         }
     },
     "scripts": {
@@ -97,8 +79,7 @@
     "config": {
         "allow-plugins": {
             "php-http/discovery": true,
-            "phpstan/extension-installer": true,
-            "symfony/ai-mate-composer-plugin": true
+            "phpstan/extension-installer": true
         }
     },
     "conflict": {
