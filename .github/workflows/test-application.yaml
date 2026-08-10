@@ -47,12 +47,18 @@ jobs:
                       php-extensions: 'ctype, iconv, mbstring, sodium, mysql'
                       tools: 'composer:v2'
 
+        services:
+            mysql:
+                image: mysql:8.4
+                env:
+                    MYSQL_ROOT_PASSWORD: ChangeMe
+                ports:
+                    - 3306:3306
+                options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
         steps:
             - name: Checkout project
               uses: actions/checkout@v4
-
-            - name: Start database
-              run: docker compose -f tests/docker/docker-compose.mysql-84.yml up --wait
 
             - name: Install and configure PHP
               uses: shivammathur/setup-php@v2
@@ -99,12 +105,18 @@ jobs:
             APP_ENV: test
             DATABASE_URL: mysql://root:ChangeMe@127.0.0.1:3306/sulu_mcp_test?serverVersion=8.4&charset=utf8mb4
 
+        services:
+            mysql:
+                image: mysql:8.4
+                env:
+                    MYSQL_ROOT_PASSWORD: ChangeMe
+                ports:
+                    - 3306:3306
+                options: --health-cmd="mysqladmin ping" --health-interval=10s --health-timeout=5s --health-retries=5
+
         steps:
             - name: Checkout project
               uses: actions/checkout@v4
-
-            - name: Start database
-              run: docker compose -f tests/docker/docker-compose.mysql-84.yml up --wait
 
             - name: Install and configure PHP
               uses: shivammathur/setup-php@v2

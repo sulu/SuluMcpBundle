@@ -7,6 +7,16 @@ coding standards as Symfony.
 Before making a pull request please ensure you use the [Pull Request
 Template](.github/PULL_REQUEST_TEMPLATE.md).
 
+The test suite runs against MySQL 8.4. Start it and build the schema once:
+
+```bash
+docker compose -f tests/docker/docker-compose.mysql-84.yml up --wait
+composer bootstrap-test-environment
+```
+
+The database binds to port 3306. Set `SULU_MCP_DB_PORT` to pick another one, and
+point the test application at it in `tests/Application/.env.test.local`.
+
 Run the following, in this order, before opening a pull request:
 
 ```bash
