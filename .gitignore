@@ -2,8 +2,13 @@
 /var/
 /tests/Application/var/
 .php-cs-fixer.cache
+/phpunit.xml
 .phpunit.result.cache
 .claude
 .codex/
 .idea/
+*.iml
 /composer.lock
+/composer.phar
+/auth.json
+.DS_Store
