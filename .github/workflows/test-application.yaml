@@ -19,33 +19,40 @@ jobs:
         runs-on: ubuntu-22.04
         timeout-minutes: 30
 
+        env:
+            APP_ENV: test
+            DATABASE_URL: mysql://root:ChangeMe@127.0.0.1:3306/sulu_mcp_test?serverVersion=8.4&charset=utf8mb4
+
         strategy:
             fail-fast: false
             matrix:
                 include:
                     - php-version: '8.2'
                       dependency-versions: 'lowest'
-                      php-extensions: 'ctype, iconv, mbstring, sodium, pdo_sqlite'
+                      php-extensions: 'ctype, iconv, mbstring, sodium, mysql'
                       tools: 'composer:v2'
 
                     - php-version: '8.2'
                       dependency-versions: 'highest'
-                      php-extensions: 'ctype, iconv, mbstring, sodium, pdo_sqlite'
+                      php-extensions: 'ctype, iconv, mbstring, sodium, mysql'
                       tools: 'composer:v2'
 
                     - php-version: '8.3'
                       dependency-versions: 'highest'
-                      php-extensions: 'ctype, iconv, mbstring, sodium, pdo_sqlite'
+                      php-extensions: 'ctype, iconv, mbstring, sodium, mysql'
                       tools: 'composer:v2'
 
                     - php-version: '8.4'
                       dependency-versions: 'highest'
-                      php-extensions: 'ctype, iconv, mbstring, sodium, pdo_sqlite'
+                      php-extensions: 'ctype, iconv, mbstring, sodium, mysql'
                       tools: 'composer:v2'
 
         steps:
             - name: Checkout project
               uses: actions/checkout@v4
+
+            - name: Start database
+              run: docker compose -f tests/docker/docker-compose.mysql-84.yml up --wait
 
             - name: Install and configure PHP
               uses: shivammathur/setup-php@v2
@@ -77,6 +84,9 @@ jobs:
                   echo 'Composer Info:'
                   composer info
 
+            - name: Bootstrap test environment
+              run: composer bootstrap-test-environment
+
             - name: Execute test cases
               run: time composer test
 
@@ -85,15 +95,22 @@ jobs:
         runs-on: ubuntu-22.04
         timeout-minutes: 30
 
+        env:
+            APP_ENV: test
+            DATABASE_URL: mysql://root:ChangeMe@127.0.0.1:3306/sulu_mcp_test?serverVersion=8.4&charset=utf8mb4
+
         steps:
             - name: Checkout project
               uses: actions/checkout@v4
+
+            - name: Start database
+              run: docker compose -f tests/docker/docker-compose.mysql-84.yml up --wait
 
             - name: Install and configure PHP
               uses: shivammathur/setup-php@v2
               with:
                   php-version: '8.4'
-                  extensions: 'ctype, iconv, mbstring, sodium, pdo_sqlite'
+                  extensions: 'ctype, iconv, mbstring, sodium, mysql'
                   tools: 'composer:v2'
                   ini-values: memory_limit=-1
                   coverage: none
@@ -102,6 +119,9 @@ jobs:
               uses: ramsey/composer-install@v3
               with:
                   dependency-versions: 'highest'
+
+            - name: Bootstrap test environment
+              run: composer bootstrap-test-environment
 
             - name: Lint code
               run: composer lint
