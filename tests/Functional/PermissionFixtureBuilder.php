@@ -28,8 +28,9 @@ use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 /**
  * Fluent fixture builder for the dev functional permission suite, extracted from
  * PermissionAclSmokeTest so every tier reuses one seeding path. Adds no new
- * schema -- FunctionalTestCase already creates the security tables
- * (User/Role/UserRole/Permission/AccessControl) via SchemaTool.
+ * schema -- the security tables (User/Role/UserRole/Permission/AccessControl)
+ * already exist in the real MySQL schema created by
+ * "composer bootstrap-test-environment".
  */
 final readonly class PermissionFixtureBuilder
 {

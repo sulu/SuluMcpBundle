@@ -80,4 +80,67 @@ final class ToolDiscoverySmokeTest extends FunctionalTestCase
             'Genuinely granted, non-allowlisted tool must be present in the filtered tools/list.',
         );
     }
+
+    /**
+     * ANY_WEBSPACE_CONTEXT sentinel for an objectResolved tool (sulu_page_get):
+     * visible once VIEW is granted on ANY declared webspace ('intranet' here,
+     * out of 'website'/'intranet') -- discovery errs toward showing, the
+     * in-body check decides. Ported from the former Integration suite's
+     * PermissionEnforcementTest.
+     */
+    public function testAnyWebspaceSentinelToolVisibleWhenGrantedOnOneOfTwoWebspaces(): void
+    {
+        $container = self::getContainer();
+        $container->get('mcp.server'); // populates the registry -- must run first
+
+        $builder = new PermissionFixtureBuilder(
+            $this->entityManager,
+            $container->get('sulu_security.mask_converter'),
+            $container->get('security.token_storage'),
+            $container->get(SystemStoreInterface::class),
+        );
+        $role = $builder->role('IntranetViewer', [
+            'sulu.webspaces.intranet' => [PermissionTypes::VIEW => true],
+        ]);
+        $user = $builder->user('intranet-viewer', $role);
+        $builder->authenticate($user);
+
+        /** @var GetContextTool $getContextTool */
+        $getContextTool = $container->get(GetContextTool::class);
+        $context = $getContextTool->getContext();
+        $byName = \array_column($context['tools'], null, 'name');
+
+        self::assertTrue(
+            $byName['sulu_page_get']['available'],
+            'VIEW on ANY declared webspace must make an ANY_WEBSPACE_CONTEXT-sentinel tool visible.',
+        );
+    }
+
+    /**
+     * Negative counterpart: no VIEW grant on any webspace at all hides the
+     * same sentinel-gated tool, proving the visible case above tracks a real
+     * grant rather than always showing.
+     */
+    public function testAnyWebspaceSentinelToolHiddenWhenGrantedOnNoWebspace(): void
+    {
+        $container = self::getContainer();
+        $container->get('mcp.server'); // populates the registry -- must run first
+
+        $builder = new PermissionFixtureBuilder(
+            $this->entityManager,
+            $container->get('sulu_security.mask_converter'),
+            $container->get('security.token_storage'),
+            $container->get(SystemStoreInterface::class),
+        );
+        $role = $builder->role('NoWebspaceGrant', []);
+        $user = $builder->user('no-webspace-grant', $role);
+        $builder->authenticate($user);
+
+        /** @var GetContextTool $getContextTool */
+        $getContextTool = $container->get(GetContextTool::class);
+        $context = $getContextTool->getContext();
+        $byName = \array_column($context['tools'], null, 'name');
+
+        self::assertFalse($byName['sulu_page_get']['available']);
+    }
 }
