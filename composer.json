@@ -41,7 +41,8 @@
         "phpstan/phpstan-phpunit": "^2.0",
         "phpunit/phpunit": "^10.3",
         "rector/rector": "^2.1",
-        "cmsig/seal-memory-adapter": "^0.12.2"
+        "cmsig/seal-memory-adapter": "^0.12.2",
+        "symfony/dotenv": "^7.3"
     },
     "autoload": {
         "psr-4": {
