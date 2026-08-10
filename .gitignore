@@ -13,6 +13,8 @@
 /auth.json
 .DS_Store
 /tests/Application/config/jwt/*.pem
+/tests/Application/.env.local
+/tests/Application/.env.*.local
 /tests/Application/public/build/
 /tests/Application/public/uploads/
 /tests/Application/node_modules/

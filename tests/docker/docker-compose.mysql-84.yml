@@ -1,0 +1,15 @@
+services:
+  database:
+    image: mysql:8.4
+    command: ["--max_connections=10000"]
+    ports:
+      - "${SULU_MCP_DB_PORT:-3306}:3306"
+    environment:
+      MYSQL_DATABASE: 'sulu_mcp_test'
+      MYSQL_ROOT_PASSWORD: 'ChangeMe'
+      MYSQL_ROOT_HOST: '%'
+    volumes:
+      - sulu-mcp-mysql84-data:/var/lib/mysql
+
+volumes:
+  sulu-mcp-mysql84-data:

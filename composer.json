@@ -42,7 +42,8 @@
         "phpunit/phpunit": "^10.3",
         "rector/rector": "^2.1",
         "cmsig/seal-memory-adapter": "^0.12.2",
-        "symfony/dotenv": "^7.3"
+        "symfony/dotenv": "^7.3",
+        "doctrine/data-fixtures": "^2.2"
     },
     "autoload": {
         "psr-4": {
@@ -60,14 +61,35 @@
             "vendor/bin/phpunit"
         ],
         "test-with-coverage": "@test --coverage-php var/reports/coverage.cov --coverage-cobertura=var/cobertura-coverage.xml --coverage-html var/reports/html --log-junit var/reports/junit.xml",
-        "phpstan": "@php vendor/bin/phpstan analyze",
+        "bootstrap-test-environment": [
+            "@generate-test-keys",
+            "@php tests/Application/bin/adminconsole doctrine:database:drop --if-exists --force --env test",
+            "@php tests/Application/bin/adminconsole doctrine:database:create --env test",
+            "@php tests/Application/bin/adminconsole doctrine:schema:update --force --env test"
+        ],
+        "generate-test-keys": "mkdir -p tests/Application/config/jwt && openssl genrsa -out tests/Application/config/jwt/private.pem 4096 && openssl rsa -in tests/Application/config/jwt/private.pem -pubout -out tests/Application/config/jwt/public.pem && chmod 644 tests/Application/config/jwt/*.pem",
+        "lint-container": [
+            "@php tests/Application/bin/adminconsole lint:container --env test",
+            "@php tests/Application/bin/websiteconsole lint:container --env test",
+            "@php tests/Application/bin/adminconsole lint:container --env dev",
+            "@php tests/Application/bin/websiteconsole lint:container --env dev"
+        ],
+        "lint-yaml": "@php tests/Application/bin/adminconsole lint:yaml config tests/Application/config",
+        "lint-doctrine": "@php tests/Application/bin/adminconsole doctrine:schema:validate --skip-sync --env test",
+        "phpstan": [
+            "@php tests/Application/bin/adminconsole cache:warmup --env=dev",
+            "@php vendor/bin/phpstan analyze"
+        ],
         "lint-rector": "@php vendor/bin/rector process --dry-run",
         "lint-php-cs": "@php vendor/bin/php-cs-fixer fix --verbose --diff --dry-run",
         "lint": [
             "@phpstan",
             "@lint-php-cs",
             "@lint-rector",
-            "@lint-composer"
+            "@lint-composer",
+            "@lint-container",
+            "@lint-yaml",
+            "@lint-doctrine"
         ],
         "lint-composer": "@composer validate",
         "rector": "@php vendor/bin/rector process",
