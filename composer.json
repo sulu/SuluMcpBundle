@@ -74,7 +74,7 @@
             "@php tests/Application/bin/adminconsole lint:container --env dev",
             "@php tests/Application/bin/websiteconsole lint:container --env dev"
         ],
-        "lint-yaml": "@php tests/Application/bin/adminconsole lint:yaml config tests/Application/config",
+        "lint-yaml": "@php tests/Application/bin/adminconsole lint:yaml config tests/Application/config --parse-tags",
         "lint-doctrine": "@php tests/Application/bin/adminconsole doctrine:schema:validate --skip-sync --env test",
         "phpstan": [
             "@php tests/Application/bin/adminconsole cache:warmup --env=dev",
