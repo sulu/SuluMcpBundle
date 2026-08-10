@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Support;
+namespace Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Metadata;
 
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
@@ -19,7 +19,7 @@ use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
 /**
  * Stub GroupProviderInterface: returns the configured groups regardless of the requested key.
  */
-final readonly class StubGroupProvider implements GroupProviderInterface
+final readonly class TestGroupProvider implements GroupProviderInterface
 {
     /**
      * @param array<string, FormGroup> $groups

@@ -23,7 +23,7 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
 use Sulu\Bundle\McpBundle\Capabilities\Tool\Article\ArticleListTool;
 use Sulu\Bundle\McpBundle\Security\Permission\ArticleSecurityContextResolver;
 use Sulu\Bundle\McpBundle\Security\Permission\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Tests\Support\StubGroupProvider;
+use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Content\Domain\Model\TemplateInterface;
@@ -46,7 +46,7 @@ final class ArticleListToolTest extends TestCase
         $this->permissionChecker->method('has')->willReturn(true);
         // Single-group install owning both template keys used across these tests.
         $this->articleContextResolver = new ArticleSecurityContextResolver(
-            new StubGroupProvider(['default' => new FormGroup('default', 'Default', ['article', 'blog'])]),
+            new TestGroupProvider(['default' => new FormGroup('default', 'Default', ['article', 'blog'])]),
         );
         $this->tool = new ArticleListTool(
             $this->articleRepository,
@@ -156,7 +156,7 @@ final class ArticleListToolTest extends TestCase
     public function testListArticlesScopesQueryToPermittedGroupTemplates(): void
     {
         // Two groups so "default" and "blog" resolve to distinct security contexts.
-        $contextResolver = new ArticleSecurityContextResolver(new StubGroupProvider([
+        $contextResolver = new ArticleSecurityContextResolver(new TestGroupProvider([
             'default' => (new FormGroup('default', 'Default'))->withTemplate('default'),
             'blog' => (new FormGroup('blog', 'Blog'))->withTemplate('blog'),
         ]));

@@ -31,7 +31,7 @@ use Sulu\Bundle\McpBundle\Capabilities\Tool\Page\PageUpdateTool;
 use Sulu\Bundle\McpBundle\Content\ContentMetadataMapper;
 use Sulu\Bundle\McpBundle\Security\Exception\PermissionDeniedException;
 use Sulu\Bundle\McpBundle\Security\Permission\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Tests\Support\StubViewRegistry;
+use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
@@ -81,7 +81,7 @@ final class PageUpdateToolTest extends TestCase
 
         $router = $this->createMock(RouterInterface::class);
         $router->method('generate')->willReturn('https://example.com/admin/');
-        $this->adminLinkGenerator = new AdminLinkGenerator($router, [new PageAdminLinkProvider(new StubViewRegistry())]);
+        $this->adminLinkGenerator = new AdminLinkGenerator($router, [new PageAdminLinkProvider(new TestViewRegistry())]);
         $this->permissionChecker = $this->createMock(ToolPermissionCheckerInterface::class);
 
         $this->tool = new PageUpdateTool(

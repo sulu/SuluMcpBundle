@@ -23,7 +23,7 @@ use Sulu\Bundle\CategoryBundle\Entity\CategoryInterface;
 use Sulu\Bundle\McpBundle\AdminLink\AdminLinkGenerator;
 use Sulu\Bundle\McpBundle\AdminLink\Provider\CategoryAdminLinkProvider;
 use Sulu\Bundle\McpBundle\Capabilities\Tool\Taxonomy\CategoryCreateTool;
-use Sulu\Bundle\McpBundle\Tests\Support\StubViewRegistry;
+use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
@@ -43,7 +43,7 @@ final class CategoryCreateToolTest extends TestCase
 
         $router = $this->createMock(RouterInterface::class);
         $router->method('generate')->willReturn('https://example.com/admin/');
-        $adminLinkGenerator = new AdminLinkGenerator($router, [new CategoryAdminLinkProvider(new StubViewRegistry())]);
+        $adminLinkGenerator = new AdminLinkGenerator($router, [new CategoryAdminLinkProvider(new TestViewRegistry())]);
 
         $this->tool = new CategoryCreateTool($this->categoryManager, $this->tokenStorage, $adminLinkGenerator);
     }

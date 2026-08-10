@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Support;
+namespace Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin;
 
 use Sulu\Article\Infrastructure\Sulu\Admin\ArticleAdmin;
 use Sulu\Bundle\AdminBundle\Admin\View\View;
@@ -27,7 +27,7 @@ use Sulu\Snippet\Infrastructure\Sulu\Admin\SnippetAdmin;
  * Test stub returning the admin edit-view path templates that Sulu registers,
  * so AdminLink providers can be exercised without booting the admin kernel.
  */
-final class StubViewRegistry extends ViewRegistry
+final class TestViewRegistry extends ViewRegistry
 {
     public function __construct()
     {

@@ -20,7 +20,7 @@ use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\McpBundle\AdminLink\AdminLinkGenerator;
 use Sulu\Bundle\McpBundle\AdminLink\Provider\TagAdminLinkProvider;
 use Sulu\Bundle\McpBundle\Capabilities\Tool\Taxonomy\TagCreateTool;
-use Sulu\Bundle\McpBundle\Tests\Support\StubViewRegistry;
+use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Sulu\Bundle\TagBundle\Tag\TagInterface;
 use Sulu\Bundle\TagBundle\Tag\TagManagerInterface;
 use Symfony\Component\Routing\RouterInterface;
@@ -37,7 +37,7 @@ final class TagCreateToolTest extends TestCase
 
         $router = $this->createMock(RouterInterface::class);
         $router->method('generate')->willReturn('https://example.com/admin/');
-        $adminLinkGenerator = new AdminLinkGenerator($router, [new TagAdminLinkProvider(new StubViewRegistry())]);
+        $adminLinkGenerator = new AdminLinkGenerator($router, [new TagAdminLinkProvider(new TestViewRegistry())]);
 
         $this->tool = new TagCreateTool($this->tagManager, $adminLinkGenerator);
     }

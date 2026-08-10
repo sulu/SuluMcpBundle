@@ -38,7 +38,7 @@ use Sulu\Bundle\McpBundle\Content\ContentMetadataMapper;
 use Sulu\Bundle\McpBundle\Security\Exception\PermissionDeniedException;
 use Sulu\Bundle\McpBundle\Security\Permission\ArticleSecurityContextResolver;
 use Sulu\Bundle\McpBundle\Security\Permission\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Tests\Support\StubViewRegistry;
+use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
@@ -85,7 +85,7 @@ final class ArticleUpdateToolTest extends TestCase
         );
         $router = $this->createMock(RouterInterface::class);
         $router->method('generate')->willReturn('https://example.com/admin/');
-        $adminLinkGenerator = new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new StubViewRegistry())]);
+        $adminLinkGenerator = new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]);
         $groupProvider = $this->createMock(GroupProviderInterface::class);
         $groupProvider->method('getGroups')->willReturn([]);
         $this->articleGroupResolver = new ArticleGroupResolver($groupProvider, $this->contentManager);
@@ -239,7 +239,7 @@ final class ArticleUpdateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new StubViewRegistry())]),
+            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             $this->permissionChecker,
             $contextResolver,
@@ -289,7 +289,7 @@ final class ArticleUpdateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new StubViewRegistry())]),
+            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             $this->permissionChecker,
             $contextResolver,
@@ -346,7 +346,7 @@ final class ArticleUpdateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new StubViewRegistry())]),
+            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             $this->permissionChecker,
             $contextResolver,
@@ -414,7 +414,7 @@ final class ArticleUpdateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new StubViewRegistry())]),
+            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             $this->permissionChecker,
             $contextResolver,
@@ -506,7 +506,7 @@ final class ArticleUpdateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new StubViewRegistry())]),
+            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             $this->permissionChecker,
             $contextResolver,
@@ -713,7 +713,7 @@ final class ArticleUpdateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new StubViewRegistry())]),
+            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             $this->permissionChecker,
             $this->articleContextResolver,

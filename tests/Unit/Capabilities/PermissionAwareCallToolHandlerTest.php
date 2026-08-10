@@ -29,7 +29,7 @@ use Sulu\Bundle\McpBundle\Security\Permission\ArticleSecurityContextResolver;
 use Sulu\Bundle\McpBundle\Security\Permission\ToolPermissionChecker;
 use Sulu\Bundle\McpBundle\Security\Permission\ToolPermissionCheckerInterface;
 use Sulu\Bundle\McpBundle\Security\Permission\WebspacePermissionResolver;
-use Sulu\Bundle\McpBundle\Tests\Support\StubGroupProvider;
+use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
@@ -100,7 +100,7 @@ final class PermissionAwareCallToolHandlerTest extends TestCase
             new ReferenceHandler(null),
             $this->checker,
             $webspacePermissionResolver ?? $this->webspacePermissionResolver,
-            new ArticleSecurityContextResolver(StubGroupProvider::singleGroup()),
+            new ArticleSecurityContextResolver(TestGroupProvider::singleGroup()),
             $map,
             [],
             ['sulu_ping', 'sulu_get_context'],

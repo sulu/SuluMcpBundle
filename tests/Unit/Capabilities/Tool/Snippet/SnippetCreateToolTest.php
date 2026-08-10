@@ -27,7 +27,7 @@ use Sulu\Bundle\McpBundle\AdminLink\AdminLinkGenerator;
 use Sulu\Bundle\McpBundle\AdminLink\Provider\SnippetAdminLinkProvider;
 use Sulu\Bundle\McpBundle\Capabilities\Tool\Block\BlockDataValidator;
 use Sulu\Bundle\McpBundle\Capabilities\Tool\Snippet\SnippetCreateTool;
-use Sulu\Bundle\McpBundle\Tests\Support\StubViewRegistry;
+use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
@@ -59,7 +59,7 @@ final class SnippetCreateToolTest extends TestCase
 
         $router = $this->createMock(RouterInterface::class);
         $router->method('generate')->willReturn('https://example.com/admin/');
-        $adminLinkGenerator = new AdminLinkGenerator($router, [new SnippetAdminLinkProvider(new StubViewRegistry())]);
+        $adminLinkGenerator = new AdminLinkGenerator($router, [new SnippetAdminLinkProvider(new TestViewRegistry())]);
 
         $this->tool = new SnippetCreateTool(
             $this->messageBus,
@@ -289,7 +289,7 @@ final class SnippetCreateToolTest extends TestCase
             $this->contentManager,
             new BlockDataValidator($this->formMetadataProvider),
             $this->blockIdGenerator,
-            new AdminLinkGenerator($router, [new SnippetAdminLinkProvider(new StubViewRegistry())]),
+            new AdminLinkGenerator($router, [new SnippetAdminLinkProvider(new TestViewRegistry())]),
         );
 
         $this->messageBus->expects($this->never())->method('dispatch');

@@ -27,7 +27,7 @@ use Sulu\Bundle\McpBundle\Security\Permission\ToolPermissionChecker;
 use Sulu\Bundle\McpBundle\Security\Permission\ToolPermissionCheckerInterface;
 use Sulu\Bundle\McpBundle\Security\Permission\ToolVisibilityResolver;
 use Sulu\Bundle\McpBundle\Security\Permission\WebspacePermissionResolver;
-use Sulu\Bundle\McpBundle\Tests\Support\StubGroupProvider;
+use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
@@ -63,7 +63,7 @@ final class FilteredRegistryTest extends TestCase
             $map,
             $checker,
             new WebspacePermissionResolver($webspaceManager, $innerChecker),
-            new ArticleSecurityContextResolver(StubGroupProvider::singleGroup()),
+            new ArticleSecurityContextResolver(TestGroupProvider::singleGroup()),
             [],
             ['sulu_ping', 'sulu_get_context'],
         );

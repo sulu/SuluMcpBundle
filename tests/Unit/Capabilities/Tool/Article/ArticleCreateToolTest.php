@@ -34,7 +34,7 @@ use Sulu\Bundle\McpBundle\Capabilities\Tool\Article\ArticleCreateTool;
 use Sulu\Bundle\McpBundle\Capabilities\Tool\Article\ArticleGroupResolver;
 use Sulu\Bundle\McpBundle\Capabilities\Tool\Block\BlockDataValidator;
 use Sulu\Bundle\McpBundle\Content\ContentMetadataMapper;
-use Sulu\Bundle\McpBundle\Tests\Support\StubViewRegistry;
+use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
@@ -75,7 +75,7 @@ final class ArticleCreateToolTest extends TestCase
         );
         $router = $this->createMock(RouterInterface::class);
         $router->method('generate')->willReturn('https://example.com/admin/');
-        $adminLinkGenerator = new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new StubViewRegistry())]);
+        $adminLinkGenerator = new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]);
         $groupProvider = $this->createMock(GroupProviderInterface::class);
         $groupProvider->method('getGroups')->willReturn([]);
         $this->articleGroupResolver = new ArticleGroupResolver($groupProvider, $this->contentManager);
@@ -171,7 +171,7 @@ final class ArticleCreateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new StubViewRegistry())]),
+            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             new ArticleGroupResolver($groupProvider, $this->contentManager),
         );
 
@@ -502,7 +502,7 @@ final class ArticleCreateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new StubViewRegistry())]),
+            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
         );
 
@@ -579,7 +579,7 @@ final class ArticleCreateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider),
             $this->blockIdGenerator,
             new ContentMetadataMapper($mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new StubViewRegistry())]),
+            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
         );
 

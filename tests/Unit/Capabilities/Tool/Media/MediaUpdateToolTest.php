@@ -23,7 +23,7 @@ use Sulu\Bundle\McpBundle\AdminLink\Provider\MediaAdminLinkProvider;
 use Sulu\Bundle\McpBundle\Capabilities\Tool\Media\MediaUpdateTool;
 use Sulu\Bundle\McpBundle\Security\Exception\PermissionDeniedException;
 use Sulu\Bundle\McpBundle\Security\Permission\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Tests\Support\StubViewRegistry;
+use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Sulu\Bundle\MediaBundle\Api\Media;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Entity\CollectionType;
@@ -52,7 +52,7 @@ final class MediaUpdateToolTest extends TestCase
 
         $router = $this->createMock(RouterInterface::class);
         $router->method('generate')->willReturn('https://example.com/admin/');
-        $adminLinkGenerator = new AdminLinkGenerator($router, [new MediaAdminLinkProvider(new StubViewRegistry())]);
+        $adminLinkGenerator = new AdminLinkGenerator($router, [new MediaAdminLinkProvider(new TestViewRegistry())]);
 
         $this->tool = new MediaUpdateTool($this->mediaManager, $this->tokenStorage, $adminLinkGenerator, $this->permissionChecker);
     }
