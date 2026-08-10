@@ -60,10 +60,36 @@ sulu_mcp:
     resource: '@SuluMcpBundle/config/routes.yaml'
 ```
 
-Set the public server URL in your environment:
+Generate the RSA key pair that `league/oauth2-server-bundle` signs its tokens with. Skipping this step leaves every
+MCP request failing with `Invalid key supplied`:
+
+```bash
+mkdir -p config/jwt
+openssl genrsa -aes128 -out config/jwt/private.pem 4096
+openssl rsa -in config/jwt/private.pem -pubout -out config/jwt/public.pem
+```
+
+Both commands prompt for the passphrase, so it stays out of your shell history.
+
+Keep both keys out of version control, for example by adding `/config/jwt/*.pem` to your `.gitignore`.
+
+Set the public server URL and the OAuth secrets in your environment. The passphrase has to match the one used above,
+and the encryption key is any random string:
 
 ```bash
 SULU_MCP_SERVER_URL=https://your-sulu-host.example.com
+OAUTH_PRIVATE_KEY=%kernel.project_dir%/config/jwt/private.pem
+OAUTH_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
+OAUTH_PASSPHRASE=<passphrase>
+OAUTH_ENCRYPTION_KEY=<random-string>
+```
+
+Create the database tables. `league/oauth2-server-bundle` persists clients, authorization codes, access tokens and
+refresh tokens through Doctrine:
+
+```bash
+bin/console doctrine:migrations:diff
+bin/console doctrine:migrations:migrate
 ```
 
 The MCP endpoint then answers at `/admin/_mcp`. The [`docs/`](docs/) directory documents the
