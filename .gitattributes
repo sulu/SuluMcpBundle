@@ -1,7 +1,6 @@
 /.gitattributes export-ignore
 /.gitignore export-ignore
 /.github/ export-ignore
-/.gitlab-ci.yml export-ignore
 /.mcp.json export-ignore
 /mcp.json export-ignore
 /.php-cs-fixer.dist.php export-ignore

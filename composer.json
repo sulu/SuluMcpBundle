@@ -1,6 +1,6 @@
 {
     "name": "sulu/mcp-bundle",
-    "description": "Sulu CMS MCP Bundle - Exposes content management as MCP tools for AI assistants",
+    "description": "Exposes Sulu content management as MCP tools for AI assistants",
     "keywords": [
         "symfony",
         "sulu",
@@ -61,9 +61,6 @@
         }
     },
     "extra": {
-        "branch-alias": {
-            "dev-main": "1.0-dev"
-        },
         "ai-mate": {
             "extension": false,
             "scan-dirs": [

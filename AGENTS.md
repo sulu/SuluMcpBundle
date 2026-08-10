@@ -2,7 +2,7 @@
 
 ## Identity
 
-Sulu MCP Bundle — a Symfony bundle for Sulu CMS 3.x that exposes content management as MCP tools over Streamable HTTP. AI assistants (Claude.ai, Claude Code, Claude Cowork, …) read, create, edit, and publish Sulu content using the authenticated user's existing roles and permissions.
+Sulu MCP Bundle — a Symfony bundle for Sulu 3.x that exposes content management as MCP tools over Streamable HTTP. AI assistants (Claude.ai, Claude Code, Claude Cowork, …) read, create, edit, and publish Sulu content using the authenticated user's existing roles and permissions.
 
 This is a library, not an application — no Docker local dev setup.
 

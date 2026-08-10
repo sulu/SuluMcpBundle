@@ -1,27 +1,43 @@
-# Sulu MCP Bundle
+<h1 align="center">SuluMcpBundle</h1>
 
-MCP server for [Sulu CMS](https://sulu.io) 3.x — let AI assistants manage your Sulu content.
+<p align="center">
+    <a href="https://sulu.io/" target="_blank">
+        <img width="30%" src="https://sulu.io/uploads/media/800x/00/230-Official%20Bundle%20Seal.svg?v=2-6&inline=1" alt="Official Sulu Bundle Badge">
+    </a>
+</p>
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![PHP](https://img.shields.io/badge/php-%5E8.2-777bb4.svg)](composer.json)
-[![Symfony](https://img.shields.io/badge/symfony-%5E7.3-000.svg)](composer.json)
-[![Sulu](https://img.shields.io/badge/sulu-%5E3.0-52b6ca.svg)](composer.json)
+<p align="center">
+    <a href="LICENSE" target="_blank">
+        <img src="https://img.shields.io/github/license/sulu/SuluMcpBundle.svg" alt="GitHub license">
+    </a>
+    <a href="https://github.com/sulu/SuluMcpBundle/releases" target="_blank">
+        <img src="https://img.shields.io/github/tag/sulu/SuluMcpBundle.svg" alt="GitHub tag (latest SemVer)">
+    </a>
+    <a href="https://github.com/sulu/SuluMcpBundle/actions" target="_blank">
+        <img src="https://img.shields.io/github/actions/workflow/status/sulu/SuluMcpBundle/test-application.yaml" alt="Test workflow status">
+    </a>
+    <a href="https://github.com/sulu/sulu/releases" target="_blank">
+        <img src="https://img.shields.io/badge/sulu%20compatibility-%3E=3.0-52b6ca.svg" alt="Sulu compatibility">
+    </a>
+</p>
+<br/>
 
-A Symfony bundle that exposes Sulu's content management as [Model Context Protocol](https://modelcontextprotocol.io) tools over Streamable HTTP. AI assistants like Claude.ai, Claude Code, and ChatGPT can create pages, edit articles, manage media, and publish content — using the authenticated Sulu user's existing roles and permissions. No separate auth, no privilege escalation.
+The **SuluMcpBundle** turns a [Sulu](https://sulu.io/) installation into a
+[Model Context Protocol](https://modelcontextprotocol.io) server. AI assistants connect over Streamable HTTP and
+**create pages, edit articles, manage media and publish content** through the same operations the administration
+interface uses. Every request runs as the **authenticated Sulu user**, so an operation that is denied in the
+administration interface is denied over MCP as well. There is no separate authentication layer and no privilege
+escalation.
 
-## Requirements
-
-- PHP `^8.2`
-- Symfony `^7.3`
-- Sulu `^3.0`
-
-## Installation
+## 🚀&nbsp; Installation and Documentation
 
 ```bash
 composer require sulu/mcp-bundle
 ```
 
-Register the bundle in `config/bundles.php`, along with its two required dependencies (`league/oauth2-server-bundle` registers itself automatically if you use Symfony Flex; `symfony/mcp-bundle` has no Flex recipe yet and always needs the manual entry):
+Register the bundle in `config/bundles.php`, along with its two required dependencies. `league/oauth2-server-bundle`
+registers itself automatically if you use Symfony Flex, while `symfony/mcp-bundle` has no Flex recipe yet and always
+needs the manual entry:
 
 ```php
 return [
@@ -32,7 +48,8 @@ return [
 ];
 ```
 
-Import the routes in `config/routes.yaml` — `mcp` registers the actual MCP transport endpoint (provided by `symfony/mcp-bundle`), `sulu_mcp` registers this bundle's OAuth endpoints:
+Import the routes in `config/routes.yaml`. The `mcp` entry registers the MCP transport endpoint provided by
+`symfony/mcp-bundle`, and `sulu_mcp` registers this bundle's OAuth endpoints:
 
 ```yaml
 mcp:
@@ -49,7 +66,25 @@ Set the public server URL in your environment:
 SULU_MCP_SERVER_URL=https://your-sulu-host.example.com
 ```
 
-## Configuration
+The MCP endpoint then answers at `/admin/_mcp`. The [`docs/`](docs/) directory documents the
+[configuration reference](docs/configuration.md), the **required security setup**, and per-client connection guides for
+[Claude.ai](docs/clients/claude-ai.md), [Claude Code](docs/clients/claude-code.md),
+[Claude Cowork](docs/clients/claude-cowork.md), [ChatGPT](docs/clients/chatgpt.md) and [Codex](docs/clients/codex.md).
+
+## 💡&nbsp; Key Concepts
+
+### Permissions
+
+The bundle adds no permission model of its own. Every tool declares the Sulu security context and permission type it
+requires, a compile-time map is built from those declarations, and a central gate checks it before any tool runs.
+Tools the current role cannot use are hidden from the tool listing, and calling one anyway returns a permission denial
+rather than a missing-tool error.
+
+### Dangerous tools
+
+Tools with hard-to-reverse effects are **disabled by default** and enabled per category through the `dangerous_tools`
+configuration. When a category is disabled its tools are removed from the container at compile time, so they never
+appear to a client at all.
 
 ```yaml
 # config/packages/sulu_mcp.yaml
@@ -61,19 +96,17 @@ sulu_mcp:
         block_remove: false  # sulu_block_remove
 ```
 
-All three `dangerous_tools` flags default to `false`. Enable per category to expose those tools to MCP clients. Full reference: [`docs/configuration.md`](docs/configuration.md).
+### Available tools
 
-## Tools
-
-37 MCP tools, grouped by domain:
+37 tools spanning the core Sulu domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
 | Pages | 5 | `sulu_page_create`, `sulu_page_get`, `sulu_page_list`, `sulu_page_tree`, `sulu_page_update` |
-| Blocks | 5 | `sulu_block_add`, `sulu_block_update`, `sulu_block_reorder`, `sulu_block_list`, `sulu_block_remove` — generic over page/article/snippet via a `type` param |
+| Blocks | 5 | `sulu_block_add`, `sulu_block_update`, `sulu_block_reorder`, `sulu_block_list`, `sulu_block_remove` |
 | Articles | 4 | `sulu_article_create`, `sulu_article_update`, `sulu_article_get`, `sulu_article_list` |
 | Snippets | 4 | `sulu_snippet_create`, `sulu_snippet_update`, `sulu_snippet_get`, `sulu_snippet_list` |
-| Unified content | 3 | `sulu_content_delete`, `sulu_content_publish`, `sulu_content_unpublish` — take a `type` param (`page` \| `article` \| `snippet`) |
+| Unified content | 3 | `sulu_content_delete`, `sulu_content_publish`, `sulu_content_unpublish` |
 | Media | 3 | `sulu_media_list`, `sulu_media_get`, `sulu_media_update` |
 | Taxonomy | 6 | `sulu_tag_*`, `sulu_category_*` |
 | Preview | 2 | `sulu_preview_link_generate`, `sulu_preview_link_revoke` |
@@ -81,33 +114,37 @@ All three `dangerous_tools` flags default to `false`. Enable per category to exp
 | Contact | 1 | `sulu_contact_list` |
 | Misc | 3 | `sulu_content_search`, `sulu_get_context`, `sulu_ping` |
 
-Tools in the **delete**, **publish**, and **block_remove** categories are gated by the `dangerous_tools` config above.
+The block and unified content tools operate on pages, articles and snippets alike through a `type` parameter.
 
-## Connecting an MCP client
+### Authentication
 
-The MCP endpoint defaults to `/admin/_mcp`. Authentication uses Sulu's user system via OAuth 2.1 (Dynamic Client Registration supported through `league/oauth2-server-bundle`).
-During OAuth authorization, Sulu opens the admin login when needed and then shows an explicit consent screen before the MCP client receives tokens.
+Clients authenticate through OAuth 2.1 with Dynamic Client Registration, backed by `league/oauth2-server-bundle`.
+Sulu opens the administration login when needed and then shows an explicit consent screen naming the client and the
+requested scopes. Tokens are only issued once the user approves that screen.
 
-Per-client setup guides:
-
-- [Claude.ai](docs/clients/claude-ai.md)
-- [Claude Code](docs/clients/claude-code.md)
-- [Claude Cowork](docs/clients/claude-cowork.md)
-- [ChatGPT](docs/clients/chatgpt.md)
-- [Codex](docs/clients/codex.md)
-
-For the recommended system prompt to give your AI assistant when working with Sulu content, see [`docs/CONTENT_ASSISTANT_PROMPT.md`](docs/CONTENT_ASSISTANT_PROMPT.md). The full docs index lives at [`docs/README.md`](docs/README.md).
-
-## Development
+For hosted clients, create an OAuth client up front:
 
 ```bash
-composer fix     # rector + php-cs-fixer
-composer lint    # phpstan + cs check + rector dry-run + composer validate
-composer test    # phpunit
+bin/console sulu:mcp:create-client "Claude.ai Production"
 ```
 
-Run in that order. See [`CONTRIBUTING.md`](CONTRIBUTING.md) for contributor guidelines.
+## ❤️&nbsp; Support and Contributions
 
-## License
+The Sulu content management system is a **community-driven open source project** backed by various partner companies.
+We are committed to a fully transparent development process and **highly appreciate any contributions**.
 
-[MIT](LICENSE).
+Have a look at our [contribution guidelines](CONTRIBUTING.md) and the
+[Sulu contribution documentation](https://docs.sulu.io/en/3.x/developer/contributing/index.html) before opening a pull
+request. Security issues should be reported privately as described in [SECURITY.md](SECURITY.md).
+
+## ✅&nbsp; Requirements
+
+* PHP 8.2 or higher
+* Symfony 7.3 or higher
+* Sulu 3.0 or higher
+
+Have a look at the `require` section in the [composer.json](composer.json) for an up-to-date list.
+
+## 📘&nbsp; License
+
+The Sulu content management system is released under the terms of the [MIT License](LICENSE).
