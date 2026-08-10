@@ -12,3 +12,7 @@
 /composer.phar
 /auth.json
 .DS_Store
+/tests/Application/config/jwt/*.pem
+/tests/Application/public/build/
+/tests/Application/public/uploads/
+/tests/Application/node_modules/

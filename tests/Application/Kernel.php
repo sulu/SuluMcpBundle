@@ -46,3 +46,6 @@ class Kernel extends SuluTestKernel
         $loader->load(__DIR__.'/config/config.yml');
     }
 }
+
+// Needed so Symfony's default App\Kernel lookups resolve to this kernel
+\class_alias(Kernel::class, 'App\\Kernel');
