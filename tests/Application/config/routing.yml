@@ -1,3 +1,13 @@
-# Functional tests call container services directly and never dispatch real
-# HTTP requests, so no routes are needed here -- the file only needs to exist
-# for framework.router.resource (see SuluTestBundle's sulu.yml).
+# yaml-language-server: $schema=../vendor/symfony/routing/Loader/schema/routing.schema.json
+
+controllers:
+    resource: routing.controllers
+
+# MCP transport endpoint (/_mcp) - provided by symfony/mcp-bundle
+mcp:
+    resource: .
+    type: mcp
+
+# MCP OAuth endpoints (well-known, authorize)
+sulu_mcp:
+    resource: '@SuluMcpBundle/config/routes.yaml'

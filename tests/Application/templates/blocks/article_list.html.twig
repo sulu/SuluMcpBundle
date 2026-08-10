@@ -1,0 +1,24 @@
+<div class="my-12">
+    {% if block.title %}
+        <h2 class="text-3xl font-semibold text-gray-900 mb-6">{{ block.title }}</h2>
+    {% endif %}
+
+    {% if block.articles|default([]) is not empty %}
+        <div class="grid gap-6 md:grid-cols-2">
+            {% for article in block.articles %}
+                <article class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                    <h3 class="text-xl font-semibold text-gray-900 mb-2">
+                        <a href="{{ sulu_content_path(article.url) }}" class="hover:text-blue-600 transition-colors">
+                            {{ article.title }}
+                        </a>
+                    </h3>
+                    {% if article.description is defined and article.description %}
+                        <p class="text-gray-600 line-clamp-3">{{ article.description }}</p>
+                    {% endif %}
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <p class="text-gray-500 italic">No articles yet.</p>
+    {% endif %}
+</div>

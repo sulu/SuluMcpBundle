@@ -1,0 +1,10 @@
+<figure class="my-8">
+    {% for media in block.image %}
+        <img src="{{ media.thumbnails['sulu-400x400'] }}"
+             alt="{{ media.title }}"
+             class="rounded-lg shadow-md w-full max-w-2xl" />
+    {% endfor %}
+    {% if block.caption is defined and block.caption %}
+        <figcaption class="mt-2 text-sm text-gray-500 italic">{{ block.caption }}</figcaption>
+    {% endif %}
+</figure>

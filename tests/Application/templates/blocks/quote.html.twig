@@ -1,0 +1,6 @@
+<blockquote class="my-8 border-l-4 border-blue-500 pl-6 py-2">
+    <div class="prose prose-lg italic text-gray-700">{{ block.text|raw }}</div>
+    {% if block.attribution is defined and block.attribution %}
+        <footer class="mt-2 text-sm text-gray-500">&mdash; {{ block.attribution }}</footer>
+    {% endif %}
+</blockquote>

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="{{ app.request.locale|split('_')[0] }}">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    {% block meta %}
+        {{ include('@SuluWebsite/Extension/seo.html.twig', {
+            seo: extension.seo|default([]),
+            content: content|default([]),
+            localizations: localizations|default([]),
+            shadowBaseLocale: shadowBaseLocale|default(),
+        }) }}
+    {% endblock %}
+
+    {% block style %}
+        <link rel="stylesheet" href="/build/website/app.css">
+    {% endblock %}
+</head>
+<body class="bg-gray-50 text-gray-900 min-h-screen flex flex-col">
+    <header class="bg-white border-b border-gray-200 shadow-sm">
+        {% block header %}
+            <nav class="max-w-6xl mx-auto px-4 py-4">
+                <div class="flex items-center justify-between">
+                    <a href="{{ sulu_content_root_path() }}" class="text-xl font-bold text-blue-600 hover:text-blue-700">
+                        Sulu MCP
+                    </a>
+                    <ul class="flex items-center gap-6">
+                        {% for item in sulu_page_navigation_root_flat('main') %}
+                            <li>
+                                <a href="{{ sulu_content_path(item.url) }}"
+                                   title="{{ item.title }}"
+                                   class="text-gray-600 hover:text-blue-600 transition-colors font-medium">
+                                    {{ item.title }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
+                </div>
+            </nav>
+        {% endblock %}
+    </header>
+
+    <main class="flex-1">
+        {% block content %}{% endblock %}
+    </main>
+
+    <footer class="bg-gray-800 text-gray-400 mt-auto">
+        {% block footer %}
+            <div class="max-w-6xl mx-auto px-4 py-8 text-center text-sm">
+                <p>&copy; {{ 'now'|date('Y') }} Sulu MCP &mdash; Powered by Sulu CMS</p>
+            </div>
+        {% endblock %}
+    </footer>
+
+    {% block javascripts %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,2 @@
+_sulu_website:
+    resource: '@SuluWebsiteBundle/Resources/config/routing.yaml'

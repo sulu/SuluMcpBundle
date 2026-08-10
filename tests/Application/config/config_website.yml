@@ -1,0 +1,19 @@
+imports:
+    - config.yml
+
+framework:
+    router: { resource: '%kernel.project_dir%/config/routing_website.yml' }
+
+# league/oauth2-server-bundle registers an authenticator factory on the
+# "security" extension during build() regardless of context, so SecurityBundle
+# must be registered here too (see Kernel::registerBundles()). The website
+# context has no authenticated routes of its own, so this firewall is a
+# no-op placeholder -- matching redirect-bundle's config_website.yml.
+security:
+    providers:
+        users:
+            memory:
+                users: []
+    firewalls:
+        main:
+            lazy: true

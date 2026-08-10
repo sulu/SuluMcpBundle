@@ -19,6 +19,7 @@ use Sulu\Bundle\McpBundle\SuluMcpBundle;
 use Sulu\Bundle\TestBundle\Kernel\SuluTestKernel;
 use Sulu\Snippet\Infrastructure\Symfony\HttpKernel\SuluSnippetBundle;
 use Symfony\AI\McpBundle\McpBundle;
+use Symfony\Bundle\SecurityBundle\SecurityBundle;
 use Symfony\Component\Config\Loader\LoaderInterface;
 
 /**
@@ -36,6 +37,10 @@ class Kernel extends SuluTestKernel
         $bundles[] = new LeagueOAuth2ServerBundle();
         $bundles[] = new SuluMcpBundle();
 
+        if (self::CONTEXT_WEBSITE === $this->getContext()) {
+            $bundles[] = new SecurityBundle();
+        }
+
         return $bundles;
     }
 
@@ -43,7 +48,7 @@ class Kernel extends SuluTestKernel
     {
         parent::registerContainerConfiguration($loader);
 
-        $loader->load(__DIR__.'/config/config.yml');
+        $loader->load(__DIR__.'/config/config_'.$this->getContext().'.yml');
     }
 }
 

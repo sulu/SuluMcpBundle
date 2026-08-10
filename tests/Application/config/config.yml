@@ -4,6 +4,14 @@ framework:
             sync: 'sync://'
         routing:
 
+# dev/config/packages/sulu_security.yaml enables the checker for both
+# contexts (no context suffix, so SuluKernel loads it everywhere); the
+# website context needs it too because SuluMcpBundle's ToolPermissionChecker
+# autowires SecurityCheckerInterface regardless of context.
+sulu_security:
+    checker:
+        enabled: true
+
 twig:
     paths:
         - '%kernel.project_dir%/templates'
@@ -38,3 +46,15 @@ league_oauth2_server:
 
 sulu_article:
     default_main_webspace: website
+
+# SuluPreviewBundle's default kernel factory resolves the project dir by
+# walking up from the App\Kernel class file to the nearest composer.json,
+# which lands on the bundle root instead of tests/Application. Point it at
+# the local PreviewKernel so `cache:warmup`/`cache:clear` (which boot a
+# website kernel via CacheCommandSubscriber regardless of console context)
+# resolve config from the right place.
+services:
+    sulu_preview.preview.kernel_factory:
+        class: Sulu\Bundle\McpBundle\Tests\Application\PreviewKernelFactory
+        arguments:
+            - '%kernel.environment%'

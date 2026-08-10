@@ -1,0 +1,12 @@
+<div class="my-8 flex flex-col md:flex-row gap-8 items-start">
+    <div class="prose prose-lg flex-1">
+        {{ block.content|raw }}
+    </div>
+    <div class="w-full md:w-1/3 flex-shrink-0">
+        {% for media in block.image %}
+            <img src="{{ media.thumbnails['sulu-400x400'] }}"
+                 alt="{{ media.title }}"
+                 class="rounded-lg shadow-md w-full" />
+        {% endfor %}
+    </div>
+</div>
