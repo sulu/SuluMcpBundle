@@ -16,3 +16,4 @@
 /tests/Application/public/build/
 /tests/Application/public/uploads/
 /tests/Application/node_modules/
+package-lock.json

@@ -1,9 +1,0 @@
-sulu_mcp:
-    server_url: '%env(SULU_MCP_SERVER_URL)%'
-    oauth:
-        access_token_ttl: 3600
-        refresh_token_ttl: 2592000
-    dangerous_tools:
-        delete: true
-        publish: true
-        block_remove: true

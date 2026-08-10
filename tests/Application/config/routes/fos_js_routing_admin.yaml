@@ -1,3 +1,0 @@
-fos_js_routing:
-    prefix: /admin
-    resource: "@FOSJsRoutingBundle/Resources/config/routing/routing.php"
