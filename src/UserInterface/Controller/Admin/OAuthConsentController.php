@@ -35,7 +35,7 @@ final readonly class OAuthConsentController
     }
 
     #[Route(
-        '/admin/mcp/consent/{requestId}',
+        '/admin/_mcp/consent/{requestId}',
         name: 'sulu_mcp_oauth_consent_details',
         options: ['expose' => true],
         methods: ['GET'],
@@ -57,7 +57,7 @@ final readonly class OAuthConsentController
     }
 
     #[Route(
-        '/admin/mcp/consent/{requestId}',
+        '/admin/_mcp/consent/{requestId}',
         name: 'sulu_mcp_oauth_consent_decision',
         options: ['expose' => true],
         methods: ['POST'],

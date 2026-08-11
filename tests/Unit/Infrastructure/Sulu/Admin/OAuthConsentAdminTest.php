@@ -32,7 +32,7 @@ final class OAuthConsentAdminTest extends TestCase
         self::assertTrue($viewCollection->has(OAuthConsentAdmin::CONSENT_VIEW));
 
         $view = $viewCollection->get(OAuthConsentAdmin::CONSENT_VIEW)->getView();
-        self::assertSame('/mcp/authorize/:requestId', $view->getPath());
+        self::assertSame('/_mcp/authorize/:requestId', $view->getPath());
         self::assertSame('sulu_admin.authorization_consent', $view->getType());
         self::assertSame('sulu_mcp_oauth_consent_details', $view->getOption('detailsRoute'));
         self::assertSame('sulu_mcp_oauth_consent_decision', $view->getOption('decisionRoute'));

@@ -30,7 +30,7 @@ final class OAuthAuthorizeEntryPointTest extends TestCase
         $inner->expects(self::never())->method('start');
 
         $entryPoint = new OAuthAuthorizeEntryPoint($inner);
-        $response = $entryPoint->start(Request::create('/admin/mcp/authorize'));
+        $response = $entryPoint->start(Request::create('/admin/_mcp/authorize'));
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSame('/admin/', $response->getTargetUrl());
@@ -67,7 +67,7 @@ final class OAuthAuthorizeEntryPointTest extends TestCase
         $inner->expects(self::once())->method('start')->willReturn($innerResponse);
 
         $entryPoint = new OAuthAuthorizeEntryPoint($inner);
-        $response = $entryPoint->start(Request::create('/admin/mcp/authorize-not-really'));
+        $response = $entryPoint->start(Request::create('/admin/_mcp/authorize-not-really'));
 
         $this->assertSame($innerResponse, $response);
     }

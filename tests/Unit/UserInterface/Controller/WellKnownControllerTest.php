@@ -16,13 +16,14 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Controller;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\UserInterface\Controller\WellKnownController;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 #[CoversClass(WellKnownController::class)]
 final class WellKnownControllerTest extends TestCase
 {
     public function testProtectedResourceMetadataUsesConfiguredScopesAndMcpPath(): void
     {
-        $controller = new WellKnownController('https://sulu.example.com/', '/admin/custom-mcp', ['mcp:tools']);
+        $controller = new WellKnownController($this->urlGenerator(), 'https://sulu.example.com/', '/admin/custom-mcp', ['mcp:tools']);
 
         $response = $controller->protectedResourceMetadata();
         $body = $this->json($response->getContent());
@@ -33,15 +34,36 @@ final class WellKnownControllerTest extends TestCase
 
     public function testAuthorizationServerMetadataUsesConfiguredScopes(): void
     {
-        $controller = new WellKnownController('https://sulu.example.com', '/admin/_mcp', ['mcp:tools']);
+        $controller = new WellKnownController($this->urlGenerator(), 'https://sulu.example.com', '/admin/_mcp', ['mcp:tools']);
 
         $response = $controller->authorizationServerMetadata();
         $body = $this->json($response->getContent());
 
-        self::assertSame('https://sulu.example.com/admin/mcp/authorize', $body['authorization_endpoint']);
-        self::assertSame('https://sulu.example.com/mcp/token', $body['token_endpoint']);
+        self::assertSame('https://sulu.example.com/admin/_mcp/authorize', $body['authorization_endpoint']);
+        self::assertSame('https://sulu.example.com/admin/_mcp/token', $body['token_endpoint']);
+        self::assertSame('https://sulu.example.com/admin/_mcp/register', $body['registration_endpoint']);
         self::assertSame(['mcp:tools'], $body['scopes_supported']);
         self::assertContains('none', $body['token_endpoint_auth_methods_supported']);
+    }
+
+    /**
+     * The paths come from the router so a renamed route cannot drift out of the
+     * discovery document; OAuthRoutingTest asserts the real ones are registered.
+     */
+    private function urlGenerator(): UrlGeneratorInterface
+    {
+        $paths = [
+            'sulu_mcp_oauth_authorize' => '/admin/_mcp/authorize',
+            'sulu_mcp_oauth_token' => '/admin/_mcp/token',
+            'sulu_mcp_client_registration' => '/admin/_mcp/register',
+        ];
+
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturnCallback(
+            static fn (string $name): string => $paths[$name] ?? self::fail('Unexpected route "'.$name.'".'),
+        );
+
+        return $urlGenerator;
     }
 
     /**

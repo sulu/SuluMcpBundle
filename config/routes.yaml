@@ -2,20 +2,15 @@
 # Import in your project's config/routes.yaml:
 #   sulu_mcp:
 #       resource: '@SuluMcpBundle/config/routes.yaml'
-#
-# This file imports the OAuth controllers required for MCP authentication
-# (the MCP transport endpoint itself is registered by symfony/mcp-bundle at
-# the configured path -- defaults to /admin/_mcp so the request lands in the
-# admin kernel, where Sulu services tagged sulu.context: admin are available).
 sulu_mcp_oauth:
     resource: ../src/UserInterface/Controller/
     type: attribute
 
 sulu_mcp_oauth_authorize:
-    path: /admin/mcp/authorize
+    path: /admin/_mcp/authorize
     controller: league.oauth2_server.controller.authorization::indexAction
 
 sulu_mcp_oauth_token:
-    path: /mcp/token
+    path: /admin/_mcp/token
     controller: league.oauth2_server.controller.token::indexAction
     methods: [POST]

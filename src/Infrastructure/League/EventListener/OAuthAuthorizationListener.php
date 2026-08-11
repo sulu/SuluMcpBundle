@@ -63,6 +63,6 @@ final readonly class OAuthAuthorizationListener
 
     private function consentViewUrl(string $requestId): string
     {
-        return \sprintf('/admin/#/mcp/authorize/%s', $requestId);
+        return \sprintf('/admin/#/_mcp/authorize/%s', $requestId);
     }
 }

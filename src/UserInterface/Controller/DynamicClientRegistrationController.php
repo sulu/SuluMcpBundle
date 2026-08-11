@@ -42,12 +42,11 @@ class DynamicClientRegistrationController
      */
     public function __construct(
         private readonly ClientManagerInterface $clientManager,
-        private readonly string $serverUrl,
         private readonly array $allowedScopes = ['mcp:tools', 'mcp:resources'],
     ) {
     }
 
-    #[Route('/mcp/register', name: 'sulu_mcp_client_registration', methods: ['POST'])]
+    #[Route('/admin/_mcp/register', name: 'sulu_mcp_client_registration', methods: ['POST'])]
     public function register(Request $request): JsonResponse
     {
         try {
@@ -122,8 +121,6 @@ class DynamicClientRegistrationController
 
         $this->clientManager->save($client);
 
-        $base = rtrim($this->serverUrl, '/');
-
         $payload = [
             'client_id' => $clientId,
             'client_name' => $clientName,
@@ -131,7 +128,6 @@ class DynamicClientRegistrationController
             'grant_types' => $grantTypes,
             'token_endpoint_auth_method' => $tokenEndpointAuthMethod,
             'scope' => \implode(' ', $scopes),
-            'registration_client_uri' => $base.'/mcp/register/'.$clientId,
         ];
 
         if (null !== $clientSecret) {

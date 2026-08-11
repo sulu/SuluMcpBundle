@@ -34,13 +34,13 @@ final class OAuthRoutingTest extends FunctionalTestCase
         // Loaded by attribute discovery over the controller directory.
         yield 'protected resource metadata' => ['sulu_mcp_prm', '/.well-known/oauth-protected-resource', 'GET'];
         yield 'authorization server metadata' => ['sulu_mcp_as_metadata', '/.well-known/oauth-authorization-server', 'GET'];
-        yield 'dynamic client registration' => ['sulu_mcp_client_registration', '/mcp/register', 'POST'];
-        yield 'consent details' => ['sulu_mcp_oauth_consent_details', '/admin/mcp/consent/{requestId}', 'GET'];
-        yield 'consent decision' => ['sulu_mcp_oauth_consent_decision', '/admin/mcp/consent/{requestId}', 'POST'];
+        yield 'dynamic client registration' => ['sulu_mcp_client_registration', '/admin/_mcp/register', 'POST'];
+        yield 'consent details' => ['sulu_mcp_oauth_consent_details', '/admin/_mcp/consent/{requestId}', 'GET'];
+        yield 'consent decision' => ['sulu_mcp_oauth_consent_decision', '/admin/_mcp/consent/{requestId}', 'POST'];
 
         // Declared explicitly in config/routes.yaml.
-        yield 'authorize' => ['sulu_mcp_oauth_authorize', '/admin/mcp/authorize', ''];
-        yield 'token' => ['sulu_mcp_oauth_token', '/mcp/token', 'POST'];
+        yield 'authorize' => ['sulu_mcp_oauth_authorize', '/admin/_mcp/authorize', ''];
+        yield 'token' => ['sulu_mcp_oauth_token', '/admin/_mcp/token', 'POST'];
     }
 
     #[DataProvider('routeProvider')]

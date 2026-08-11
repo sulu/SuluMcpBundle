@@ -26,7 +26,7 @@ final class McpLoginSuccessListener
 {
     private const FIREWALL_NAME = 'admin';
     private const TARGET_PATH_KEY = '_security.admin.target_path';
-    private const MCP_AUTHORIZE_PATH = '/admin/mcp/authorize';
+    private const MCP_AUTHORIZE_PATH = '/admin/_mcp/authorize';
 
     public function __invoke(LoginSuccessEvent $event): void
     {

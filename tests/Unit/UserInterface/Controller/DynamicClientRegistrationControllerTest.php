@@ -32,7 +32,6 @@ final class DynamicClientRegistrationControllerTest extends TestCase
         $this->clientManager = $this->createMock(ClientManagerInterface::class);
         $this->controller = new DynamicClientRegistrationController(
             $this->clientManager,
-            'https://sulu.example.com',
             ['mcp:tools'],
         );
     }
@@ -70,7 +69,7 @@ final class DynamicClientRegistrationControllerTest extends TestCase
     {
         $this->clientManager->expects($this->never())->method('save');
 
-        $response = $this->controller->register(Request::create('/mcp/register', 'POST', [], [], [], [], '{'));
+        $response = $this->controller->register(Request::create('/admin/_mcp/register', 'POST', [], [], [], [], '{'));
 
         self::assertSame(400, $response->getStatusCode());
         self::assertSame('invalid_client_metadata', $this->json($response->getContent())['error']);
@@ -219,7 +218,7 @@ final class DynamicClientRegistrationControllerTest extends TestCase
         $content = json_encode($body, \JSON_THROW_ON_ERROR);
         self::assertIsString($content);
 
-        return Request::create('/mcp/register', 'POST', [], [], [], [], $content);
+        return Request::create('/admin/_mcp/register', 'POST', [], [], [], [], $content);
     }
 
     /**

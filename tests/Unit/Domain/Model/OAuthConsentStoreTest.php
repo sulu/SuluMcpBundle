@@ -33,14 +33,14 @@ final class OAuthConsentStoreTest extends TestCase
     public function testCreateStoresAuthorizationRequestMetadata(): void
     {
         $store = new OAuthConsentStore();
-        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=client-1&state=state-1');
+        $request = $this->request('/admin/_mcp/authorize?response_type=code&client_id=client-1&state=state-1');
         $event = $this->event(['mcp:tools', 'mcp:resources']);
 
         $consentRequest = $store->create($request, $event);
 
         self::assertMatchesRegularExpression('/^[a-f0-9]{32}$/', $consentRequest->getId());
-        self::assertSame('/admin/mcp/authorize?response_type=code&client_id=client-1&state=state-1', $consentRequest->getAuthorizationUrl());
-        self::assertStringStartsWith('/admin/mcp/authorize?', $consentRequest->getContinuationUrl());
+        self::assertSame('/admin/_mcp/authorize?response_type=code&client_id=client-1&state=state-1', $consentRequest->getAuthorizationUrl());
+        self::assertStringStartsWith('/admin/_mcp/authorize?', $consentRequest->getContinuationUrl());
         self::assertStringContainsString('sulu_mcp_consent='.$consentRequest->getId(), $consentRequest->getContinuationUrl());
         self::assertStringContainsString('client_id=client-1', $consentRequest->getContinuationUrl());
         self::assertSame('client-1', $consentRequest->getClientId());
@@ -56,7 +56,7 @@ final class OAuthConsentStoreTest extends TestCase
     public function testDecideStoresDecisionAndConsumeDecisionRemovesRequest(): void
     {
         $store = new OAuthConsentStore();
-        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=client-1');
+        $request = $this->request('/admin/_mcp/authorize?response_type=code&client_id=client-1');
         $consentRequest = $store->create($request, $this->event(['mcp:tools']));
 
         $decided = $store->decide($request, $consentRequest->getId(), false);
@@ -70,12 +70,12 @@ final class OAuthConsentStoreTest extends TestCase
     public function testCreatePreservesOriginalAuthorizeQueryEncoding(): void
     {
         $store = new OAuthConsentStore();
-        $request = $this->request('/admin/mcp/authorize?redirect_uri=https%3A%2F%2Fclient.example%2Fcallback%3Fx%3Da%2Bb&scope=mcp%3Atools+mcp%3Aresources&sulu_mcp_consent=old');
+        $request = $this->request('/admin/_mcp/authorize?redirect_uri=https%3A%2F%2Fclient.example%2Fcallback%3Fx%3Da%2Bb&scope=mcp%3Atools+mcp%3Aresources&sulu_mcp_consent=old');
 
         $consentRequest = $store->create($request, $this->event(['mcp:tools']));
 
         self::assertSame(
-            '/admin/mcp/authorize?redirect_uri=https%3A%2F%2Fclient.example%2Fcallback%3Fx%3Da%2Bb&scope=mcp%3Atools+mcp%3Aresources',
+            '/admin/_mcp/authorize?redirect_uri=https%3A%2F%2Fclient.example%2Fcallback%3Fx%3Da%2Bb&scope=mcp%3Atools+mcp%3Aresources',
             $consentRequest->getAuthorizationUrl(),
         );
         self::assertSame(
@@ -87,7 +87,7 @@ final class OAuthConsentStoreTest extends TestCase
     public function testMissingRequestReturnsNull(): void
     {
         $store = new OAuthConsentStore();
-        $request = $this->request('/admin/mcp/authorize');
+        $request = $this->request('/admin/_mcp/authorize');
 
         self::assertNull($store->get($request, 'missing'));
         self::assertNull($store->decide($request, 'missing', true));

@@ -139,7 +139,6 @@ services:
 
     Sulu\Mcp\UserInterface\Controller\DynamicClientRegistrationController:
         arguments:
-            $serverUrl: '%sulu_mcp.server_url%'
             $allowedScopes: '%sulu_mcp.oauth.scopes%'
         tags: ['controller.service_arguments']
 
@@ -163,7 +162,7 @@ services:
         arguments:
             $inner: '@.inner'
 
-    # After admin login, resume a pending /admin/mcp/authorize OAuth request.
+    # After admin login, resume a pending /admin/_mcp/authorize OAuth request.
     Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpLoginSuccessListener: ~
 
     # MCP event listeners

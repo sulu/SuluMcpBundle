@@ -31,8 +31,8 @@ use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 final class McpLoginSuccessListenerTest extends TestCase
 {
     private const TARGET_PATH_KEY = '_security.admin.target_path';
-    private const AUTHORIZE_URL = 'https://sulu.example.com/admin/mcp/authorize?response_type=code&client_id=abc&state=xyz';
-    private const AUTHORIZE_RELATIVE = '/admin/mcp/authorize?response_type=code&client_id=abc&state=xyz';
+    private const AUTHORIZE_URL = 'https://sulu.example.com/admin/_mcp/authorize?response_type=code&client_id=abc&state=xyz';
+    private const AUTHORIZE_RELATIVE = '/admin/_mcp/authorize?response_type=code&client_id=abc&state=xyz';
 
     public function testRewritesJsonResponseToRedirectWhenTargetIsAuthorize(): void
     {
@@ -74,7 +74,7 @@ final class McpLoginSuccessListenerTest extends TestCase
 
     public function testLeavesResponseUnchangedWhenTargetMerelySharesTheAuthorizePrefix(): void
     {
-        $request = $this->requestWithTargetPath('https://sulu.example.com/admin/mcp/authorize-not-really');
+        $request = $this->requestWithTargetPath('https://sulu.example.com/admin/_mcp/authorize-not-really');
         $event = $this->event('admin', $request, new JsonResponse(['url' => '/admin/', 'completed' => true]));
 
         (new McpLoginSuccessListener())($event);

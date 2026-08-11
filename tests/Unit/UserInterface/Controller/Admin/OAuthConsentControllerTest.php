@@ -58,7 +58,7 @@ final class OAuthConsentControllerTest extends TestCase
 
     public function testDetailsReturnsConsentMetadata(): void
     {
-        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=client-1');
+        $request = $this->request('/admin/_mcp/authorize?response_type=code&client_id=client-1');
         $consentRequest = $this->store->create($request, $this->event(['mcp:tools']));
 
         $response = $this->controller->details($request, $consentRequest->getId());
@@ -73,7 +73,7 @@ final class OAuthConsentControllerTest extends TestCase
 
     public function testDetailsReturnsNotFoundForMissingRequest(): void
     {
-        $response = $this->controller->details($this->request('/admin/mcp/consent/missing'), 'missing');
+        $response = $this->controller->details($this->request('/admin/_mcp/consent/missing'), 'missing');
 
         self::assertSame(404, $response->getStatusCode());
         self::assertSame('not_found', $this->json($response)['error']);
@@ -81,11 +81,11 @@ final class OAuthConsentControllerTest extends TestCase
 
     public function testDecisionStoresApprovalAndReturnsRedirectUrl(): void
     {
-        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=client-1');
+        $request = $this->request('/admin/_mcp/authorize?response_type=code&client_id=client-1');
         $consentRequest = $this->store->create($request, $this->event(['mcp:tools']));
 
         $response = $this->controller->decision(
-            $this->request('/admin/mcp/consent/'.$consentRequest->getId(), '{"approved": true}', $request->getSession()),
+            $this->request('/admin/_mcp/consent/'.$consentRequest->getId(), '{"approved": true}', $request->getSession()),
             $consentRequest->getId(),
         );
         $body = $this->json($response);
@@ -97,11 +97,11 @@ final class OAuthConsentControllerTest extends TestCase
 
     public function testDecisionStoresDenial(): void
     {
-        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=client-1');
+        $request = $this->request('/admin/_mcp/authorize?response_type=code&client_id=client-1');
         $consentRequest = $this->store->create($request, $this->event(['mcp:tools']));
 
         $response = $this->controller->decision(
-            $this->request('/admin/mcp/consent/'.$consentRequest->getId(), '{"approved": false}', $request->getSession()),
+            $this->request('/admin/_mcp/consent/'.$consentRequest->getId(), '{"approved": false}', $request->getSession()),
             $consentRequest->getId(),
         );
 
@@ -111,11 +111,11 @@ final class OAuthConsentControllerTest extends TestCase
 
     public function testDecisionRejectsInvalidPayload(): void
     {
-        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=client-1');
+        $request = $this->request('/admin/_mcp/authorize?response_type=code&client_id=client-1');
         $consentRequest = $this->store->create($request, $this->event(['mcp:tools']));
 
         $response = $this->controller->decision(
-            $this->request('/admin/mcp/consent/'.$consentRequest->getId(), '{"approved": "yes"}', $request->getSession()),
+            $this->request('/admin/_mcp/consent/'.$consentRequest->getId(), '{"approved": "yes"}', $request->getSession()),
             $consentRequest->getId(),
         );
 
@@ -127,7 +127,7 @@ final class OAuthConsentControllerTest extends TestCase
     public function testDecisionReturnsNotFoundForMissingRequest(): void
     {
         $response = $this->controller->decision(
-            $this->request('/admin/mcp/consent/missing', '{"approved": true}'),
+            $this->request('/admin/_mcp/consent/missing', '{"approved": true}'),
             'missing',
         );
 
