@@ -15,21 +15,32 @@ namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Symfony\HttpKernel;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\Configuration;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\SuluMcpExtension;
+use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\SuluMcpBundle;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
+use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
 
-#[CoversClass(SuluMcpExtension::class)]
-#[CoversClass(Configuration::class)]
-final class SuluMcpExtensionTest extends TestCase
+#[CoversClass(SuluMcpBundle::class)]
+final class SuluMcpBundleTest extends TestCase
 {
+    public function testExtensionIsRegisteredUnderTheSuluMcpAlias(): void
+    {
+        $extension = (new SuluMcpBundle())->getContainerExtension();
+
+        self::assertNotNull($extension);
+        self::assertSame('sulu_mcp', $extension->getAlias());
+    }
+
     public function testPrependWiresMcpAndLeagueOAuthConfiguration(): void
     {
-        $container = new ContainerBuilder();
+        $container = $this->container();
         $container->registerExtension($this->extension('mcp'));
         $container->registerExtension($this->extension('league_oauth2_server'));
-        $container->registerExtension(new SuluMcpExtension());
+
+        $extension = (new SuluMcpBundle())->getContainerExtension();
+        self::assertInstanceOf(PrependExtensionInterface::class, $extension);
+        $container->registerExtension($extension);
+
         $container->loadFromExtension('sulu_mcp', [
             'server_url' => 'https://sulu.example.com',
             'mcp_path' => '/admin/custom-mcp',
@@ -40,7 +51,7 @@ final class SuluMcpExtensionTest extends TestCase
             ],
         ]);
 
-        (new SuluMcpExtension())->prepend($container);
+        $extension->prepend($container);
 
         self::assertSame(
             [
@@ -72,9 +83,12 @@ final class SuluMcpExtensionTest extends TestCase
 
     public function testLoadSetsDisabledToolNamesFromDangerousToolsConfig(): void
     {
-        $container = new ContainerBuilder();
+        $container = $this->container();
 
-        (new SuluMcpExtension())->load([
+        $extension = (new SuluMcpBundle())->getContainerExtension();
+        self::assertNotNull($extension);
+
+        $extension->load([
             [
                 'server_url' => 'https://sulu.example.com',
                 'dangerous_tools' => [
@@ -89,6 +103,33 @@ final class SuluMcpExtensionTest extends TestCase
             ['sulu_content_publish', 'sulu_content_unpublish', 'sulu_preview_link_revoke'],
             $container->getParameter('sulu_mcp.disabled_tool_names'),
         );
+    }
+
+    public function testLoadAppliesConfigurationDefaults(): void
+    {
+        $container = $this->container();
+
+        $extension = (new SuluMcpBundle())->getContainerExtension();
+        self::assertNotNull($extension);
+
+        $extension->load([['server_url' => 'https://sulu.example.com']], $container);
+
+        self::assertSame('/admin/_mcp', $container->getParameter('sulu_mcp.mcp_path'));
+        self::assertSame(['mcp:tools', 'mcp:resources'], $container->getParameter('sulu_mcp.oauth.scopes'));
+        self::assertFalse($container->getParameter('sulu_mcp.dangerous_tools.delete'));
+    }
+
+    /**
+     * BundleExtension routes load()/prepend() through a ContainerConfigurator, which reads
+     * these kernel parameters. A bare ContainerBuilder does not define them.
+     */
+    private function container(): ContainerBuilder
+    {
+        $container = new ContainerBuilder();
+        $container->setParameter('kernel.environment', 'test');
+        $container->setParameter('kernel.build_dir', \sys_get_temp_dir());
+
+        return $container;
     }
 
     private function extension(string $alias): Extension
