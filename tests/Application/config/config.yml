@@ -58,3 +58,8 @@ services:
         class: Sulu\Bundle\McpBundle\Tests\Application\PreviewKernelFactory
         arguments:
             - '%kernel.environment%'
+
+    Sulu\Bundle\McpBundle\Tests\Application\DataFixtures\:
+        resource: '../DataFixtures/'
+        autowire: true
+        autoconfigure: true
