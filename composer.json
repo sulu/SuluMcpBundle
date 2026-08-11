@@ -55,6 +55,9 @@
             "Sulu\\Bundle\\McpBundle\\Tests\\": "tests/"
         }
     },
+    "extra": {
+        "public-dir": "tests/Application/public"
+    },
     "scripts": {
         "test": [
             "Composer\\Config::disableProcessTimeout",

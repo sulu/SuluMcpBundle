@@ -17,6 +17,14 @@ composer bootstrap-test-environment
 The database binds to port 3306. Set `SULU_MCP_DB_PORT` to pick another one, and
 point the test application at it in `tests/Application/.env.test.local`.
 
+To browse the admin, build its assets once. The `sulu:admin:update-build` shortcut does not
+work here because it reads the Sulu version from a `composer.lock` next to the kernel, which a
+test application does not have:
+
+```bash
+cd tests/Application/assets/admin && npm install && npm run build
+```
+
 Run the following, in this order, before opening a pull request:
 
 ```bash
