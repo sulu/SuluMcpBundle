@@ -47,6 +47,11 @@ jobs:
                       php-extensions: 'ctype, iconv, mbstring, sodium, mysql'
                       tools: 'composer:v2'
 
+                    - php-version: '8.5'
+                      dependency-versions: 'highest'
+                      php-extensions: 'ctype, iconv, mbstring, sodium, mysql'
+                      tools: 'composer:v2'
+
         services:
             mysql:
                 image: mysql:8.4
