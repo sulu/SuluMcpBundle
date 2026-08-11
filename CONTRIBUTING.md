@@ -19,10 +19,9 @@ point the test application at it in `tests/Application/.env.test.local`.
 
 ### Running the test application
 
-`tests/Application` is a runnable Sulu installation. To browse it, export `APP_ENV`
-rather than setting it in `.env.local`: `tests/Application/.env` pins `APP_ENV=test`,
-and Symfony skips `.env.local` in test environments, so a `.env.local` written while
-`APP_ENV` is still `test` is read by nothing.
+`tests/Application` is a runnable Sulu installation. `APP_ENV` has to be exported rather
+than set in `.env.local`, because Symfony skips `.env.local` whenever `APP_ENV` is a test
+environment and `.env` pins it to `test`.
 
 ```bash
 export APP_ENV=dev
