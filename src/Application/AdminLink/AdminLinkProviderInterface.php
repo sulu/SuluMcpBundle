@@ -13,6 +13,11 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Application\AdminLink;
 
+/**
+ * Per-entity-type strategy behind AdminLinkGeneratorInterface.
+ *
+ * @internal
+ */
 interface AdminLinkProviderInterface
 {
     /**
