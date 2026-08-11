@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Domain\Model;
+namespace Sulu\Mcp\Domain\Model;
 
 /**
  * @internal

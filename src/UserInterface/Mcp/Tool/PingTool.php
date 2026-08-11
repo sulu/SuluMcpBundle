@@ -11,12 +11,12 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool;
+namespace Sulu\Mcp\UserInterface\Mcp\Tool;
 
 use Mcp\Capability\Attribute\McpTool;
-use Sulu\Bundle\McpBundle\Application\Security\WebspacePermissionResolver;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
+use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 /**

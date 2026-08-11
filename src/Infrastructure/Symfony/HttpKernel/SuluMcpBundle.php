@@ -11,12 +11,12 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel;
+namespace Sulu\Mcp\Infrastructure\Symfony\HttpKernel;
 
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\Compiler\McpDiscoveryPathPass;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\McpDiscoveryPathPass;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
 use Symfony\Component\Config\Definition\Configuration;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\Config\Definition\Processor;

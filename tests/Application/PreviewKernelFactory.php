@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Application;
+namespace Sulu\Mcp\Tests\Application;
 
 use Sulu\Bundle\PreviewBundle\Preview\Renderer\KernelFactoryInterface;
 use Sulu\Component\HttpKernel\SuluKernel;

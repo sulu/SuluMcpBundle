@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Application\Content;
+namespace Sulu\Mcp\Application\Content;
 
 /**
  * Strips empty/null values and unnecessary metadata from Sulu's normalized content

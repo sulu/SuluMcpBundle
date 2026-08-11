@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Domain\Exception;
+namespace Sulu\Mcp\Domain\Exception;
 
 /**
  * Thrown when a Sulu user lacks the required permission for an MCP operation.

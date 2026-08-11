@@ -11,8 +11,8 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-use Sulu\Bundle\McpBundle\Tests\Application\Kernel;
 use Sulu\Component\HttpKernel\SuluKernel;
+use Sulu\Mcp\Tests\Application\Kernel;
 use Symfony\Component\HttpFoundation\Request;
 
 require __DIR__.'/../config/bootstrap.php';

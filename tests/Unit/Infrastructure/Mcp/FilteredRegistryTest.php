@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Mcp;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Mcp;
 
 use Mcp\Capability\Discovery\DiscoveryState;
 use Mcp\Capability\Registry\ToolReference;
@@ -21,16 +21,16 @@ use Mcp\Schema\Tool;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionChecker;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Application\Security\ToolVisibilityResolver;
-use Sulu\Bundle\McpBundle\Application\Security\WebspacePermissionResolver;
-use Sulu\Bundle\McpBundle\Infrastructure\Mcp\FilteredRegistry;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
-use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
+use Sulu\Mcp\Application\Security\ToolPermissionChecker;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
+use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
+use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 
 #[CoversClass(FilteredRegistry::class)]

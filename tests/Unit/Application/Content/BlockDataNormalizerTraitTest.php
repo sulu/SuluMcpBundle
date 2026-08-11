@@ -11,12 +11,12 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Application\Content;
+namespace Sulu\Mcp\Tests\Unit\Application\Content;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Application\BlockIdGenerator\BlockIdGeneratorInterface;
-use Sulu\Bundle\McpBundle\Application\Content\BlockDataNormalizerTrait;
+use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 
 #[CoversClass(BlockDataNormalizerTrait::class)]
 final class BlockDataNormalizerTraitTest extends TestCase

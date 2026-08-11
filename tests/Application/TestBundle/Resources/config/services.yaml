@@ -1,6 +1,6 @@
 services:
-    Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Metadata\TestGroupProvider:
+    Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider:
         arguments:
             $groups: []
 
-    Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry: ~
+    Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry: ~

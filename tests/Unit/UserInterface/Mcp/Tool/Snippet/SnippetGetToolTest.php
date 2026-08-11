@@ -11,15 +11,15 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Tool\Snippet;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Snippet;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Snippet\SnippetGetTool;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetGetTool;
 use Sulu\Snippet\Domain\Exception\SnippetNotFoundException;
 use Sulu\Snippet\Domain\Model\SnippetInterface;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;

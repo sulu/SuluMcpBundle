@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Application\Security;
+namespace Sulu\Mcp\Application\Security;
 
 /**
  * Resolves a dynamic security context from a tool call's arguments (e.g. the

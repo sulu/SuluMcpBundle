@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\Sulu\Admin;
+namespace Sulu\Mcp\Infrastructure\Sulu\Admin;
 
 use Sulu\Bundle\AdminBundle\Admin\Admin;
 use Sulu\Bundle\AdminBundle\Admin\View\ViewBuilderFactoryInterface;

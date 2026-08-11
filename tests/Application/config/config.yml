@@ -59,11 +59,11 @@ sulu_article:
 # resolve config from the right place.
 services:
     sulu_preview.preview.kernel_factory:
-        class: Sulu\Bundle\McpBundle\Tests\Application\PreviewKernelFactory
+        class: Sulu\Mcp\Tests\Application\PreviewKernelFactory
         arguments:
             - '%kernel.environment%'
 
-    Sulu\Bundle\McpBundle\Tests\Application\DataFixtures\:
+    Sulu\Mcp\Tests\Application\DataFixtures\:
         resource: '../DataFixtures/'
         autowire: true
         autoconfigure: true

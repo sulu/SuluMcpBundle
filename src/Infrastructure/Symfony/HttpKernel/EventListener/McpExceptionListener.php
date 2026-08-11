@@ -11,11 +11,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\EventListener;
+namespace Sulu\Mcp\Infrastructure\Symfony\HttpKernel\EventListener;
 
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;

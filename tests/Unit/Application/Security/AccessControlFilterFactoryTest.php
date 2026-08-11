@@ -11,12 +11,12 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Application\Security;
+namespace Sulu\Mcp\Tests\Unit\Application\Security;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Application\Security\AccessControlFilterFactory;
 use Sulu\Component\Security\Authentication\UserInterface;
+use Sulu\Mcp\Application\Security\AccessControlFilterFactory;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\Security\Core\User\UserInterface as CoreUserInterface;
 

@@ -11,11 +11,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Symfony\HttpKernel\EventListener;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\HttpKernel\EventListener;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\EventListener\McpRequestFormatListener;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\EventListener\McpRequestFormatListener;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;

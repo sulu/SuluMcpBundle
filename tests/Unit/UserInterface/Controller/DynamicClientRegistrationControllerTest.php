@@ -11,14 +11,14 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Controller;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Controller;
 
 use League\Bundle\OAuth2ServerBundle\Manager\ClientManagerInterface;
 use League\Bundle\OAuth2ServerBundle\Model\ClientInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\UserInterface\Controller\DynamicClientRegistrationController;
+use Sulu\Mcp\UserInterface\Controller\DynamicClientRegistrationController;
 use Symfony\Component\HttpFoundation\Request;
 
 #[CoversClass(DynamicClientRegistrationController::class)]

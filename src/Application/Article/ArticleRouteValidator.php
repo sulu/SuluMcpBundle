@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Application\Article;
+namespace Sulu\Mcp\Application\Article;
 
 /**
  * Validates the URL routing fields passed in article create/update content.

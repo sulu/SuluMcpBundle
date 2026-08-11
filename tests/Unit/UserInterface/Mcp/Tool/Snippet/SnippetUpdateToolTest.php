@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Tool\Snippet;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Snippet;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -24,14 +24,14 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
-use Sulu\Bundle\McpBundle\Application\Content\BlockDataValidator;
-use Sulu\Bundle\McpBundle\Application\Content\ContentTypeResolver;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\Routing\AdminLinkGenerator;
-use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Snippet\SnippetUpdateTool;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
+use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
+use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetUpdateTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Sulu\Snippet\Application\Message\ModifySnippetMessage;

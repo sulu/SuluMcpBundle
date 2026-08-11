@@ -11,11 +11,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Sulu\Security\EntryPoint;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Sulu\Security\EntryPoint;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\EntryPoint\OAuthAuthorizeEntryPoint;
+use Sulu\Mcp\Infrastructure\Sulu\Security\EntryPoint\OAuthAuthorizeEntryPoint;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;

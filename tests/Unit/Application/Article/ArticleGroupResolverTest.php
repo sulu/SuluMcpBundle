@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Application\Article;
+namespace Sulu\Mcp\Tests\Unit\Application\Article;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -19,9 +19,9 @@ use PHPUnit\Framework\TestCase;
 use Sulu\Article\Domain\Model\ArticleInterface;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
-use Sulu\Bundle\McpBundle\Application\Article\ArticleGroupResolver;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Application\Article\ArticleGroupResolver;
 
 #[CoversClass(ArticleGroupResolver::class)]
 final class ArticleGroupResolverTest extends TestCase

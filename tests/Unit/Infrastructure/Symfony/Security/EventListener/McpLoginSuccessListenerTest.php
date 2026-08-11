@@ -11,11 +11,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Symfony\Security\EventListener;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\Security\EventListener;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\Security\EventListener\McpLoginSuccessListener;
+use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpLoginSuccessListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

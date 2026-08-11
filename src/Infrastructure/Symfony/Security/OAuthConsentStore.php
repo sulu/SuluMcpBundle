@@ -11,10 +11,10 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\Symfony\Security;
+namespace Sulu\Mcp\Infrastructure\Symfony\Security;
 
 use League\Bundle\OAuth2ServerBundle\Event\AuthorizationRequestResolveEvent;
-use Sulu\Bundle\McpBundle\Domain\Model\OAuthConsentRequest;
+use Sulu\Mcp\Domain\Model\OAuthConsentRequest;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 

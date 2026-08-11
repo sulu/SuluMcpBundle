@@ -11,10 +11,10 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\Symfony\Routing;
+namespace Sulu\Mcp\Infrastructure\Symfony\Routing;
 
-use Sulu\Bundle\McpBundle\Application\AdminLink\AdminLinkGeneratorInterface;
-use Sulu\Bundle\McpBundle\Application\AdminLink\AdminLinkProviderInterface;
+use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
+use Sulu\Mcp\Application\AdminLink\AdminLinkProviderInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
 

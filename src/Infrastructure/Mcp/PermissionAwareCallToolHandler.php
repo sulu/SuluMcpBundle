@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\Mcp;
+namespace Sulu\Mcp\Infrastructure\Mcp;
 
 use Mcp\Capability\Registry\ReferenceHandler;
 use Mcp\Capability\RegistryInterface;
@@ -26,11 +26,11 @@ use Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Mcp\Server\Session\SessionInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Sulu\Bundle\McpBundle\Application\Security\ToolContextResolverInterface;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Application\Security\WebspacePermissionResolver;
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Application\Security\ToolContextResolverInterface;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
+use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 
 /**
  * Preflight-checks the compile-time permission map, then delegates to the SDK's

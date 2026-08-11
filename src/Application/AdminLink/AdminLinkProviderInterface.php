@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Application\AdminLink;
+namespace Sulu\Mcp\Application\AdminLink;
 
 interface AdminLinkProviderInterface
 {

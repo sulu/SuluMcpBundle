@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Tool\Content;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Content;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
@@ -22,13 +22,6 @@ use Sulu\Article\Application\Message\RemoveArticleMessage;
 use Sulu\Article\Domain\Model\ArticleInterface;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
-use Sulu\Bundle\McpBundle\Application\Content\ContentTypeResolver;
-use Sulu\Bundle\McpBundle\Application\Security\ContentSecurityContextResolver;
-use Sulu\Bundle\McpBundle\Application\Security\PageDescendantPermissionChecker;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Component\Security\Authorization\AccessControl\AccessControlRepositoryInterface;
@@ -36,6 +29,13 @@ use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Content\Domain\Model\TemplateInterface;
+use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
+use Sulu\Mcp\Application\Security\PageDescendantPermissionChecker;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
 use Sulu\Page\Application\Message\RemovePageMessage;
 use Sulu\Page\Domain\Model\Page;

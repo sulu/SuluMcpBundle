@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Application\Content;
+namespace Sulu\Mcp\Tests\Unit\Application\Content;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
@@ -21,7 +21,7 @@ use Sulu\Article\Application\Message\ModifyArticleMessage;
 use Sulu\Article\Application\Message\RemoveArticleMessage;
 use Sulu\Article\Domain\Model\ArticleInterface;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
-use Sulu\Bundle\McpBundle\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Page\Application\Message\ApplyWorkflowTransitionPageMessage;
 use Sulu\Page\Application\Message\ModifyPageMessage;
 use Sulu\Page\Application\Message\RemovePageMessage;

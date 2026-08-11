@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\EventListener;
+namespace Sulu\Mcp\Infrastructure\Sulu\Security\EventListener;
 
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Symfony\Component\HttpKernel\Event\RequestEvent;

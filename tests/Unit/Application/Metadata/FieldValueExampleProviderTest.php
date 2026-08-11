@@ -11,11 +11,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Application\Metadata;
+namespace Sulu\Mcp\Tests\Unit\Application\Metadata;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Application\Metadata\FieldValueExampleProvider;
+use Sulu\Mcp\Application\Metadata\FieldValueExampleProvider;
 
 #[CoversClass(FieldValueExampleProvider::class)]
 final class FieldValueExampleProviderTest extends TestCase

@@ -11,15 +11,15 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Symfony\Routing;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\Routing;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Admin\View\View;
 use Sulu\Bundle\AdminBundle\Admin\View\ViewRegistry;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\Routing\AdminLinkGenerator;
+use Sulu\Mcp\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
+use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
 

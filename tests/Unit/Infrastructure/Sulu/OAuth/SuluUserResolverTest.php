@@ -11,14 +11,14 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Sulu\OAuth;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Sulu\OAuth;
 
 use League\OAuth2\Server\Entities\UserEntityInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\OAuth\SuluOAuthUser;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\OAuth\SuluUserResolver;
 use Sulu\Bundle\SecurityBundle\Entity\User;
+use Sulu\Mcp\Infrastructure\Sulu\OAuth\SuluOAuthUser;
+use Sulu\Mcp\Infrastructure\Sulu\OAuth\SuluUserResolver;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 

@@ -11,18 +11,18 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Media;
+namespace Sulu\Mcp\UserInterface\Mcp\Tool\Media;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
-use Sulu\Bundle\McpBundle\Domain\Security\PermissionRequirement;
-use Sulu\Bundle\McpBundle\Domain\Security\RequiresPermission;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Domain\Security\PermissionRequirement;
+use Sulu\Mcp\Domain\Security\RequiresPermission;
 
 /**
  * @internal

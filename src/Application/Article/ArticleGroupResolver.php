@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Application\Article;
+namespace Sulu\Mcp\Application\Article;
 
 use Sulu\Article\Domain\Model\ArticleInterface;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;

@@ -47,12 +47,12 @@
     },
     "autoload": {
         "psr-4": {
-            "Sulu\\Bundle\\McpBundle\\": "src/"
+            "Sulu\\Mcp\\": "src/"
         }
     },
     "autoload-dev": {
         "psr-4": {
-            "Sulu\\Bundle\\McpBundle\\Tests\\": "tests/"
+            "Sulu\\Mcp\\Tests\\": "tests/"
         }
     },
     "extra": {

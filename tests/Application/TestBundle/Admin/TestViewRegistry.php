@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin;
+namespace Sulu\Mcp\Tests\Application\TestBundle\Admin;
 
 use Sulu\Article\Infrastructure\Sulu\Admin\ArticleAdmin;
 use Sulu\Bundle\AdminBundle\Admin\View\View;

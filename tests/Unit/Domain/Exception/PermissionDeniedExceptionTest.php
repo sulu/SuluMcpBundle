@@ -11,12 +11,12 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Domain\Exception;
+namespace Sulu\Mcp\Tests\Unit\Domain\Exception;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 
 #[CoversClass(PermissionDeniedException::class)]
 final class PermissionDeniedExceptionTest extends TestCase

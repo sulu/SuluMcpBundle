@@ -11,19 +11,19 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Snippet;
+namespace Sulu\Mcp\UserInterface\Mcp\Tool\Snippet;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Sulu\Bundle\AdminBundle\Application\BlockIdGenerator\BlockIdGeneratorInterface;
-use Sulu\Bundle\McpBundle\Application\AdminLink\AdminLinkGeneratorInterface;
-use Sulu\Bundle\McpBundle\Application\Content\BlockDataNormalizerTrait;
-use Sulu\Bundle\McpBundle\Application\Content\BlockDataValidator;
-use Sulu\Bundle\McpBundle\Domain\Security\PermissionRequirement;
-use Sulu\Bundle\McpBundle\Domain\Security\RequiresPermission;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
+use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
+use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Domain\Security\PermissionRequirement;
+use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
 use Sulu\Snippet\Application\Message\CreateSnippetMessage;
 use Sulu\Snippet\Domain\Model\SnippetInterface;

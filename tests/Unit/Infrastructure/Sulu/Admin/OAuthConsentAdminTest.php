@@ -11,13 +11,13 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Sulu\Admin;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Sulu\Admin;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Admin\View\ViewBuilderFactory;
 use Sulu\Bundle\AdminBundle\Admin\View\ViewCollection;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Admin\OAuthConsentAdmin;
+use Sulu\Mcp\Infrastructure\Sulu\Admin\OAuthConsentAdmin;
 
 #[CoversClass(OAuthConsentAdmin::class)]
 final class OAuthConsentAdminTest extends TestCase

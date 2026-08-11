@@ -11,11 +11,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Sulu\Security;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Sulu\Security;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\ContactSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ContactSecurityContextResolver;
 
 #[CoversClass(ContactSecurityContextResolver::class)]
 final class ContactSecurityContextResolverTest extends TestCase

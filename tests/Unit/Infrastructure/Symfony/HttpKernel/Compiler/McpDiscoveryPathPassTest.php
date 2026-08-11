@@ -11,11 +11,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Symfony\HttpKernel\Compiler;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\HttpKernel\Compiler;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\Compiler\McpDiscoveryPathPass;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\McpDiscoveryPathPass;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 #[CoversClass(McpDiscoveryPathPass::class)]

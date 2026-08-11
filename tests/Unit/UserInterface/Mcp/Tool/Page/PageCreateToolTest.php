@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Tool\Page;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Page;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
@@ -24,17 +24,17 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
-use Sulu\Bundle\McpBundle\Application\Content\BlockDataValidator;
-use Sulu\Bundle\McpBundle\Application\Content\ContentMetadataMapper;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\AdminLink\PageAdminLinkProvider;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\Routing\AdminLinkGenerator;
-use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Page\PageCreateTool;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentMetadataMapper;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Infrastructure\Sulu\AdminLink\PageAdminLinkProvider;
+use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
+use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageCreateTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
 use Sulu\Page\Application\Message\CreatePageMessage;
 use Sulu\Page\Domain\Model\Page;

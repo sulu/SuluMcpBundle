@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Functional;
+namespace Sulu\Mcp\Tests\Functional;
 
 use Doctrine\ORM\EntityManagerInterface;
 use Sulu\Bundle\TestBundle\Testing\PurgeDatabaseTrait;

@@ -11,13 +11,12 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Resource;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource;
 
 use Mcp\Capability\Attribute\McpResource;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Resource\WebspacesResource;
 use Sulu\Component\Localization\Localization;
 use Sulu\Component\Webspace\Environment;
 use Sulu\Component\Webspace\Exception\EnvironmentNotFoundException;
@@ -26,6 +25,7 @@ use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Component\Webspace\Portal;
 use Sulu\Component\Webspace\Url;
 use Sulu\Component\Webspace\Webspace;
+use Sulu\Mcp\UserInterface\Mcp\Resource\WebspacesResource;
 
 #[CoversClass(WebspacesResource::class)]
 final class WebspaceResourceTest extends TestCase

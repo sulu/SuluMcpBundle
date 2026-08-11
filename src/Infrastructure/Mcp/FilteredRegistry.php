@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\Mcp;
+namespace Sulu\Mcp\Infrastructure\Mcp;
 
 use Mcp\Capability\Discovery\DiscoveryState;
 use Mcp\Capability\Registry\PromptReference;
@@ -25,7 +25,7 @@ use Mcp\Schema\Prompt;
 use Mcp\Schema\Resource;
 use Mcp\Schema\ResourceTemplate;
 use Mcp\Schema\Tool;
-use Sulu\Bundle\McpBundle\Application\Security\ToolVisibilityResolver;
+use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 
 /**
  * Hides tools disabled via `dangerous_tools.*`, and (in `getTools()`) tools the

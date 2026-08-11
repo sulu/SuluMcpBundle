@@ -11,22 +11,22 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Tool\Navigation;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Navigation;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionChecker;
-use Sulu\Bundle\McpBundle\Application\Security\WebspacePermissionResolver;
-use Sulu\Bundle\McpBundle\Domain\Security\RequiresPermission;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Navigation\NavigationGetTool;
 use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Component\Webspace\Webspace;
+use Sulu\Mcp\Application\Security\ToolPermissionChecker;
+use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Domain\Security\RequiresPermission;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Navigation\NavigationGetTool;
 use Sulu\Page\Domain\Repository\NavigationRepositoryInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;

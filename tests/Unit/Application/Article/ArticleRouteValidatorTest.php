@@ -11,12 +11,12 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Application\Article;
+namespace Sulu\Mcp\Tests\Unit\Application\Article;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Application\Article\ArticleRouteValidator;
+use Sulu\Mcp\Application\Article\ArticleRouteValidator;
 
 #[CoversClass(ArticleRouteValidator::class)]
 final class ArticleRouteValidatorTest extends TestCase

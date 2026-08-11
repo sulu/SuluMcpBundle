@@ -11,13 +11,13 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Functional;
+namespace Sulu\Mcp\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\CoversNothing;
-use Sulu\Bundle\McpBundle\Application\Security\ToolVisibilityResolver;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 
 /**
  * Regression guard for per-group article permissions on a MULTI-GROUP install

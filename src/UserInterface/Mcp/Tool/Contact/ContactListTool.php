@@ -11,14 +11,14 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Contact;
+namespace Sulu\Mcp\UserInterface\Mcp\Tool\Contact;
 
 use Mcp\Capability\Attribute\McpTool;
 use Sulu\Bundle\ContactBundle\Entity\AccountRepositoryInterface;
 use Sulu\Bundle\ContactBundle\Entity\ContactRepositoryInterface;
-use Sulu\Bundle\McpBundle\Domain\Security\PermissionRequirement;
-use Sulu\Bundle\McpBundle\Domain\Security\RequiresPermission;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Domain\Security\PermissionRequirement;
+use Sulu\Mcp\Domain\Security\RequiresPermission;
 
 /**
  * @internal

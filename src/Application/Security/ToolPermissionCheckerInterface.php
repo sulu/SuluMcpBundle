@@ -11,9 +11,9 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Application\Security;
+namespace Sulu\Mcp\Application\Security;
 
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 
 /**
  * Checks a Sulu security-context permission for the current user, failing

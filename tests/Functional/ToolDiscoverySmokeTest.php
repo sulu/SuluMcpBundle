@@ -11,13 +11,13 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Functional;
+namespace Sulu\Mcp\Tests\Functional;
 
 use Mcp\Capability\RegistryInterface;
 use PHPUnit\Framework\Attributes\CoversNothing;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\GetContextTool;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool;
 
 /**
  * Discovery visibility against the real compiled map, for a real

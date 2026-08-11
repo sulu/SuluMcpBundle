@@ -11,13 +11,13 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Application\Security;
+namespace Sulu\Mcp\Application\Security;
 
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Component\Security\Authorization\AccessControl\AccessControlRepositoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Page\Domain\Model\Page;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Symfony\Bundle\SecurityBundle\Security;

@@ -11,16 +11,16 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Symfony\HttpKernel\Compiler;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\HttpKernel\Compiler;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Domain\Security\PermissionRequirement;
-use Sulu\Bundle\McpBundle\Domain\Security\RequiresPermission;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\PingTool;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Domain\Security\PermissionRequirement;
+use Sulu\Mcp\Domain\Security\RequiresPermission;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
+use Sulu\Mcp\UserInterface\Mcp\Tool\PingTool;
 
 #[CoversClass(ToolPermissionMapPass::class)]
 final class ToolPermissionMapPassTest extends TestCase

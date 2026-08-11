@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Tool\Contact;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Contact;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -19,7 +19,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\ContactBundle\Entity\AccountRepositoryInterface;
 use Sulu\Bundle\ContactBundle\Entity\ContactRepositoryInterface;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Contact\ContactListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Contact\ContactListTool;
 
 #[CoversClass(ContactListTool::class)]
 final class ContactListToolTest extends TestCase

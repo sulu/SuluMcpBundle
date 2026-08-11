@@ -11,17 +11,17 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Application\Security;
+namespace Sulu\Mcp\Tests\Unit\Application\Security;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Application\Security\PageDescendantPermissionChecker;
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Component\Security\Authorization\AccessControl\AccessControlRepositoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Security\PageDescendantPermissionChecker;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Symfony\Bundle\SecurityBundle\Security;
 

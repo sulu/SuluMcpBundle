@@ -11,13 +11,13 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Functional;
+namespace Sulu\Mcp\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use Sulu\Bundle\McpBundle\Application\Security\PageDescendantPermissionChecker;
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Security\PageDescendantPermissionChecker;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Page\Domain\Model\Page;
 
 /**

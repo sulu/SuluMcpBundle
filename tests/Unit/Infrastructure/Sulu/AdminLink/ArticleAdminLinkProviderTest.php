@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Sulu\AdminLink;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Sulu\AdminLink;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
@@ -21,7 +21,7 @@ use Sulu\Article\Infrastructure\Sulu\Admin\ArticleAdmin;
 use Sulu\Bundle\AdminBundle\Admin\View\View;
 use Sulu\Bundle\AdminBundle\Admin\View\ViewRegistry;
 use Sulu\Bundle\AdminBundle\Exception\ViewNotFoundException;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\AdminLink\ArticleAdminLinkProvider;
+use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ArticleAdminLinkProvider;
 
 #[CoversClass(ArticleAdminLinkProvider::class)]
 final class ArticleAdminLinkProviderTest extends TestCase

@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\Compiler;
+namespace Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler;
 
 use Mcp\Capability\Registry\ReferenceHandler;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;

@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Tool\Taxonomy;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
@@ -20,10 +20,10 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
 use Sulu\Bundle\CategoryBundle\Entity\CategoryInterface;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\AdminLink\CategoryAdminLinkProvider;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\Routing\AdminLinkGenerator;
-use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Taxonomy\CategoryCreateTool;
+use Sulu\Mcp\Infrastructure\Sulu\AdminLink\CategoryAdminLinkProvider;
+use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
+use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryCreateTool;
 use Symfony\Component\Routing\RouterInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;

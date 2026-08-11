@@ -11,11 +11,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security;
+namespace Sulu\Mcp\Infrastructure\Sulu\Security;
 
 use Sulu\Article\Domain\Model\ArticleInterface;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
-use Sulu\Bundle\McpBundle\Application\Security\ToolContextResolverInterface;
+use Sulu\Mcp\Application\Security\ToolContextResolverInterface;
 
 /**
  * Resolves an article's per-group security context:

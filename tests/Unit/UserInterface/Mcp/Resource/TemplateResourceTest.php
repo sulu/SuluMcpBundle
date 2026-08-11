@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Resource;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource;
 
 use Mcp\Capability\Attribute\McpResource;
 use PHPUnit\Framework\Attributes\CoversClass;
@@ -22,7 +22,7 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Resource\TemplatesResource;
+use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
 
 #[CoversClass(TemplatesResource::class)]
 final class TemplateResourceTest extends TestCase

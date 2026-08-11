@@ -11,10 +11,10 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\Sulu\AdminLink;
+namespace Sulu\Mcp\Infrastructure\Sulu\AdminLink;
 
 use Sulu\Bundle\AdminBundle\Admin\View\ViewRegistry;
-use Sulu\Bundle\McpBundle\Application\AdminLink\AdminLinkProviderInterface;
+use Sulu\Mcp\Application\AdminLink\AdminLinkProviderInterface;
 use Sulu\Page\Infrastructure\Sulu\Admin\PageAdmin;
 
 /**

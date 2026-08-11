@@ -11,51 +11,51 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Symfony\HttpKernel\Compiler;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\HttpKernel\Compiler;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Article\ArticleCreateTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Article\ArticleGetTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Article\ArticleListTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Article\ArticleUpdateTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Block\BlockAddTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Block\BlockListTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Block\BlockReorderTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Block\BlockUpdateTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Contact\ContactListTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Content\ContentPublishTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\ContentSearchTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\GetContextTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Media\MediaGetTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Media\MediaListTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Media\MediaUpdateTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Navigation\NavigationGetTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Page\PageCreateTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Page\PageGetTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Page\PageListTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Page\PageTreeTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Page\PageUpdateTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\PingTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Preview\PreviewLinkGenerateTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Snippet\SnippetCreateTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Snippet\SnippetGetTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Snippet\SnippetListTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Snippet\SnippetUpdateTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Taxonomy\CategoryCreateTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Taxonomy\CategoryDeleteTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Taxonomy\CategoryListTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Taxonomy\TagCreateTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Taxonomy\TagListTool;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleCreateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleGetTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleUpdateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockAddTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockReorderTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockUpdateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Contact\ContactListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentPublishTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\ContentSearchTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaGetTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUpdateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Navigation\NavigationGetTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageCreateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageGetTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageTreeTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageUpdateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\PingTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkGenerateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetCreateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetGetTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetUpdateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryCreateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryDeleteTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagCreateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagListTool;
 
 /**
  * Golden-table pin for every tool's #[RequiresPermission] declaration, plus a
@@ -109,7 +109,7 @@ final class ToolPermissionGoldenTest extends TestCase
     ];
 
     /**
-     * Scans src/Capabilities/Tool/ for every class with a #[McpTool]-attributed
+     * Scans src/UserInterface/Mcp/Tool/ for every class with a #[McpTool]-attributed
      * method. NavigationGetTool is excluded -- its #[McpTool] attribute lives
      * inside a docblock comment, not live PHP attribute syntax.
      *
@@ -132,7 +132,7 @@ final class ToolPermissionGoldenTest extends TestCase
 
             $relative = \substr((string) $file->getPathname(), \strlen($srcRoot) + 1);
             $relative = \str_replace(\DIRECTORY_SEPARATOR, '\\', $relative);
-            $class = 'Sulu\\Bundle\\McpBundle\\'.\substr($relative, 0, -4);
+            $class = 'Sulu\\Mcp\\'.\substr($relative, 0, -4);
 
             if (!\class_exists($class)) {
                 continue;
@@ -161,7 +161,7 @@ final class ToolPermissionGoldenTest extends TestCase
         self::assertSame(
             $expected,
             $this->discoverToolClasses(),
-            'A tool class carrying #[McpTool] was found under src/Capabilities/Tool/ that is not in '
+            'A tool class carrying #[McpTool] was found under src/UserInterface/Mcp/Tool/ that is not in '
             .'GOLDEN and not in the attribute-free allowlist (Ping, GetContext). Add it to GOLDEN.',
         );
     }

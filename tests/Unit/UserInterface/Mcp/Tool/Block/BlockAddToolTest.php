@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Tool\Block;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Block;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
@@ -30,16 +30,16 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
-use Sulu\Bundle\McpBundle\Application\Content\BlockDataValidator;
-use Sulu\Bundle\McpBundle\Application\Content\ContentTypeResolver;
-use Sulu\Bundle\McpBundle\Application\Security\ContentSecurityContextResolver;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Block\BlockAddTool;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockAddTool;
 use Sulu\Page\Application\Message\ModifyPageMessage;
 use Sulu\Page\Domain\Model\Page;
 use Sulu\Page\Domain\Model\PageInterface;

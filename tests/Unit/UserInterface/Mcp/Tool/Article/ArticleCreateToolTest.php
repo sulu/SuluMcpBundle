@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Tool\Article;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Article;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
@@ -28,15 +28,15 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
-use Sulu\Bundle\McpBundle\Application\Article\ArticleGroupResolver;
-use Sulu\Bundle\McpBundle\Application\Content\BlockDataValidator;
-use Sulu\Bundle\McpBundle\Application\Content\ContentMetadataMapper;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\AdminLink\ArticleAdminLinkProvider;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\Routing\AdminLinkGenerator;
-use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Article\ArticleCreateTool;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Application\Article\ArticleGroupResolver;
+use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentMetadataMapper;
+use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ArticleAdminLinkProvider;
+use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
+use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleCreateTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;

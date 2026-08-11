@@ -11,13 +11,13 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Functional;
+namespace Sulu\Mcp\Tests\Functional;
 
 use Mcp\Server;
 use Mcp\Server\Handler\Request\CallToolHandler;
 use Mcp\Server\Protocol;
 use PHPUnit\Framework\Attributes\CoversClass;
-use Sulu\Bundle\McpBundle\Infrastructure\Mcp\PermissionAwareCallToolHandler;
+use Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler;
 
 /**
  * Guards against permission logic that is unit-tested green but never reaches the

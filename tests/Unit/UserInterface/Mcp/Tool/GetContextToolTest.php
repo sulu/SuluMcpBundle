@@ -11,28 +11,28 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Tool;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Application\Metadata\ExtensionFieldsProvider;
-use Sulu\Bundle\McpBundle\Application\Metadata\FieldValueExampleProvider;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionChecker;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Application\Security\ToolVisibilityResolver;
-use Sulu\Bundle\McpBundle\Application\Security\WebspacePermissionResolver;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
-use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Metadata\TestGroupProvider;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Resource\BlocksResource;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Resource\TemplatesResource;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Resource\WebspacesResource;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\GetContextTool;
 use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Component\Webspace\Webspace;
+use Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider;
+use Sulu\Mcp\Application\Metadata\FieldValueExampleProvider;
+use Sulu\Mcp\Application\Security\ToolPermissionChecker;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
+use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
+use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\UserInterface\Mcp\Resource\BlocksResource;
+use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
+use Sulu\Mcp\UserInterface\Mcp\Resource\WebspacesResource;
+use Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 

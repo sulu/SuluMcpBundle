@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\UserInterface\Mcp\Resource;
+namespace Sulu\Mcp\UserInterface\Mcp\Resource;
 
 use Mcp\Capability\Attribute\McpResource;
 use Sulu\Component\Webspace\Exception\EnvironmentNotFoundException;

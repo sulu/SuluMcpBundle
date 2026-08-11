@@ -11,11 +11,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Application\Content;
+namespace Sulu\Mcp\Tests\Unit\Application\Content;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Application\Content\ContentNormalizerTrait;
+use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 
 #[CoversClass(ContentNormalizerTrait::class)]
 final class ContentNormalizerTraitTest extends TestCase

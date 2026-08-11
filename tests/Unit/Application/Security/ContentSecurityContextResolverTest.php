@@ -11,15 +11,15 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Application\Security;
+namespace Sulu\Mcp\Tests\Unit\Application\Security;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
-use Sulu\Bundle\McpBundle\Application\Security\ContentSecurityContextResolver;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Content\Domain\Model\TemplateInterface;
+use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Page\Domain\Model\PageInterface;
 
 #[CoversClass(ContentSecurityContextResolver::class)]

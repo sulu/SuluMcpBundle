@@ -11,14 +11,14 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Application\Metadata;
+namespace Sulu\Mcp\Tests\Unit\Application\Metadata;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
-use Sulu\Bundle\McpBundle\Application\Metadata\ExtensionFieldsProvider;
+use Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider;
 
 #[CoversClass(ExtensionFieldsProvider::class)]
 final class ExtensionFieldsProviderTest extends TestCase

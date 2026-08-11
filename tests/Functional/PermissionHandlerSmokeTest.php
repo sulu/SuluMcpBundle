@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Functional;
+namespace Sulu\Mcp\Tests\Functional;
 
 use Mcp\Schema\Content\TextContent;
 use Mcp\Schema\JsonRpc\Error;
@@ -21,10 +21,10 @@ use Mcp\Schema\Result\CallToolResult;
 use Mcp\Server\Session\SessionInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\Stub;
-use Sulu\Bundle\McpBundle\Infrastructure\Mcp\PermissionAwareCallToolHandler;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler;
 
 /**
  * Vertical smoke over the real compiled permission map and

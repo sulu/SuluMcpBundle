@@ -11,17 +11,17 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Functional;
+namespace Sulu\Mcp\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use Sulu\Bundle\AdminBundle\Admin\Admin;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionChecker;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\MaskConverterInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Security\Authorization\SecurityCondition;
+use Sulu\Mcp\Application\Security\ToolPermissionChecker;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Page\Domain\Model\Page;
 use Sulu\Page\Domain\Model\PageInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;

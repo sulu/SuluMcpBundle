@@ -11,18 +11,18 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\Infrastructure\Symfony\HttpKernel\Compiler;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\HttpKernel\Compiler;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Content\ContentPublishTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Taxonomy\CategoryDeleteTool;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentPublishTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryDeleteTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Definition;
 

@@ -11,11 +11,11 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Functional;
+namespace Sulu\Mcp\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\CoversNothing;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\EventListener\OAuthSystemStoreListener;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\EventListener\McpRequestFormatListener;
+use Sulu\Mcp\Infrastructure\Sulu\Security\EventListener\OAuthSystemStoreListener;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\EventListener\McpRequestFormatListener;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Security\Http\Firewall;

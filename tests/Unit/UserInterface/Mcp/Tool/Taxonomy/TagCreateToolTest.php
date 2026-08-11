@@ -11,18 +11,18 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Mcp\Tool\Taxonomy;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\AdminLink\TagAdminLinkProvider;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\Routing\AdminLinkGenerator;
-use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\Admin\TestViewRegistry;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Taxonomy\TagCreateTool;
 use Sulu\Bundle\TagBundle\Tag\TagInterface;
 use Sulu\Bundle\TagBundle\Tag\TagManagerInterface;
+use Sulu\Mcp\Infrastructure\Sulu\AdminLink\TagAdminLinkProvider;
+use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
+use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagCreateTool;
 use Symfony\Component\Routing\RouterInterface;
 
 #[CoversClass(TagCreateTool::class)]

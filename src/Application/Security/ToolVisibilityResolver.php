@@ -11,9 +11,9 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Application\Security;
+namespace Sulu\Mcp\Application\Security;
 
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 
 /**
  * Decides whether a tool is shown at discovery time (`tools/list`,

@@ -11,18 +11,18 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool;
+namespace Sulu\Mcp\UserInterface\Mcp\Tool;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
-use Sulu\Bundle\McpBundle\Application\Metadata\ExtensionFieldsProvider;
-use Sulu\Bundle\McpBundle\Application\Metadata\FieldValueExampleProvider;
-use Sulu\Bundle\McpBundle\Application\Security\ToolVisibilityResolver;
-use Sulu\Bundle\McpBundle\Application\Security\WebspacePermissionResolver;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Resource\BlocksResource;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Resource\TemplatesResource;
-use Sulu\Bundle\McpBundle\UserInterface\Mcp\Resource\WebspacesResource;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider;
+use Sulu\Mcp\Application\Metadata\FieldValueExampleProvider;
+use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
+use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\UserInterface\Mcp\Resource\BlocksResource;
+use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
+use Sulu\Mcp\UserInterface\Mcp\Resource\WebspacesResource;
 
 /**
  * @internal

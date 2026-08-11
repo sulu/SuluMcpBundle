@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Application\Metadata;
+namespace Sulu\Mcp\Application\Metadata;
 
 /**
  * Supplies a value-shape example (and an optional hint) per Sulu field type so

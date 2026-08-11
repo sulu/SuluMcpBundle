@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Tests\Unit\UserInterface\Controller\Admin;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Controller\Admin;
 
 use League\Bundle\OAuth2ServerBundle\Event\AuthorizationRequestResolveEvent;
 use League\Bundle\OAuth2ServerBundle\Model\Client;
@@ -19,9 +19,9 @@ use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
 use League\OAuth2\Server\RequestTypes\AuthorizationRequestInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\McpBundle\Domain\Model\OAuthConsentRequest;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\Security\OAuthConsentStore;
-use Sulu\Bundle\McpBundle\UserInterface\Controller\Admin\OAuthConsentController;
+use Sulu\Mcp\Domain\Model\OAuthConsentRequest;
+use Sulu\Mcp\Infrastructure\Symfony\Security\OAuthConsentStore;
+use Sulu\Mcp\UserInterface\Controller\Admin\OAuthConsentController;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;

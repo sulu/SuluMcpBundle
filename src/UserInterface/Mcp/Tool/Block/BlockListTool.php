@@ -11,23 +11,23 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Block;
+namespace Sulu\Mcp\UserInterface\Mcp\Tool\Block;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
-use Sulu\Bundle\McpBundle\Application\Content\ContentNormalizerTrait;
-use Sulu\Bundle\McpBundle\Application\Content\ContentTypeResolver;
-use Sulu\Bundle\McpBundle\Application\Security\ContentSecurityContextResolver;
-use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Application\Security\WebspacePermissionResolver;
-use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
-use Sulu\Bundle\McpBundle\Domain\Security\PermissionRequirement;
-use Sulu\Bundle\McpBundle\Domain\Security\RequiresPermission;
-use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Content\Domain\Model\TemplateInterface;
+use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
+use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
+use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Domain\Security\PermissionRequirement;
+use Sulu\Mcp\Domain\Security\RequiresPermission;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Page\Domain\Model\Page;
 
 /**

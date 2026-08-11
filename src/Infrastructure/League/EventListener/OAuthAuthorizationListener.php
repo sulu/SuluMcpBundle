@@ -11,12 +11,12 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\Infrastructure\League\EventListener;
+namespace Sulu\Mcp\Infrastructure\League\EventListener;
 
 use League\Bundle\OAuth2ServerBundle\Event\AuthorizationRequestResolveEvent;
 use League\Bundle\OAuth2ServerBundle\OAuth2Events;
-use Sulu\Bundle\McpBundle\Domain\Model\OAuthConsentRequest;
-use Sulu\Bundle\McpBundle\Infrastructure\Symfony\Security\OAuthConsentStore;
+use Sulu\Mcp\Domain\Model\OAuthConsentRequest;
+use Sulu\Mcp\Infrastructure\Symfony\Security\OAuthConsentStore;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;

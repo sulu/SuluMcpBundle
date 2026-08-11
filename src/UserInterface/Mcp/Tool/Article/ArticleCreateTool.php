@@ -11,24 +11,24 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\Article;
+namespace Sulu\Mcp\UserInterface\Mcp\Tool\Article;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Sulu\Article\Application\Message\CreateArticleMessage;
 use Sulu\Article\Domain\Model\ArticleInterface;
 use Sulu\Bundle\AdminBundle\Application\BlockIdGenerator\BlockIdGeneratorInterface;
-use Sulu\Bundle\McpBundle\Application\AdminLink\AdminLinkGeneratorInterface;
-use Sulu\Bundle\McpBundle\Application\Article\ArticleGroupResolver;
-use Sulu\Bundle\McpBundle\Application\Article\ArticleRouteValidator;
-use Sulu\Bundle\McpBundle\Application\Content\BlockDataNormalizerTrait;
-use Sulu\Bundle\McpBundle\Application\Content\BlockDataValidator;
-use Sulu\Bundle\McpBundle\Application\Content\ContentMetadataMapper;
-use Sulu\Bundle\McpBundle\Domain\Security\PermissionRequirement;
-use Sulu\Bundle\McpBundle\Domain\Security\RequiresPermission;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
+use Sulu\Mcp\Application\Article\ArticleGroupResolver;
+use Sulu\Mcp\Application\Article\ArticleRouteValidator;
+use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
+use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentMetadataMapper;
+use Sulu\Mcp\Domain\Security\PermissionRequirement;
+use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\HandleTrait;
