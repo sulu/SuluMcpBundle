@@ -18,4 +18,5 @@
 /tests/Application/public/build/
 /tests/Application/public/uploads/
 node_modules/
+.php-version
 package-lock.json

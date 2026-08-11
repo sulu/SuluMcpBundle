@@ -40,8 +40,8 @@ cd tests/Application && symfony server:start
 Two things to know. The admin JavaScript has to be built with npm as shown above:
 `sulu:admin:update-build` cannot work here, because it reads the Sulu version from a
 `composer.lock` next to the kernel and a test application has none. And `symfony server:start`
-picks its own PHP, so make sure that version matches the one `vendor/` was installed with,
-otherwise every route fails Composer's platform check.
+picks its own PHP, which may not be the one `vendor/` was installed with. If every route
+returns a platform check error, pin it with `echo 8.4 > tests/Application/.php-version`.
 
 Run the following, in this order, before opening a pull request:
 
