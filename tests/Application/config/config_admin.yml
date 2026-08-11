@@ -3,3 +3,81 @@ imports:
 
 framework:
     router: { resource: '%kernel.project_dir%/config/routing_admin.yml' }
+
+security:
+    access_decision_manager:
+        strategy: unanimous
+        allow_if_all_abstain: true
+
+    password_hashers:
+        Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface: 'auto'
+
+    providers:
+        sulu:
+            id: sulu_security.user_provider
+
+    firewalls:
+        assets:
+            pattern: ^/(_wdt|_profiler|assets|build)/
+            security: false
+        # The MCP firewall must be declared before the admin firewall: the MCP endpoint
+        # lives under /admin/_mcp so both patterns match, and Symfony applies the first
+        # one in declaration order. Without this, /admin/_mcp would expect a session
+        # instead of an OAuth bearer token.
+        mcp:
+            pattern: ^/admin/_mcp
+            provider: sulu
+            stateless: true
+            entry_point: sulu_mcp.authentication_entry_point
+            oauth2: true
+        admin:
+            pattern: ^/admin(\/|$)
+            lazy: true
+            provider: sulu
+            entry_point: sulu_security.authentication_entry_point
+            json_login:
+                check_path: sulu_admin.login_check
+                success_handler: sulu_security.authentication_handler
+                failure_handler: sulu_security.authentication_handler
+            logout:
+                path: sulu_admin.logout
+
+    access_control:
+        # OAuth discovery, dynamic client registration and token endpoints must be
+        # reachable without an existing session.
+        - { path: ^/\.well-known/oauth-, roles: PUBLIC_ACCESS }
+        - { path: ^/mcp/register, roles: PUBLIC_ACCESS }
+        - { path: ^/mcp/token, roles: PUBLIC_ACCESS }
+        # The MCP endpoint requires a valid OAuth bearer token.
+        - { path: ^/admin/_mcp, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/admin/security/reset, roles: PUBLIC_ACCESS }
+        - { path: ^/admin/login$, roles: PUBLIC_ACCESS }
+        - { path: ^/admin/translations, roles: PUBLIC_ACCESS }
+        - { path: ^/admin$, roles: PUBLIC_ACCESS }
+        - { path: ^/admin/$, roles: PUBLIC_ACCESS }
+        - { path: ^/admin/p/, roles: PUBLIC_ACCESS }
+        - { path: ^/admin, roles: ROLE_USER }
+
+# The functional tests share this configuration and override only what they need: cheap
+# password hashing, Sulu's own test decision strategy and user provider, and a stateless
+# entry point on the admin firewall.
+when@test:
+    security:
+        password_hashers:
+            Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface:
+                algorithm: auto
+                cost: 4
+                time_cost: 3
+                memory_cost: 10
+
+        access_decision_manager:
+            strategy: affirmative
+
+        providers:
+            sulu:
+                id: test_user_provider
+
+        firewalls:
+            admin:
+                http_basic:
+                    provider: sulu

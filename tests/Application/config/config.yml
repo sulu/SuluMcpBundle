@@ -1,4 +1,8 @@
 framework:
+    session:
+        handler_id: null
+        cookie_secure: auto
+        cookie_samesite: lax
     messenger:
         transports:
             sync: 'sync://'
