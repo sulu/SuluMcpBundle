@@ -34,7 +34,7 @@ final class OAuthConsentAdmin extends Admin
         $viewCollection->add(
             $this->viewBuilderFactory->createViewBuilder(
                 self::CONSENT_VIEW,
-                '/_mcp/authorize/:requestId',
+                '/mcp/authorize/:requestId',
                 'sulu_admin.authorization_consent',
             )
                 ->setOption('detailsRoute', 'sulu_mcp_oauth_consent_details')

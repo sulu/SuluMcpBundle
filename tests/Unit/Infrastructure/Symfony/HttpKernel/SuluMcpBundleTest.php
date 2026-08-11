@@ -114,7 +114,7 @@ final class SuluMcpBundleTest extends TestCase
 
         $extension->load([['server_url' => 'https://sulu.example.com']], $container);
 
-        self::assertSame('/admin/_mcp', $container->getParameter('sulu_mcp.mcp_path'));
+        self::assertSame('/admin/mcp', $container->getParameter('sulu_mcp.mcp_path'));
         self::assertSame(['mcp:tools', 'mcp:resources'], $container->getParameter('sulu_mcp.oauth.scopes'));
         self::assertFalse($container->getParameter('sulu_mcp.dangerous_tools.delete'));
     }

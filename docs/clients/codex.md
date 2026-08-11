@@ -8,7 +8,7 @@ Register the Sulu MCP server in Codex's MCP configuration (see OpenAI's Codex MC
 
 ```toml
 [mcp_servers.sulu]
-url = "https://your-sulu-host.example.com/admin/_mcp"
+url = "https://your-sulu-host.example.com/admin/mcp"
 ```
 
 ## 2. Authenticate
@@ -23,6 +23,6 @@ Add the contents of [`CONTENT_ASSISTANT_PROMPT.md`](../CONTENT_ASSISTANT_PROMPT.
 
 ## Troubleshooting
 
-- **Browser flow doesn't complete** — confirm the server URL is reachable and ends in `/admin/_mcp`; check the Symfony log for OAuth errors.
+- **Browser flow doesn't complete** — confirm the server URL is reachable and ends in `/admin/mcp`; check the Symfony log for OAuth errors.
 - **`invalid redirect URI`** — Codex must use an `http` loopback callback (`localhost`/`127.0.0.1`) or an `https` URL. Other hosts are rejected.
 - **Tools missing** — `dangerous_tools.*` defaults to `false`. Enable categories in `config/packages/sulu_mcp.yaml`.

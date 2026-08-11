@@ -44,8 +44,8 @@ class SuluMcpBundle extends AbstractBundle
                     ->info('Public base URL of the Sulu installation (e.g., https://sulu.example.com)')
                 ->end()
                 ->scalarNode('mcp_path')
-                    ->defaultValue('/admin/_mcp')
-                    ->info('MCP endpoint path. Defaults to /admin/_mcp so the request is handled by the admin kernel, where Sulu services tagged sulu.context: admin (article preview provider, etc.) are registered. Keep the /admin/ prefix unless you have explicitly routed a different path to the admin kernel.')
+                    ->defaultValue('/admin/mcp')
+                    ->info('MCP endpoint path. Defaults to /admin/mcp so the request is handled by the admin kernel, where Sulu services tagged sulu.context: admin (article preview provider, etc.) are registered. Keep it in sync with the prefix your project imports config/routing_admin.yaml under, and keep the /admin/ prefix unless you have explicitly routed a different path to the admin kernel.')
                 ->end()
                 ->arrayNode('oauth')
                     ->addDefaultsIfNotSet()
@@ -92,8 +92,8 @@ class SuluMcpBundle extends AbstractBundle
 
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        // prependExtension() is not handed the processed config, so the tree defined in
-        // configure() is resolved here to reach mcp_path and the OAuth settings.
+        // prependExtension() is not handed the processed config, so the tree from
+        // configure() is resolved here.
         $config = $this->processConfig($builder);
 
         if ($builder->hasExtension('mcp')) {
@@ -145,8 +145,7 @@ class SuluMcpBundle extends AbstractBundle
     {
         parent::build($container);
 
-        // Priority 100 ensures this runs before symfony/mcp-bundle's McpPass
-        // (which scans `mcp.tool`-tagged services in BEFORE_OPTIMIZATION).
+        // Priority 100 so this runs before symfony/mcp-bundle's McpPass.
         $container->addCompilerPass(new DangerousToolsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 100);
         $container->addCompilerPass(new ToolPermissionMapPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 90);
         $container->addCompilerPass(new ToolReferenceHandlerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 80);

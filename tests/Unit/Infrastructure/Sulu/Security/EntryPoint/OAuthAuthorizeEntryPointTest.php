@@ -19,6 +19,7 @@ use Sulu\Mcp\Infrastructure\Sulu\Security\EntryPoint\OAuthAuthorizeEntryPoint;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface;
 
 #[CoversClass(OAuthAuthorizeEntryPoint::class)]
@@ -29,8 +30,8 @@ final class OAuthAuthorizeEntryPointTest extends TestCase
         $inner = $this->createMock(AuthenticationEntryPointInterface::class);
         $inner->expects(self::never())->method('start');
 
-        $entryPoint = new OAuthAuthorizeEntryPoint($inner);
-        $response = $entryPoint->start(Request::create('/admin/_mcp/authorize'));
+        $entryPoint = new OAuthAuthorizeEntryPoint($inner, $this->urlGenerator());
+        $response = $entryPoint->start(Request::create('/admin/mcp/authorize'));
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSame('/admin/', $response->getTargetUrl());
@@ -42,7 +43,7 @@ final class OAuthAuthorizeEntryPointTest extends TestCase
         $inner = $this->createMock(AuthenticationEntryPointInterface::class);
         $inner->expects(self::once())->method('start')->willReturn($innerResponse);
 
-        $entryPoint = new OAuthAuthorizeEntryPoint($inner);
+        $entryPoint = new OAuthAuthorizeEntryPoint($inner, $this->urlGenerator());
         $response = $entryPoint->start(Request::create('/admin'));
 
         $this->assertSame($innerResponse, $response);
@@ -54,7 +55,7 @@ final class OAuthAuthorizeEntryPointTest extends TestCase
         $inner = $this->createMock(AuthenticationEntryPointInterface::class);
         $inner->expects(self::once())->method('start')->willReturn($innerResponse);
 
-        $entryPoint = new OAuthAuthorizeEntryPoint($inner);
+        $entryPoint = new OAuthAuthorizeEntryPoint($inner, $this->urlGenerator());
         $response = $entryPoint->start(Request::create('/evil/mcp/authorize'));
 
         $this->assertSame($innerResponse, $response);
@@ -66,9 +67,24 @@ final class OAuthAuthorizeEntryPointTest extends TestCase
         $inner = $this->createMock(AuthenticationEntryPointInterface::class);
         $inner->expects(self::once())->method('start')->willReturn($innerResponse);
 
-        $entryPoint = new OAuthAuthorizeEntryPoint($inner);
-        $response = $entryPoint->start(Request::create('/admin/_mcp/authorize-not-really'));
+        $entryPoint = new OAuthAuthorizeEntryPoint($inner, $this->urlGenerator());
+        $response = $entryPoint->start(Request::create('/admin/mcp/authorize-not-really'));
 
         $this->assertSame($innerResponse, $response);
+    }
+
+    private function urlGenerator(): UrlGeneratorInterface
+    {
+        $paths = [
+            'sulu_mcp_oauth_authorize' => '/admin/mcp/authorize',
+            'sulu_admin' => '/admin/',
+        ];
+
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturnCallback(
+            static fn (string $name): string => $paths[$name] ?? self::fail('Unexpected route "'.$name.'".'),
+        );
+
+        return $urlGenerator;
     }
 }

@@ -27,6 +27,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[CoversClass(OAuthAuthorizationListener::class)]
@@ -37,27 +38,27 @@ final class OAuthAuthorizationListenerTest extends TestCase
     public function testRedirectsAuthorizationRequestToConsentView(): void
     {
         $store = new OAuthConsentStore();
-        $request = $this->request('/admin/_mcp/authorize?response_type=code&client_id=client-1&state=state-1');
+        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=client-1&state=state-1');
         $event = $this->event();
 
         $this->listener($store, $request)($event);
 
         $response = $event->getResponse();
         self::assertInstanceOf(RedirectResponse::class, $response);
-        self::assertMatchesRegularExpression('~^/admin/#/_mcp/authorize/[a-f0-9]{32}$~', $response->getTargetUrl());
+        self::assertMatchesRegularExpression('~^/admin/#/mcp/authorize/[a-f0-9]{32}$~', $response->getTargetUrl());
         self::assertFalse($event->getAuthorizationResolution());
 
         $requestId = \basename($response->getTargetUrl());
         $consentRequest = $store->get($request, $requestId);
         self::assertNotNull($consentRequest);
-        self::assertSame('/admin/_mcp/authorize?response_type=code&client_id=client-1&state=state-1', $consentRequest->getAuthorizationUrl());
+        self::assertSame('/admin/mcp/authorize?response_type=code&client_id=client-1&state=state-1', $consentRequest->getAuthorizationUrl());
         self::assertStringContainsString('sulu_mcp_consent='.$requestId, $consentRequest->getContinuationUrl());
     }
 
     public function testConsumesApprovalAndApprovesAuthorization(): void
     {
         $store = new OAuthConsentStore();
-        $request = $this->request('/admin/_mcp/authorize?response_type=code&client_id=client-1&state=state-1');
+        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=client-1&state=state-1');
         $consentRequest = $store->create($request, $this->event());
         $store->decide($request, $consentRequest->getId(), true);
 
@@ -72,7 +73,7 @@ final class OAuthAuthorizationListenerTest extends TestCase
     public function testConsumesDenialAndDeniesAuthorization(): void
     {
         $store = new OAuthConsentStore();
-        $request = $this->request('/admin/_mcp/authorize?response_type=code&client_id=client-1&state=state-1');
+        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=client-1&state=state-1');
         $consentRequest = $store->create($request, $this->event());
         $store->decide($request, $consentRequest->getId(), false);
 
@@ -87,7 +88,7 @@ final class OAuthAuthorizationListenerTest extends TestCase
     public function testRedirectsBackToExistingConsentViewWhenDecisionIsMissing(): void
     {
         $store = new OAuthConsentStore();
-        $request = $this->request('/admin/_mcp/authorize?response_type=code&client_id=client-1&state=state-1');
+        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=client-1&state=state-1');
         $consentRequest = $store->create($request, $this->event());
 
         $event = $this->event();
@@ -95,7 +96,7 @@ final class OAuthAuthorizationListenerTest extends TestCase
 
         $response = $event->getResponse();
         self::assertInstanceOf(RedirectResponse::class, $response);
-        self::assertSame('/admin/#/_mcp/authorize/'.$consentRequest->getId(), $response->getTargetUrl());
+        self::assertSame('/admin/#/mcp/authorize/'.$consentRequest->getId(), $response->getTargetUrl());
         self::assertNotNull($store->get($request, $consentRequest->getId()));
     }
 
@@ -104,7 +105,19 @@ final class OAuthAuthorizationListenerTest extends TestCase
         $requestStack = new RequestStack();
         $requestStack->push($request);
 
-        return new OAuthAuthorizationListener($requestStack, $store);
+        return new OAuthAuthorizationListener($requestStack, $store, $this->urlGenerator());
+    }
+
+    private function urlGenerator(): UrlGeneratorInterface
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturnCallback(
+            static fn (string $name): string => 'sulu_admin' === $name
+                ? '/admin/'
+                : self::fail('Unexpected route "'.$name.'".'),
+        );
+
+        return $urlGenerator;
     }
 
     private function request(string $uri, ?Session $session = null): Request

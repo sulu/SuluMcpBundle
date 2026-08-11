@@ -27,7 +27,7 @@ final class McpRequestFormatListenerTest extends TestCase
 
     protected function setUp(): void
     {
-        $this->listener = new McpRequestFormatListener('/admin/_mcp');
+        $this->listener = new McpRequestFormatListener('/admin/mcp');
     }
 
     private function createRequestEvent(string $pathInfo, int $type = HttpKernelInterface::MAIN_REQUEST): RequestEvent
@@ -39,7 +39,7 @@ final class McpRequestFormatListenerTest extends TestCase
 
     public function testSetsJsonFormatOnMcpPath(): void
     {
-        $event = $this->createRequestEvent('/admin/_mcp');
+        $event = $this->createRequestEvent('/admin/mcp');
 
         $this->listener->onKernelRequest($event);
 
@@ -58,7 +58,7 @@ final class McpRequestFormatListenerTest extends TestCase
 
     public function testLeavesAdjacentPathSharingPrefixUntouched(): void
     {
-        $event = $this->createRequestEvent('/admin/_mcpfoo');
+        $event = $this->createRequestEvent('/admin/mcpfoo');
 
         $this->listener->onKernelRequest($event);
 
@@ -69,7 +69,7 @@ final class McpRequestFormatListenerTest extends TestCase
     {
         // The mcp-bundle route loader registers exactly one route at the
         // configured path -- no sub-paths are served.
-        $event = $this->createRequestEvent('/admin/_mcp/nested');
+        $event = $this->createRequestEvent('/admin/mcp/nested');
 
         $this->listener->onKernelRequest($event);
 
@@ -78,7 +78,7 @@ final class McpRequestFormatListenerTest extends TestCase
 
     public function testIgnoresSubRequests(): void
     {
-        $event = $this->createRequestEvent('/admin/_mcp', HttpKernelInterface::SUB_REQUEST);
+        $event = $this->createRequestEvent('/admin/mcp', HttpKernelInterface::SUB_REQUEST);
 
         $this->listener->onKernelRequest($event);
 

@@ -22,6 +22,7 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 use Symfony\Component\Security\Http\Authenticator\AuthenticatorInterface;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
@@ -31,15 +32,15 @@ use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 final class McpLoginSuccessListenerTest extends TestCase
 {
     private const TARGET_PATH_KEY = '_security.admin.target_path';
-    private const AUTHORIZE_URL = 'https://sulu.example.com/admin/_mcp/authorize?response_type=code&client_id=abc&state=xyz';
-    private const AUTHORIZE_RELATIVE = '/admin/_mcp/authorize?response_type=code&client_id=abc&state=xyz';
+    private const AUTHORIZE_URL = 'https://sulu.example.com/admin/mcp/authorize?response_type=code&client_id=abc&state=xyz';
+    private const AUTHORIZE_RELATIVE = '/admin/mcp/authorize?response_type=code&client_id=abc&state=xyz';
 
     public function testRewritesJsonResponseToRedirectWhenTargetIsAuthorize(): void
     {
         $request = $this->requestWithTargetPath(self::AUTHORIZE_URL);
         $event = $this->event('admin', $request, new JsonResponse(['url' => '/admin/', 'completed' => true]));
 
-        (new McpLoginSuccessListener())($event);
+        (new McpLoginSuccessListener($this->urlGenerator()))($event);
 
         $data = $this->json($event->getResponse());
         self::assertSame('redirect', $data['method']);
@@ -52,7 +53,7 @@ final class McpLoginSuccessListenerTest extends TestCase
         $request = $this->requestWithTargetPath(self::AUTHORIZE_URL);
         $event = $this->event('website', $request, new JsonResponse(['url' => '/admin/', 'completed' => true]));
 
-        (new McpLoginSuccessListener())($event);
+        (new McpLoginSuccessListener($this->urlGenerator()))($event);
 
         $data = $this->json($event->getResponse());
         self::assertSame('/admin/', $data['url']);
@@ -65,7 +66,7 @@ final class McpLoginSuccessListenerTest extends TestCase
         $request = $this->requestWithTargetPath('https://sulu.example.com/admin/#/dashboard');
         $event = $this->event('admin', $request, new JsonResponse(['url' => '/admin/', 'completed' => true]));
 
-        (new McpLoginSuccessListener())($event);
+        (new McpLoginSuccessListener($this->urlGenerator()))($event);
 
         $data = $this->json($event->getResponse());
         self::assertSame('/admin/', $data['url']);
@@ -74,10 +75,10 @@ final class McpLoginSuccessListenerTest extends TestCase
 
     public function testLeavesResponseUnchangedWhenTargetMerelySharesTheAuthorizePrefix(): void
     {
-        $request = $this->requestWithTargetPath('https://sulu.example.com/admin/_mcp/authorize-not-really');
+        $request = $this->requestWithTargetPath('https://sulu.example.com/admin/mcp/authorize-not-really');
         $event = $this->event('admin', $request, new JsonResponse(['url' => '/admin/', 'completed' => true]));
 
-        (new McpLoginSuccessListener())($event);
+        (new McpLoginSuccessListener($this->urlGenerator()))($event);
 
         $data = $this->json($event->getResponse());
         self::assertSame('/admin/', $data['url']);
@@ -89,7 +90,7 @@ final class McpLoginSuccessListenerTest extends TestCase
         $request = $this->requestWithTargetPath(null);
         $event = $this->event('admin', $request, new JsonResponse(['url' => '/admin/', 'completed' => true]));
 
-        (new McpLoginSuccessListener())($event);
+        (new McpLoginSuccessListener($this->urlGenerator()))($event);
 
         $data = $this->json($event->getResponse());
         self::assertSame('/admin/', $data['url']);
@@ -101,7 +102,7 @@ final class McpLoginSuccessListenerTest extends TestCase
         $request = $this->requestWithTargetPath(self::AUTHORIZE_URL);
         $event = $this->event('admin', $request, new JsonResponse(['url' => '/admin/', 'completed' => false]));
 
-        (new McpLoginSuccessListener())($event);
+        (new McpLoginSuccessListener($this->urlGenerator()))($event);
 
         $data = $this->json($event->getResponse());
         self::assertArrayNotHasKey('method', $data);
@@ -114,7 +115,7 @@ final class McpLoginSuccessListenerTest extends TestCase
         $request = $this->requestWithTargetPath(self::AUTHORIZE_URL);
         $event = $this->event('admin', $request, new RedirectResponse('/admin/'));
 
-        (new McpLoginSuccessListener())($event);
+        (new McpLoginSuccessListener($this->urlGenerator()))($event);
 
         $response = $event->getResponse();
         self::assertInstanceOf(RedirectResponse::class, $response);
@@ -127,7 +128,7 @@ final class McpLoginSuccessListenerTest extends TestCase
         $request = $this->requestWithTargetPath(self::AUTHORIZE_URL);
         $event = $this->event('admin', $request, null);
 
-        (new McpLoginSuccessListener())($event);
+        (new McpLoginSuccessListener($this->urlGenerator()))($event);
 
         self::assertNull($event->getResponse());
         self::assertTrue($request->getSession()->has(self::TARGET_PATH_KEY));
@@ -169,5 +170,17 @@ final class McpLoginSuccessListenerTest extends TestCase
         self::assertIsArray($data);
 
         return $data;
+    }
+
+    private function urlGenerator(): UrlGeneratorInterface
+    {
+        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
+        $urlGenerator->method('generate')->willReturnCallback(
+            static fn (string $name): string => 'sulu_mcp_oauth_authorize' === $name
+                ? '/admin/mcp/authorize'
+                : self::fail('Unexpected route "'.$name.'".'),
+        );
+
+        return $urlGenerator;
     }
 }

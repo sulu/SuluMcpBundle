@@ -36,8 +36,8 @@ final class OAuthSystemStoreListenerTest extends TestCase
         $systemStore = $this->createMock(SystemStoreInterface::class);
         $systemStore->expects(self::once())->method('setSystem')->with('Sulu');
 
-        $listener = new OAuthSystemStoreListener($systemStore, '/admin/_mcp');
-        $listener->onKernelRequest($this->createRequestEvent('/admin/_mcp'));
+        $listener = new OAuthSystemStoreListener($systemStore, '/admin/mcp');
+        $listener->onKernelRequest($this->createRequestEvent('/admin/mcp'));
     }
 
     public function testSetsConfiguredSystemOnMcpPath(): void
@@ -45,8 +45,8 @@ final class OAuthSystemStoreListenerTest extends TestCase
         $systemStore = $this->createMock(SystemStoreInterface::class);
         $systemStore->expects(self::once())->method('setSystem')->with('Website');
 
-        $listener = new OAuthSystemStoreListener($systemStore, '/admin/_mcp', 'Website');
-        $listener->onKernelRequest($this->createRequestEvent('/admin/_mcp'));
+        $listener = new OAuthSystemStoreListener($systemStore, '/admin/mcp', 'Website');
+        $listener->onKernelRequest($this->createRequestEvent('/admin/mcp'));
     }
 
     public function testLeavesNonMcpPathUntouched(): void
@@ -54,7 +54,7 @@ final class OAuthSystemStoreListenerTest extends TestCase
         $systemStore = $this->createMock(SystemStoreInterface::class);
         $systemStore->expects(self::never())->method('setSystem');
 
-        $listener = new OAuthSystemStoreListener($systemStore, '/admin/_mcp');
+        $listener = new OAuthSystemStoreListener($systemStore, '/admin/mcp');
         $listener->onKernelRequest($this->createRequestEvent('/admin'));
     }
 
@@ -63,8 +63,8 @@ final class OAuthSystemStoreListenerTest extends TestCase
         $systemStore = $this->createMock(SystemStoreInterface::class);
         $systemStore->expects(self::never())->method('setSystem');
 
-        $listener = new OAuthSystemStoreListener($systemStore, '/admin/_mcp');
-        $listener->onKernelRequest($this->createRequestEvent('/admin/_mcpfoo'));
+        $listener = new OAuthSystemStoreListener($systemStore, '/admin/mcp');
+        $listener->onKernelRequest($this->createRequestEvent('/admin/mcpfoo'));
     }
 
     public function testLeavesSubPathOfMcpPathUntouched(): void
@@ -74,8 +74,8 @@ final class OAuthSystemStoreListenerTest extends TestCase
         $systemStore = $this->createMock(SystemStoreInterface::class);
         $systemStore->expects(self::never())->method('setSystem');
 
-        $listener = new OAuthSystemStoreListener($systemStore, '/admin/_mcp');
-        $listener->onKernelRequest($this->createRequestEvent('/admin/_mcp/nested'));
+        $listener = new OAuthSystemStoreListener($systemStore, '/admin/mcp');
+        $listener->onKernelRequest($this->createRequestEvent('/admin/mcp/nested'));
     }
 
     public function testIgnoresSubRequests(): void
@@ -83,7 +83,7 @@ final class OAuthSystemStoreListenerTest extends TestCase
         $systemStore = $this->createMock(SystemStoreInterface::class);
         $systemStore->expects(self::never())->method('setSystem');
 
-        $listener = new OAuthSystemStoreListener($systemStore, '/admin/_mcp');
-        $listener->onKernelRequest($this->createRequestEvent('/admin/_mcp', HttpKernelInterface::SUB_REQUEST));
+        $listener = new OAuthSystemStoreListener($systemStore, '/admin/mcp');
+        $listener->onKernelRequest($this->createRequestEvent('/admin/mcp', HttpKernelInterface::SUB_REQUEST));
     }
 }

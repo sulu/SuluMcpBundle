@@ -24,16 +24,12 @@ use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
 
 /**
- * Converts MCP-endpoint exceptions to JSON-RPC error responses:
- * PermissionDeniedException -> 403, InvalidArgumentException -> 400,
- * anything else -> 500, logged and with its message exposed only in debug
- * mode. Non-MCP requests fall through to Symfony.
+ * Converts MCP-endpoint exceptions to JSON-RPC error responses.
  *
- * Security exceptions are deliberately not handled here: they belong to the
- * firewall's ExceptionListener (priority 1) and McpAuthenticationEntryPoint
- * (priority 10), which turn them into the RFC 9728 401 that MCP clients need
- * for OAuth discovery. This listener runs at priority 5, so handling them
- * would replace that 401 with a 500.
+ * Security exceptions are deliberately left to the firewall's ExceptionListener
+ * (priority 1) and McpAuthenticationEntryPoint (priority 10), which turn them
+ * into the RFC 9728 401 clients need for discovery. Handling them here
+ * (priority 5) would replace that 401 with a 500.
  *
  * @internal
  */
@@ -41,7 +37,7 @@ use Symfony\Component\Security\Core\Exception\AuthenticationException;
 class McpExceptionListener
 {
     public function __construct(
-        private readonly string $mcpPath = '/admin/_mcp',
+        private readonly string $mcpPath = '/admin/mcp',
         private readonly bool $debug = false,
         private readonly LoggerInterface $logger = new NullLogger(),
     ) {
@@ -101,7 +97,6 @@ class McpExceptionListener
             return;
         }
 
-        // Generic internal error for unexpected exceptions
         $this->logger->error('Unhandled exception on MCP endpoint', ['exception' => $exception]);
 
         $detail = $this->debug ? $exception->getMessage() : 'An internal error occurred.';

@@ -53,7 +53,7 @@ class Kernel extends SuluTestKernel
         // configuration that hard-codes an "http_basic" firewall, and Symfony refuses to
         // declare firewalls in a second file. That would leave the application unable to
         // define the admin and MCP firewalls, so the login route would resolve to no
-        // controller and /admin/_mcp would expect a session instead of a bearer token.
+        // controller and /admin/mcp would expect a session instead of a bearer token.
         // The functional tests do not use that firewall; they authenticate by setting a
         // token on the token storage.
         $loader->load(SuluTestBundle::getConfigDir().'/context_'.$this->getContext().'.yml');

@@ -20,11 +20,8 @@ security:
         assets:
             pattern: ^/(_wdt|_profiler|assets|build)/
             security: false
-        mcp_public:
-            pattern: ^/admin/_mcp/(token|register)$
-            security: false
         mcp:
-            pattern: ^/admin/_mcp/?$
+            pattern: ^/admin/mcp/?$
             provider: sulu
             stateless: true
             entry_point: sulu_mcp.authentication_entry_point
@@ -43,7 +40,9 @@ security:
 
     access_control:
         - { path: ^/\.well-known/oauth-, roles: PUBLIC_ACCESS }
-        - { path: ^/admin/_mcp/?$, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/admin/mcp/register$, roles: PUBLIC_ACCESS }
+        - { path: ^/admin/mcp/token$, roles: PUBLIC_ACCESS }
+        - { path: ^/admin/mcp/?$, roles: IS_AUTHENTICATED_FULLY }
         - { path: ^/admin/security/reset, roles: PUBLIC_ACCESS }
         - { path: ^/admin/login$, roles: PUBLIC_ACCESS }
         - { path: ^/admin/translations, roles: PUBLIC_ACCESS }

@@ -35,7 +35,7 @@ final readonly class OAuthConsentController
     }
 
     #[Route(
-        '/admin/_mcp/consent/{requestId}',
+        '/mcp/consent/{requestId}',
         name: 'sulu_mcp_oauth_consent_details',
         options: ['expose' => true],
         methods: ['GET'],
@@ -57,7 +57,7 @@ final readonly class OAuthConsentController
     }
 
     #[Route(
-        '/admin/_mcp/consent/{requestId}',
+        '/mcp/consent/{requestId}',
         name: 'sulu_mcp_oauth_consent_decision',
         options: ['expose' => true],
         methods: ['POST'],
@@ -87,7 +87,6 @@ final readonly class OAuthConsentController
     {
         return [
             'id' => $scope,
-            // Falls back to the raw scope identifier when no translation exists.
             'label' => $this->translator->trans($scope, [], 'sulu_mcp', $this->userLocale()),
         ];
     }

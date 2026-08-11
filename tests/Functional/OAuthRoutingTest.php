@@ -18,10 +18,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Component\Routing\RouterInterface;
 
 /**
- * Asserts the bundle's OAuth routes are actually registered. The controllers are
- * otherwise only unit tested, which never exercises routing: if the attribute
- * `resource` path in config/routes.yaml stops matching the controller directory,
- * the routes silently disappear and every other gate stays green.
+ * If an attribute `resource` path stops matching its controller directory the
+ * routes silently disappear, and no unit test exercises routing.
  */
 #[CoversNothing]
 final class OAuthRoutingTest extends FunctionalTestCase
@@ -34,13 +32,13 @@ final class OAuthRoutingTest extends FunctionalTestCase
         // Loaded by attribute discovery over the controller directory.
         yield 'protected resource metadata' => ['sulu_mcp_prm', '/.well-known/oauth-protected-resource', 'GET'];
         yield 'authorization server metadata' => ['sulu_mcp_as_metadata', '/.well-known/oauth-authorization-server', 'GET'];
-        yield 'dynamic client registration' => ['sulu_mcp_client_registration', '/admin/_mcp/register', 'POST'];
-        yield 'consent details' => ['sulu_mcp_oauth_consent_details', '/admin/_mcp/consent/{requestId}', 'GET'];
-        yield 'consent decision' => ['sulu_mcp_oauth_consent_decision', '/admin/_mcp/consent/{requestId}', 'POST'];
+        yield 'dynamic client registration' => ['sulu_mcp_client_registration', '/admin/mcp/register', 'POST'];
+        yield 'consent details' => ['sulu_mcp_oauth_consent_details', '/admin/mcp/consent/{requestId}', 'GET'];
+        yield 'consent decision' => ['sulu_mcp_oauth_consent_decision', '/admin/mcp/consent/{requestId}', 'POST'];
 
-        // Declared explicitly in config/routes.yaml.
-        yield 'authorize' => ['sulu_mcp_oauth_authorize', '/admin/_mcp/authorize', ''];
-        yield 'token' => ['sulu_mcp_oauth_token', '/admin/_mcp/token', 'POST'];
+        // Declared explicitly in routing_admin.yaml.
+        yield 'authorize' => ['sulu_mcp_oauth_authorize', '/admin/mcp/authorize', ''];
+        yield 'token' => ['sulu_mcp_oauth_token', '/admin/mcp/token', 'POST'];
     }
 
     #[DataProvider('routeProvider')]
@@ -54,8 +52,8 @@ final class OAuthRoutingTest extends FunctionalTestCase
         self::assertNotNull(
             $route,
             \sprintf(
-                'Route "%s" is not registered. Check the attribute `resource` path in config/routes.yaml still '
-                .'points at the controller directory.',
+                'Route "%s" is not registered. Check the attribute `resource` paths in '
+                .'config/routing_admin.yaml and config/routing_website.yaml still point at their controller directories.',
                 $name,
             ),
         );

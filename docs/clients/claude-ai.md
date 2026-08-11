@@ -17,7 +17,7 @@ Settings → **Connectors** → **Add Custom Connector**
 | Field | Value |
 |-------|-------|
 | Name | `Sulu` (or whatever you want) |
-| Remote MCP Server URL | `https://your-sulu-host.example.com/admin/_mcp` |
+| Remote MCP Server URL | `https://your-sulu-host.example.com/admin/mcp` |
 | OAuth Client ID | from the previous step |
 | OAuth Client Secret | from the previous step |
 

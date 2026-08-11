@@ -7,10 +7,9 @@ services:
         Sulu\Mcp\Application\AdminLink\AdminLinkProviderInterface:
             tags: ['sulu_mcp.admin_link_provider']
 
-    # Admin deeplink registry. Providers need sulu_admin.view_registry, which
-    # only exists in the admin container, so they carry the sulu.context: admin
-    # tag to be dropped from the website/preview container. The generator is
-    # context-agnostic and just gets an empty iterator there.
+    # Providers need sulu_admin.view_registry, which only exists in the admin
+    # container, hence the sulu.context tag. The generator itself is
+    # context-agnostic and gets an empty iterator elsewhere.
     Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator:
         arguments:
             $providers: !tagged_iterator sulu_mcp.admin_link_provider
@@ -47,9 +46,8 @@ services:
         tags:
             - { name: sulu.context, context: admin }
 
-    # Decorates mcp.registry to drop tools disabled via `dangerous_tools.*`.
-    # Attribute discovery would otherwise re-add them after DangerousToolsPass
-    # removed the services, and calls would fall through to `new $class()`.
+    # Attribute discovery re-adds tools that DangerousToolsPass removed, and the
+    # calls would then fall through to `new $class()`.
     Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry:
         decorates: mcp.registry
         arguments:
@@ -66,8 +64,7 @@ services:
             $security: '@security.helper'
             $permissions: '%sulu_security.permissions%'
 
-    # Discovery-layer filtering for tools/list; $contextResolvers is keyed the same
-    # way as PermissionAwareCallToolHandler's.
+    # $contextResolvers is keyed the same way as PermissionAwareCallToolHandler's.
     Sulu\Mcp\Application\Security\ToolVisibilityResolver:
         arguments:
             $permissionMap: '%sulu_mcp.tool_permissions%'
@@ -76,8 +73,8 @@ services:
                 sulu_mcp.article_context_resolver: '@sulu_mcp.article_context_resolver'
             $allowlist: ['sulu_ping', 'sulu_get_context']
 
-    # Reproduces PageDescendantSecurityListener for the MCP delete tool,
-    # which dispatches RemovePageMessage directly and bypasses that route listener.
+    # The MCP delete tool dispatches RemovePageMessage directly, bypassing
+    # PageDescendantSecurityListener.
     Sulu\Mcp\Application\Security\PageDescendantPermissionChecker:
         arguments:
             $pageRepository: '@sulu_page.page_repository'
@@ -96,8 +93,7 @@ services:
     Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver: '@sulu_mcp.article_context_resolver'
     Sulu\Mcp\Application\Security\ContentSecurityContextResolver: ~
 
-    # Central fail-closed permission gate: preflight-checks the compile-time
-    # permission map before delegating to the SDK's built-in CallToolHandler.
+    # Fail-closed gate: checks the compile-time permission map before delegating.
     Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler:
         arguments:
             $registry: '@mcp.registry'
@@ -117,7 +113,7 @@ services:
         arguments:
             $engine: '@cmsig_seal.engine.default'
 
-    # MCP Resources: discovery layer for AI clients
+    # MCP resources
     Sulu\Mcp\Application\Metadata\FieldValueExampleProvider: ~
     Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource:
         arguments:
@@ -129,15 +125,14 @@ services:
     Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider:
         arguments:
             $formMetadataProvider: '@sulu_admin.form_metadata_provider'
-    # OAuth well-known controller
-    Sulu\Mcp\UserInterface\Controller\WellKnownController:
+    Sulu\Mcp\UserInterface\Controller\Website\WellKnownController:
         arguments:
             $serverUrl: '%sulu_mcp.server_url%'
             $mcpPath: '%sulu_mcp.mcp_path%'
             $scopes: '%sulu_mcp.oauth.scopes%'
         tags: ['controller.service_arguments']
 
-    Sulu\Mcp\UserInterface\Controller\DynamicClientRegistrationController:
+    Sulu\Mcp\UserInterface\Controller\Admin\DynamicClientRegistrationController:
         arguments:
             $allowedScopes: '%sulu_mcp.oauth.scopes%'
         tags: ['controller.service_arguments']
@@ -153,26 +148,22 @@ services:
         tags:
             - { name: sulu.context, context: admin }
 
-    # OAuth authorization
     Sulu\Mcp\Infrastructure\League\EventListener\OAuthAuthorizationListener: ~
 
-    # Redirect unauthenticated OAuth-authorize hits to the Sulu admin login
     Sulu\Mcp\Infrastructure\Sulu\Security\EntryPoint\OAuthAuthorizeEntryPoint:
         decorates: sulu_security.authentication_entry_point
         arguments:
             $inner: '@.inner'
 
-    # After admin login, resume a pending /admin/_mcp/authorize OAuth request.
+    # After admin login, resume a pending OAuth authorize request.
     Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpLoginSuccessListener: ~
 
-    # MCP event listeners
     Sulu\Mcp\Infrastructure\Symfony\Security\EntryPoint\McpAuthenticationEntryPoint:
         arguments:
             $serverUrl: '%sulu_mcp.server_url%'
             $mcpPath: '%sulu_mcp.mcp_path%'
 
-    # Stable id for the firewall entry_point, so security.yaml never references
-    # an internal class name.
+    # Stable id so security.yaml never references an internal class name.
     sulu_mcp.authentication_entry_point:
         alias: Sulu\Mcp\Infrastructure\Symfony\Security\EntryPoint\McpAuthenticationEntryPoint
         public: true
@@ -182,15 +173,15 @@ services:
             $mcpPath: '%sulu_mcp.mcp_path%'
             $debug: '%kernel.debug%'
 
-    # Forces request format to "json" for MCP requests so Sulu's MarkupBundle
-    # response listener does not run the HtmlMarkupParser on JSON-RPC responses
+    # Keeps Sulu's MarkupBundle from running the HtmlMarkupParser on JSON-RPC
+    # responses.
     Sulu\Mcp\Infrastructure\Symfony\HttpKernel\EventListener\McpRequestFormatListener:
         arguments:
             $mcpPath: '%sulu_mcp.mcp_path%'
         tags:
             - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest, priority: 64 }
 
-    # Sets Sulu system context for MCP requests so the UserProvider can authenticate OAuth users
+    # Sulu system context, so the UserProvider can authenticate OAuth users.
     Sulu\Mcp\Infrastructure\Sulu\Security\EventListener\OAuthSystemStoreListener:
         arguments:
             $mcpPath: '%sulu_mcp.mcp_path%'

@@ -10,8 +10,8 @@ sulu_mcp:
     # metadata and generating absolute callback URLs.
     server_url: '%env(SULU_MCP_SERVER_URL)%'
 
-    # MCP endpoint path. Default: /admin/_mcp
-    mcp_path: '/admin/_mcp'
+    # MCP endpoint path. Default: /admin/mcp
+    mcp_path: '/admin/mcp'
 
     oauth:
         # Access token lifetime in seconds. Default: 3600 (1 hour).
@@ -46,41 +46,50 @@ SULU_MCP_SERVER_URL=https://sulu.example.com
 
 ### `mcp_path`
 
-The HTTP path serving MCP requests. Default `/admin/_mcp`. The `/admin/...` prefix routes the request into Sulu's admin kernel via the standard front-controller mapping, so admin-context services (article preview provider, etc.) are available to the tools. Change it only if you need to avoid a route collision; keep the `/admin/` prefix unless you've explicitly routed a different path to the admin kernel. Clients must use the same path.
+The HTTP path serving MCP requests. Default `/admin/mcp`. The `/admin/...` prefix routes the request into Sulu's admin kernel via the standard front-controller mapping, so admin-context services (article preview provider, etc.) are available to the tools. Unlike the routes below, this one is registered by `symfony/mcp-bundle` and so cannot pick up a route import prefix -- it is a full path and has to be kept in sync with the prefix you mount `routing_admin.yaml` under.
 
-If you change `mcp_path`, also update the `pattern` of the `mcp` firewall in your `security.yaml` (see "Required security setup" below) and the URL registered with each MCP client. The OAuth endpoints below keep their fixed `/admin/_mcp/...` paths either way -- only the transport path moves.
+If you change `mcp_path`, also update the `pattern` of the `mcp` firewall in your `security.yaml` (see "Required security setup" below) and the URL registered with each MCP client.
 
 ## Routes
 
-Every route of this bundle lives under the `_mcp` namespace. The underscore follows the Symfony/Sulu convention for framework-owned paths (`_profiler`, `_wdt`, Sulu's `/admin/p`) and keeps the bundle from colliding with a project's own `/mcp` pages.
+The bundle ships its routes in two files, because the two halves are mounted differently. `routing_admin.yaml` carries the OAuth endpoints and takes whichever prefix your project already uses for the rest of the Sulu admin, exactly like every other Sulu bundle. `routing_website.yaml` carries the discovery documents, which RFC 8414 and RFC 9728 pin to the host root and which must therefore never be prefixed.
+
+```yaml
+# config/routes.yaml
+sulu_mcp_admin:
+    resource: '@SuluMcpBundle/config/routing_admin.yaml'
+    prefix: /admin
+
+sulu_mcp_website:
+    resource: '@SuluMcpBundle/config/routing_website.yaml'
+```
+
+No path inside the bundle hardcodes the prefix, and the code that needs to know a route's URL generates it from the router. The table below assumes the conventional `/admin` prefix.
+
+Keep both imports in a file that is loaded in **every** Sulu context, as above. The discovery documents are served from the host root and therefore run in the website kernel, but they advertise the OAuth endpoints from `routing_admin.yaml` and generate those URLs from the router. Splitting the two imports into context-specific route files leaves the website kernel without the admin route definitions, and the discovery document fails with a `RouteNotFoundException`.
 
 | Path | Purpose | Authentication |
 |---|---|---|
-| `/admin/_mcp` | MCP transport (JSON-RPC), configurable via `mcp_path` | OAuth bearer token |
-| `/admin/_mcp/authorize` | OAuth authorization endpoint | Sulu admin session |
-| `/admin/_mcp/consent/{requestId}` | Consent screen backend (`GET` details, `POST` decision) | Sulu admin session |
-| `/admin/_mcp/token` | OAuth token endpoint | client credentials / PKCE |
-| `/admin/_mcp/register` | RFC 7591 dynamic client registration | public |
+| `/admin/mcp` | MCP transport (JSON-RPC), configurable via `mcp_path` | OAuth bearer token |
+| `/admin/mcp/authorize` | OAuth authorization endpoint | Sulu admin session |
+| `/admin/mcp/consent/{requestId}` | Consent screen backend (`GET` details, `POST` decision) | Sulu admin session |
+| `/admin/mcp/token` | OAuth token endpoint | client credentials / PKCE |
+| `/admin/mcp/register` | RFC 7591 dynamic client registration | public |
 | `/.well-known/oauth-protected-resource` | RFC 9728 discovery | public |
 | `/.well-known/oauth-authorization-server` | RFC 8414 discovery | public |
 
-The two `.well-known` documents are the only routes outside the namespace -- RFC 8414 and RFC 9728 pin them to the host root. Clients discover `authorize`, `token` and `register` from the authorization-server document, so they need no manual configuration beyond the server URL.
+Clients discover `authorize`, `token` and `register` from the authorization-server document, so they need no manual configuration beyond the server URL.
 
 ## Required security setup
 
-The MCP endpoint lives under `/admin/_mcp` so its requests reach the admin kernel. Sulu's standard `admin` firewall has the pattern `^/admin(\/|$)`, which also matches the MCP paths -- Symfony applies the *first* firewall whose pattern matches, in declaration order. The MCP firewalls therefore must be declared **before** the admin firewall in your `config/packages/security.yaml`:
+The MCP endpoint lives under `/admin/mcp` so its requests reach the admin kernel. Sulu's standard `admin` firewall has the pattern `^/admin(\/|$)`, which also matches the MCP paths -- Symfony applies the *first* firewall whose pattern matches, in declaration order. The MCP firewall therefore must be declared **before** the admin firewall in your `config/packages/security.yaml`:
 
 ```yaml
 security:
     firewalls:
         # ...any "dev" or static-asset firewalls...
-        # The token and registration endpoints authenticate the client themselves
-        # (client secret / PKCE), so Symfony security stays out of the way.
-        mcp_public:
-            pattern: ^/admin/_mcp/(token|register)$
-            security: false
         mcp:
-            pattern: ^/admin/_mcp/?$
+            pattern: ^/admin/mcp/?$
             provider: sulu                 # or whichever provider authenticates Sulu users
             stateless: true
             entry_point: sulu_mcp.authentication_entry_point
@@ -90,14 +99,17 @@ security:
             # ...existing admin firewall config...
 
     access_control:
-        # Allow the OAuth discovery documents through without a session.
+        # Allow the OAuth discovery, registration and token endpoints through
+        # without a session. They authenticate the client themselves.
         - { path: ^/\.well-known/oauth-, roles: PUBLIC_ACCESS }
+        - { path: ^/admin/mcp/register$, roles: PUBLIC_ACCESS }
+        - { path: ^/admin/mcp/token$, roles: PUBLIC_ACCESS }
         # Require a valid OAuth bearer on the MCP endpoint itself.
-        - { path: ^/admin/_mcp/?$, roles: IS_AUTHENTICATED_FULLY }
+        - { path: ^/admin/mcp/?$, roles: IS_AUTHENTICATED_FULLY }
         # ...your existing admin rules...
 ```
 
-The `mcp` pattern is anchored to the transport path alone. `/admin/_mcp/authorize` and `/admin/_mcp/consent/...` need the logged-in Sulu user, so they must fall through to the `admin` firewall -- an unanchored `^/admin/_mcp` would put them behind the stateless OAuth firewall and break the consent flow. They are covered by your existing `^/admin` access-control rule.
+The `mcp` pattern is anchored to the transport path alone. `/admin/mcp/authorize` and `/admin/mcp/consent/...` need the logged-in Sulu user, so they must fall through to the `admin` firewall -- an unanchored `^/admin/mcp` would put them behind the stateless OAuth firewall and break the consent flow. They are covered by your existing `^/admin` access-control rule, and the three public entries above have to precede it.
 
 This setup keeps the MCP traffic stateless (no PHP session cookies), isolated from your form-login / two-factor / HTTP-basic flows on `/admin/...`, and works alongside any extra middleware your host project layers onto the admin firewall.
 

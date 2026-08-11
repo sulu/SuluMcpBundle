@@ -49,15 +49,21 @@ return [
 ```
 
 Import the routes in `config/routes.yaml`. The `mcp` entry registers the MCP transport endpoint provided by
-`symfony/mcp-bundle`, and `sulu_mcp` registers this bundle's OAuth endpoints:
+`symfony/mcp-bundle`. This bundle ships its OAuth endpoints in two files: the admin ones take the same prefix your
+project already uses for the rest of the Sulu admin, and the RFC 8414/9728 discovery documents stay unprefixed on the
+host root:
 
 ```yaml
 mcp:
     resource: .
     type: mcp
 
-sulu_mcp:
-    resource: '@SuluMcpBundle/config/routes.yaml'
+sulu_mcp_admin:
+    resource: '@SuluMcpBundle/config/routing_admin.yaml'
+    prefix: /admin
+
+sulu_mcp_website:
+    resource: '@SuluMcpBundle/config/routing_website.yaml'
 ```
 
 Generate the RSA key pair that `league/oauth2-server-bundle` signs its tokens with. Skipping this step leaves every
@@ -92,7 +98,7 @@ bin/console doctrine:migrations:diff
 bin/console doctrine:migrations:migrate
 ```
 
-The MCP endpoint then answers at `/admin/_mcp`. The [`docs/`](docs/) directory documents the
+The MCP endpoint then answers at `/admin/mcp`. The [`docs/`](docs/) directory documents the
 [configuration reference](docs/configuration.md), the **required security setup**, and per-client connection guides for
 [Claude.ai](docs/clients/claude-ai.md), [Claude Code](docs/clients/claude-code.md),
 [Claude Cowork](docs/clients/claude-cowork.md), [ChatGPT](docs/clients/chatgpt.md) and [Codex](docs/clients/codex.md).

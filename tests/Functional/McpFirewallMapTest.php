@@ -17,26 +17,30 @@ use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\DataProvider;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\Security\Http\AccessMapInterface;
 
+/**
+ * An unanchored `^/admin/mcp` would pull authorize and consent into the
+ * stateless firewall, where there is no session, and the consent flow breaks.
+ */
 #[CoversNothing]
 final class McpFirewallMapTest extends FunctionalTestCase
 {
     /**
      * @return iterable<string, array{string, string}>
      */
-    public static function pathProvider(): iterable
+    public static function firewallProvider(): iterable
     {
-        yield 'transport' => ['/admin/_mcp', 'mcp'];
-        yield 'transport with trailing slash' => ['/admin/_mcp/', 'mcp'];
+        yield 'transport' => ['/admin/mcp', 'mcp'];
+        yield 'transport with trailing slash' => ['/admin/mcp/', 'mcp'];
 
-        yield 'token' => ['/admin/_mcp/token', 'mcp_public'];
-        yield 'registration' => ['/admin/_mcp/register', 'mcp_public'];
-
-        yield 'authorize' => ['/admin/_mcp/authorize', 'admin'];
-        yield 'consent' => ['/admin/_mcp/consent/6f1c0a', 'admin'];
+        yield 'authorize' => ['/admin/mcp/authorize', 'admin'];
+        yield 'consent' => ['/admin/mcp/consent/6f1c0a', 'admin'];
+        yield 'token' => ['/admin/mcp/token', 'admin'];
+        yield 'registration' => ['/admin/mcp/register', 'admin'];
     }
 
-    #[DataProvider('pathProvider')]
+    #[DataProvider('firewallProvider')]
     public function testPathIsHandledByExpectedFirewall(string $path, string $firewall): void
     {
         /** @var Security $security */
@@ -48,20 +52,28 @@ final class McpFirewallMapTest extends FunctionalTestCase
         self::assertSame($firewall, $config->getName());
     }
 
-    public function testTokenAndRegistrationRunWithoutSymfonySecurity(): void
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function accessControlProvider(): iterable
     {
-        /** @var Security $security */
-        $security = self::getContainer()->get('security.helper');
+        yield 'token' => ['/admin/mcp/token', 'PUBLIC_ACCESS'];
+        yield 'registration' => ['/admin/mcp/register', 'PUBLIC_ACCESS'];
+        yield 'transport' => ['/admin/mcp', 'IS_AUTHENTICATED_FULLY'];
+        yield 'authorize' => ['/admin/mcp/authorize', 'ROLE_USER'];
+        yield 'consent' => ['/admin/mcp/consent/6f1c0a', 'ROLE_USER'];
+    }
 
-        foreach (['/admin/_mcp/token', '/admin/_mcp/register'] as $path) {
-            $config = $security->getFirewallConfig(Request::create($path));
+    #[DataProvider('accessControlProvider')]
+    public function testPathRequiresExpectedAttribute(string $path, string $attribute): void
+    {
+        /** @var AccessMapInterface $accessMap */
+        $accessMap = self::getContainer()->get('security.access_map');
 
-            self::assertNotNull($config);
-            self::assertFalse(
-                $config->isSecurityEnabled(),
-                \sprintf('"%s" must stay outside Symfony security; the client authenticates itself.', $path),
-            );
-        }
+        [$attributes] = $accessMap->getPatterns(Request::create($path));
+
+        self::assertNotNull($attributes, \sprintf('No access-control rule matches "%s".', $path));
+        self::assertContains($attribute, $attributes);
     }
 
     public function testTransportIsStatelessAndConsentIsNot(): void
@@ -69,8 +81,8 @@ final class McpFirewallMapTest extends FunctionalTestCase
         /** @var Security $security */
         $security = self::getContainer()->get('security.helper');
 
-        $transport = $security->getFirewallConfig(Request::create('/admin/_mcp'));
-        $consent = $security->getFirewallConfig(Request::create('/admin/_mcp/consent/6f1c0a'));
+        $transport = $security->getFirewallConfig(Request::create('/admin/mcp'));
+        $consent = $security->getFirewallConfig(Request::create('/admin/mcp/consent/6f1c0a'));
 
         self::assertNotNull($transport);
         self::assertNotNull($consent);

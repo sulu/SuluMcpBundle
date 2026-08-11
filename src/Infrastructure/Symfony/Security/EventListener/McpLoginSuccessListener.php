@@ -16,17 +16,22 @@ namespace Sulu\Mcp\Infrastructure\Symfony\Security\EventListener;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 
 /**
  * @internal
  */
 #[AsEventListener(event: LoginSuccessEvent::class)]
-final class McpLoginSuccessListener
+final readonly class McpLoginSuccessListener
 {
     private const FIREWALL_NAME = 'admin';
     private const TARGET_PATH_KEY = '_security.admin.target_path';
-    private const MCP_AUTHORIZE_PATH = '/admin/_mcp/authorize';
+
+    public function __construct(
+        private UrlGeneratorInterface $urlGenerator,
+    ) {
+    }
 
     public function __invoke(LoginSuccessEvent $event): void
     {
@@ -56,7 +61,7 @@ final class McpLoginSuccessListener
             }
 
             $session->remove(self::TARGET_PATH_KEY);
-            // The Sulu admin SPA only navigates (window.location.href) when the response says method 'redirect'.
+            // The admin SPA only navigates when the response says method 'redirect'.
             $data['method'] = 'redirect';
             $data['url'] = $relativeTarget;
             $response->setData($data);
@@ -71,13 +76,15 @@ final class McpLoginSuccessListener
     }
 
     /**
-     * The stored target is absolute; the root-relative form reuses the current
-     * request's scheme/host, which is correct behind a proxy or TLS tunnel.
+     * Root-relative so the current request's scheme and host apply, which is
+     * what a proxy or TLS tunnel needs.
      */
     private function relativeMcpAuthorizeTarget(string $targetPath): ?string
     {
         $parts = \parse_url($targetPath);
-        if (false === $parts || !isset($parts['path']) || self::MCP_AUTHORIZE_PATH !== $parts['path']) {
+        if (false === $parts || !isset($parts['path'])
+            || $this->urlGenerator->generate('sulu_mcp_oauth_authorize') !== $parts['path']
+        ) {
             return null;
         }
 

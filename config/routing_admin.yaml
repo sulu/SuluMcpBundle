@@ -1,0 +1,12 @@
+sulu_mcp_admin_oauth:
+    resource: ../src/UserInterface/Controller/Admin/
+    type: attribute
+
+sulu_mcp_oauth_authorize:
+    path: /mcp/authorize
+    controller: league.oauth2_server.controller.authorization::indexAction
+
+sulu_mcp_oauth_token:
+    path: /mcp/token
+    controller: league.oauth2_server.controller.token::indexAction
+    methods: [POST]

@@ -11,14 +11,14 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Mcp\Tests\Unit\UserInterface\Controller;
+namespace Sulu\Mcp\Tests\Unit\UserInterface\Controller\Admin;
 
 use League\Bundle\OAuth2ServerBundle\Manager\ClientManagerInterface;
 use League\Bundle\OAuth2ServerBundle\Model\ClientInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Mcp\UserInterface\Controller\DynamicClientRegistrationController;
+use Sulu\Mcp\UserInterface\Controller\Admin\DynamicClientRegistrationController;
 use Symfony\Component\HttpFoundation\Request;
 
 #[CoversClass(DynamicClientRegistrationController::class)]
@@ -69,7 +69,7 @@ final class DynamicClientRegistrationControllerTest extends TestCase
     {
         $this->clientManager->expects($this->never())->method('save');
 
-        $response = $this->controller->register(Request::create('/admin/_mcp/register', 'POST', [], [], [], [], '{'));
+        $response = $this->controller->register(Request::create('/admin/mcp/register', 'POST', [], [], [], [], '{'));
 
         self::assertSame(400, $response->getStatusCode());
         self::assertSame('invalid_client_metadata', $this->json($response->getContent())['error']);
@@ -218,7 +218,7 @@ final class DynamicClientRegistrationControllerTest extends TestCase
         $content = json_encode($body, \JSON_THROW_ON_ERROR);
         self::assertIsString($content);
 
-        return Request::create('/admin/_mcp/register', 'POST', [], [], [], [], $content);
+        return Request::create('/admin/mcp/register', 'POST', [], [], [], [], $content);
     }
 
     /**

@@ -19,10 +19,7 @@ require __DIR__.'/../config/bootstrap.php';
 
 $suluContext = SuluKernel::CONTEXT_WEBSITE;
 
-if (\preg_match('/^\/admin(\/|$)/', $_SERVER['REQUEST_URI'])  // @phpstan-ignore-line argument.type
-    || \preg_match('/^\/_mcp(\/|$)/', $_SERVER['REQUEST_URI'])  // @phpstan-ignore-line argument.type
-    || \preg_match('/^\/mcp\//', $_SERVER['REQUEST_URI'])  // @phpstan-ignore-line argument.type
-) {
+if (\preg_match('/^\/admin(\/|$)/', $_SERVER['REQUEST_URI'])) {  // @phpstan-ignore-line argument.type
     $suluContext = SuluKernel::CONTEXT_ADMIN;
 }
 

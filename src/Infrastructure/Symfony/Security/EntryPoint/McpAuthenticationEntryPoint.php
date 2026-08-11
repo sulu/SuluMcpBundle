@@ -24,11 +24,8 @@ use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface
 
 /**
  * Returns 401 + WWW-Authenticate for unauthenticated MCP requests, pointing
- * clients to the PRM endpoint (RFC 9728) for OAuth discovery. Priority 10 so
- * it runs before McpExceptionListener (5).
- *
- * Lives under Security/EntryPoint because it is both the firewall's
- * authentication entry point and a kernel.exception listener.
+ * clients to the PRM endpoint (RFC 9728). Priority 10 so it runs before
+ * McpExceptionListener (5).
  *
  * @internal
  */
@@ -37,7 +34,7 @@ class McpAuthenticationEntryPoint implements AuthenticationEntryPointInterface
 {
     public function __construct(
         private readonly string $serverUrl,
-        private readonly string $mcpPath = '/admin/_mcp',
+        private readonly string $mcpPath = '/admin/mcp',
     ) {
     }
 

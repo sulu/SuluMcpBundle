@@ -19,7 +19,7 @@ In your workspace settings, add a **Custom MCP Server** (or **Custom Connector**
 
 | Field | Value |
 |-------|-------|
-| Server URL | `https://your-sulu-host.example.com/admin/_mcp` |
+| Server URL | `https://your-sulu-host.example.com/admin/mcp` |
 | OAuth Client ID | from step 1 |
 | OAuth Client Secret | from step 1 |
 

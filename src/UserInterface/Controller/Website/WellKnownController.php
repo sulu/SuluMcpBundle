@@ -11,18 +11,15 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Mcp\UserInterface\Controller;
+namespace Sulu\Mcp\UserInterface\Controller\Website;
 
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\Routing\Attribute\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
- * RFC 9728 Protected Resource Metadata (PRM) and RFC 8414 Authorization Server Metadata.
- *
- * These well-known endpoints enable MCP clients (e.g., Claude.ai) to discover
- * the OAuth authorization server and its capabilities for authenticating with
- * the MCP resource server.
+ * Discovery endpoints MCP clients use to find the OAuth authorization server:
+ * RFC 9728 Protected Resource Metadata and RFC 8414 Authorization Server Metadata.
  *
  * @internal
  */
@@ -34,17 +31,11 @@ class WellKnownController
     public function __construct(
         private readonly UrlGeneratorInterface $urlGenerator,
         private readonly string $serverUrl,
-        private readonly string $mcpPath = '/admin/_mcp',
+        private readonly string $mcpPath = '/admin/mcp',
         private readonly array $scopes = ['mcp:tools', 'mcp:resources'],
     ) {
     }
 
-    /**
-     * RFC 9728 - OAuth 2.0 Protected Resource Metadata.
-     *
-     * Returns metadata about the MCP resource server, including which
-     * authorization servers protect it and what scopes are supported.
-     */
     #[Route('/.well-known/oauth-protected-resource', name: 'sulu_mcp_prm', methods: ['GET'])]
     public function protectedResourceMetadata(): JsonResponse
     {
@@ -56,12 +47,6 @@ class WellKnownController
         ]);
     }
 
-    /**
-     * RFC 8414 - OAuth 2.0 Authorization Server Metadata.
-     *
-     * Returns metadata about the OAuth authorization server, including
-     * authorization and token endpoints, supported grant types, and PKCE support.
-     */
     #[Route('/.well-known/oauth-authorization-server', name: 'sulu_mcp_as_metadata', methods: ['GET'])]
     public function authorizationServerMetadata(): JsonResponse
     {

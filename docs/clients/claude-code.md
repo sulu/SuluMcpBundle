@@ -7,7 +7,7 @@ Claude Code reads MCP server config from a `.mcp.json` in the project root (or `
 The simplest option — let Claude Code write the config for you:
 
 ```bash
-claude mcp add --transport http sulu https://your-sulu-host.example.com/admin/_mcp
+claude mcp add --transport http sulu https://your-sulu-host.example.com/admin/mcp
 ```
 
 Or write `.mcp.json` by hand:
@@ -17,7 +17,7 @@ Or write `.mcp.json` by hand:
   "mcpServers": {
     "sulu": {
       "type": "http",
-      "url": "https://your-sulu-host.example.com/admin/_mcp"
+      "url": "https://your-sulu-host.example.com/admin/mcp"
     }
   }
 }
@@ -39,6 +39,6 @@ Add the contents of [`CONTENT_ASSISTANT_PROMPT.md`](../CONTENT_ASSISTANT_PROMPT.
 
 ## Troubleshooting
 
-- **`Server failed to start`** — confirm the URL is reachable from your machine and ends in `/_mcp`. Check the Symfony log for OAuth/CORS errors.
+- **`Server failed to start`** — confirm the URL is reachable from your machine and ends in `/admin/mcp`. Check the Symfony log for OAuth/CORS errors.
 - **Tools missing** — `dangerous_tools.*` defaults to `false`. Enable categories in `config/packages/sulu_mcp.yaml`.
 - **Tokens expire after re-deploy** — clearing the OAuth tables on Sulu invalidates issued tokens; re-run `claude mcp logout sulu` and reconnect.

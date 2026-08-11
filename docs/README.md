@@ -25,7 +25,7 @@ A handful of high-impact tools (delete, publish, block-remove) are gated behind 
 
 ## Transport
 
-[Streamable HTTP](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports) — a single endpoint at `/admin/_mcp` that accepts JSON-RPC over HTTP POST and optionally streams responses with SSE. The `/admin/...` prefix routes the request into Sulu's admin kernel, where admin-context services (article preview provider, etc.) are registered. The legacy HTTP+SSE transport is not used.
+[Streamable HTTP](https://modelcontextprotocol.io/specification/2025-03-26/basic/transports) — a single endpoint at `/admin/mcp` that accepts JSON-RPC over HTTP POST and optionally streams responses with SSE. The `/admin/...` prefix routes the request into Sulu's admin kernel, where admin-context services (article preview provider, etc.) are registered. The legacy HTTP+SSE transport is not used.
 
 ## Authentication
 

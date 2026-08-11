@@ -30,7 +30,7 @@ final class CreateMcpClientCommandTest extends TestCase
     protected function setUp(): void
     {
         $this->clientManager = $this->createMock(ClientManagerInterface::class);
-        $command = new CreateMcpClientCommand($this->clientManager, 'https://sulu.example.com', '/admin/_mcp');
+        $command = new CreateMcpClientCommand($this->clientManager, 'https://sulu.example.com', '/admin/mcp');
         $this->tester = new CommandTester($command);
     }
 

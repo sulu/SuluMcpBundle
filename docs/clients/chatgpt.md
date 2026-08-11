@@ -19,7 +19,7 @@ Settings → **Connectors** → **Create** (custom connector):
 | Field | Value |
 |-------|-------|
 | Name | `Sulu` (or whatever you want) |
-| MCP Server URL | `https://your-sulu-host.example.com/admin/_mcp` |
+| MCP Server URL | `https://your-sulu-host.example.com/admin/mcp` |
 | OAuth Client ID | from step 1 |
 | OAuth Client Secret | from step 1 |
 

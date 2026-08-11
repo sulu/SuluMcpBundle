@@ -21,6 +21,7 @@ use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
  * @internal
@@ -31,6 +32,7 @@ final readonly class OAuthAuthorizationListener
     public function __construct(
         private RequestStack $requestStack,
         private OAuthConsentStore $consentStore,
+        private UrlGeneratorInterface $urlGenerator,
     ) {
     }
 
@@ -63,6 +65,6 @@ final readonly class OAuthAuthorizationListener
 
     private function consentViewUrl(string $requestId): string
     {
-        return \sprintf('/admin/#/_mcp/authorize/%s', $requestId);
+        return \sprintf('%s#/mcp/authorize/%s', $this->urlGenerator->generate('sulu_admin'), $requestId);
     }
 }

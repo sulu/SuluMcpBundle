@@ -1,0 +1,3 @@
+sulu_mcp_website_well_known:
+    resource: ../src/UserInterface/Controller/Website/
+    type: attribute

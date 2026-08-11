@@ -49,7 +49,7 @@ class CreateMcpClientCommand extends Command
     public function __construct(
         private readonly ClientManagerInterface $clientManager,
         private readonly string $serverUrl,
-        private readonly string $mcpPath = '/admin/_mcp',
+        private readonly string $mcpPath = '/admin/mcp',
     ) {
         parent::__construct();
     }
@@ -158,8 +158,8 @@ class CreateMcpClientCommand extends Command
             return self::CLAUDE_CALLBACK_URI;
         }
 
-        // ChatGPT only reveals its callback URL after the connector is saved with these credentials.
-        // Create the client now, then prompt for the callback URL once ChatGPT shows it.
+        // ChatGPT only reveals its callback URL once the connector is saved, so create
+        // the client first and prompt for the URL afterwards.
         if ('chatgpt' === $client) {
             return null;
         }
