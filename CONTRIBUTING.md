@@ -17,13 +17,31 @@ composer bootstrap-test-environment
 The database binds to port 3306. Set `SULU_MCP_DB_PORT` to pick another one, and
 point the test application at it in `tests/Application/.env.test.local`.
 
-To browse the admin, build its assets once. The `sulu:admin:update-build` shortcut does not
-work here because it reads the Sulu version from a `composer.lock` next to the kernel, which a
-test application does not have:
+### Running the test application
+
+`tests/Application` is a runnable Sulu installation. To browse it, export `APP_ENV`
+rather than setting it in `.env.local`: `tests/Application/.env` pins `APP_ENV=test`,
+and Symfony skips `.env.local` in test environments, so a `.env.local` written while
+`APP_ENV` is still `test` is read by nothing.
 
 ```bash
-cd tests/Application/assets/admin && npm install && npm run build
+export APP_ENV=dev
+echo 'DATABASE_URL="mysql://root:ChangeMe@127.0.0.1:3306/sulu_mcp_dev?serverVersion=8.4&charset=utf8mb4"' \
+    > tests/Application/.env.local
+
+composer generate-test-keys
+tests/Application/bin/adminconsole doctrine:database:create --if-not-exists
+tests/Application/bin/adminconsole sulu:build dev          # creates the admin/admin user
+(cd tests/Application/assets/admin && npm install && npm run build)
+
+cd tests/Application && symfony server:start
 ```
+
+Two things to know. The admin JavaScript has to be built with npm as shown above:
+`sulu:admin:update-build` cannot work here, because it reads the Sulu version from a
+`composer.lock` next to the kernel and a test application has none. And `symfony server:start`
+picks its own PHP, so make sure that version matches the one `vendor/` was installed with,
+otherwise every route fails Composer's platform check.
 
 Run the following, in this order, before opening a pull request:
 
