@@ -8,7 +8,7 @@
 # the configured path -- defaults to /admin/_mcp so the request lands in the
 # admin kernel, where Sulu services tagged sulu.context: admin are available).
 sulu_mcp_oauth:
-    resource: ../src/Security/OAuth/
+    resource: ../src/UserInterface/Controller/
     type: attribute
 
 sulu_mcp_oauth_authorize:

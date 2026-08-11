@@ -15,8 +15,8 @@ namespace Sulu\Bundle\McpBundle\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use Sulu\Bundle\AdminBundle\Admin\Admin;
-use Sulu\Bundle\McpBundle\Security\Permission\ToolPermissionChecker;
-use Sulu\Bundle\McpBundle\Security\Permission\ToolPermissionCheckerInterface;
+use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionChecker;
+use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\MaskConverterInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;

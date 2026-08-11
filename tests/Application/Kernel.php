@@ -15,7 +15,7 @@ namespace Sulu\Bundle\McpBundle\Tests\Application;
 
 use League\Bundle\OAuth2ServerBundle\LeagueOAuth2ServerBundle;
 use Sulu\Article\Infrastructure\Symfony\HttpKernel\SuluArticleBundle;
-use Sulu\Bundle\McpBundle\SuluMcpBundle;
+use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\SuluMcpBundle;
 use Sulu\Bundle\McpBundle\Tests\Application\TestBundle\TestBundle;
 use Sulu\Bundle\TestBundle\Kernel\SuluTestKernel;
 use Sulu\Bundle\TestBundle\SuluTestBundle;

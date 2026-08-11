@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Sulu\Bundle\McpBundle\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\CoversNothing;
-use Sulu\Bundle\McpBundle\Security\Permission\ToolPermissionCheckerInterface;
-use Sulu\Bundle\McpBundle\Security\Permission\WebspacePermissionResolver;
+use Sulu\Bundle\McpBundle\Application\Security\ToolPermissionCheckerInterface;
+use Sulu\Bundle\McpBundle\Application\Security\WebspacePermissionResolver;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;

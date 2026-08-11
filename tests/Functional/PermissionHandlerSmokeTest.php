@@ -21,7 +21,7 @@ use Mcp\Schema\Result\CallToolResult;
 use Mcp\Server\Session\SessionInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\MockObject\Stub;
-use Sulu\Bundle\McpBundle\Capabilities\PermissionAwareCallToolHandler;
+use Sulu\Bundle\McpBundle\Infrastructure\Mcp\PermissionAwareCallToolHandler;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;

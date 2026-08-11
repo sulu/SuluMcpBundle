@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Sulu\Bundle\McpBundle\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\CoversNothing;
-use Sulu\Bundle\McpBundle\Security\EventListener\McpRequestFormatListener;
-use Sulu\Bundle\McpBundle\Security\EventListener\OAuthSystemStoreListener;
+use Sulu\Bundle\McpBundle\Infrastructure\Sulu\Security\EventListener\OAuthSystemStoreListener;
+use Sulu\Bundle\McpBundle\Infrastructure\Symfony\HttpKernel\EventListener\McpRequestFormatListener;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Security\Http\Firewall;

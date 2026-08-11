@@ -17,7 +17,7 @@ use Mcp\Server;
 use Mcp\Server\Handler\Request\CallToolHandler;
 use Mcp\Server\Protocol;
 use PHPUnit\Framework\Attributes\CoversClass;
-use Sulu\Bundle\McpBundle\Capabilities\PermissionAwareCallToolHandler;
+use Sulu\Bundle\McpBundle\Infrastructure\Mcp\PermissionAwareCallToolHandler;
 
 /**
  * Guards against permission logic that is unit-tested green but never reaches the

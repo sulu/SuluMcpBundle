@@ -15,7 +15,7 @@ namespace Sulu\Bundle\McpBundle\Tests\Functional;
 
 use Mcp\Capability\RegistryInterface;
 use PHPUnit\Framework\Attributes\CoversNothing;
-use Sulu\Bundle\McpBundle\Capabilities\Tool\GetContextTool;
+use Sulu\Bundle\McpBundle\UserInterface\Mcp\Tool\GetContextTool;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 

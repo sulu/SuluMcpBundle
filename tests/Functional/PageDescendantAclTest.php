@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Sulu\Bundle\McpBundle\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use Sulu\Bundle\McpBundle\Security\Exception\PermissionDeniedException;
-use Sulu\Bundle\McpBundle\Security\Permission\PageDescendantPermissionChecker;
+use Sulu\Bundle\McpBundle\Application\Security\PageDescendantPermissionChecker;
+use Sulu\Bundle\McpBundle\Domain\Exception\PermissionDeniedException;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Page\Domain\Model\Page;
