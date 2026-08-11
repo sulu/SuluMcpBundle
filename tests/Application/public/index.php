@@ -12,11 +12,21 @@ declare(strict_types=1);
  */
 
 use Sulu\Bundle\McpBundle\Tests\Application\Kernel;
+use Sulu\Component\HttpKernel\SuluKernel;
 use Symfony\Component\HttpFoundation\Request;
 
 require __DIR__.'/../config/bootstrap.php';
 
-$kernel = new Kernel($_SERVER['APP_ENV'], (bool) $_SERVER['APP_DEBUG'], Kernel::CONTEXT_WEBSITE);
+$suluContext = SuluKernel::CONTEXT_WEBSITE;
+
+if (\preg_match('/^\/admin(\/|$)/', $_SERVER['REQUEST_URI'])  // @phpstan-ignore-line argument.type
+    || \preg_match('/^\/_mcp(\/|$)/', $_SERVER['REQUEST_URI'])  // @phpstan-ignore-line argument.type
+    || \preg_match('/^\/mcp\//', $_SERVER['REQUEST_URI'])  // @phpstan-ignore-line argument.type
+) {
+    $suluContext = SuluKernel::CONTEXT_ADMIN;
+}
+
+$kernel = new Kernel($_SERVER['APP_ENV'], (bool) $_SERVER['APP_DEBUG'], $suluContext); // @phpstan-ignore-line argument.type
 $request = Request::createFromGlobals();
 $response = $kernel->handle($request);
 $response->send();

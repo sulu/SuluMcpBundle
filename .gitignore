@@ -17,5 +17,5 @@
 /tests/Application/.env.*.local
 /tests/Application/public/build/
 /tests/Application/public/uploads/
-/tests/Application/node_modules/
+node_modules/
 package-lock.json
