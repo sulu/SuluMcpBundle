@@ -1,0 +1,39 @@
+<?xml version="1.0" ?>
+<template xmlns="http://schemas.sulu.io/template/template"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://schemas.sulu.io/template/template http://schemas.sulu.io/template/template-1.0.xsd">
+
+    <key>box</key>
+
+    <meta>
+        <title lang="en">Box</title>
+        <title lang="de">Box</title>
+    </meta>
+
+    <properties>
+        <property name="title" type="text_line">
+            <meta>
+                <title lang="en">Title</title>
+                <title lang="de">Titel</title>
+            </meta>
+        </property>
+
+        <!-- A block type whose own fields are grouped in a <section>, mirroring
+             the "box" block type used on sulu.io (includes/block-types/box.xml). -->
+        <section name="form">
+            <meta>
+                <title lang="en">Form</title>
+                <title lang="de">Formular</title>
+            </meta>
+
+            <properties>
+                <property name="triggerTitle" type="text_line">
+                    <meta>
+                        <title lang="en">Trigger title</title>
+                        <title lang="de">Trigger Titel</title>
+                    </meta>
+                </property>
+            </properties>
+        </section>
+    </properties>
+</template>

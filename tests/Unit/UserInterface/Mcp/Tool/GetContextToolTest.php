@@ -122,14 +122,28 @@ final class GetContextToolTest extends TestCase
             'page' => [
                 'default' => [
                     'key' => 'default',
-                    'fields' => [
-                        ['name' => 'title', 'type' => 'text_line'],
-                        ['name' => 'url', 'type' => 'route'],
-                        ['name' => 'blocks', 'type' => 'block', 'types' => [
-                            'text' => ['key' => 'text', 'fields' => [
-                                ['name' => 'content', 'type' => 'text_editor'],
-                            ]],
-                        ]],
+                    'label' => 'Default',
+                    'schema' => [
+                        'type' => 'object',
+                        'properties' => [
+                            'title' => ['type' => 'string', 'x-sulu-type' => 'text_line'],
+                            'url' => ['x-sulu-type' => 'route'],
+                            'blocks' => [
+                                'type' => 'array',
+                                'x-sulu-type' => 'block',
+                                'items' => ['allOf' => [
+                                    [
+                                        'if' => ['properties' => ['type' => ['const' => 'text']]],
+                                        'then' => [
+                                            'title' => 'Text',
+                                            'properties' => [
+                                                'content' => ['x-sulu-type' => 'text_editor'],
+                                            ],
+                                        ],
+                                    ],
+                                ]],
+                            ],
+                        ],
                     ],
                 ],
             ],
@@ -154,9 +168,9 @@ final class GetContextToolTest extends TestCase
         $this->assertArrayNotHasKey('block', $result['fieldTypes']);
 
         // Fields no longer carry inline examples (deduped into the legend)
-        $titleField = $result['templates']['page']['default']['fields'][0];
-        $this->assertArrayNotHasKey('valueExample', $titleField);
-        $this->assertArrayNotHasKey('valueHint', $titleField);
+        $titleProperty = $result['templates']['page']['default']['schema']['properties']['title'];
+        $this->assertArrayNotHasKey('valueExample', $titleProperty);
+        $this->assertArrayNotHasKey('valueHint', $titleProperty);
 
         $this->assertArrayHasKey('seoFields', $result);
         $this->assertArrayHasKey('excerptFields', $result);
@@ -170,8 +184,9 @@ final class GetContextToolTest extends TestCase
         $extensionFields = $this->createMock(ExtensionFieldsProvider::class);
 
         $templates->method('getTemplates')->willReturn([
-            'page' => ['default' => ['key' => 'default', 'fields' => [
-                ['name' => 'image', 'type' => 'media_selection'],
+            'page' => ['default' => ['key' => 'default', 'label' => 'Default', 'schema' => [
+                'type' => 'object',
+                'properties' => ['image' => ['x-sulu-type' => 'media_selection']],
             ]]],
         ]);
         $blocks->method('getBlocks')->willReturn([]);

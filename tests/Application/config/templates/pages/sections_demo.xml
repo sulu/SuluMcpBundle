@@ -1,0 +1,94 @@
+<?xml version="1.0" ?>
+<template xmlns="http://schemas.sulu.io/template/template"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://schemas.sulu.io/template/template http://schemas.sulu.io/template/template-1.0.xsd">
+
+    <key>sections_demo</key>
+
+    <view>pages/default</view>
+    <controller>Sulu\Content\UserInterface\Controller\Website\ContentController::indexAction</controller>
+    <cacheLifetime>604800</cacheLifetime>
+
+    <meta>
+        <title lang="en">Sections Demo</title>
+        <title lang="de">Abschnitte Demo</title>
+    </meta>
+
+    <!-- Fixture covering <section> traversal for sulu_get_context: a section
+         nested in a section, and a section containing a block. -->
+    <properties>
+        <property name="title" type="text_line" mandatory="true">
+            <meta>
+                <title lang="en">Title</title>
+                <title lang="de">Titel</title>
+            </meta>
+            <params>
+                <param name="headline" value="true"/>
+            </params>
+
+            <tag name="sulu.rlp.part"/>
+        </property>
+
+        <property name="url" type="route" mandatory="true">
+            <meta>
+                <title lang="en">Resourcelocator</title>
+                <title lang="de">Adresse</title>
+            </meta>
+
+            <tag name="sulu.rlp"/>
+        </property>
+
+        <section name="header">
+            <meta>
+                <title lang="en">Header</title>
+                <title lang="de">Kopfbereich</title>
+            </meta>
+
+            <properties>
+                <property name="subtitle" type="text_line">
+                    <meta>
+                        <title lang="en">Subtitle</title>
+                        <title lang="de">Untertitel</title>
+                    </meta>
+                </property>
+
+                <section name="meta">
+                    <meta>
+                        <title lang="en">Meta</title>
+                        <title lang="de">Meta</title>
+                    </meta>
+
+                    <properties>
+                        <property name="metaDescription" type="text_line">
+                            <meta>
+                                <title lang="en">Meta Description</title>
+                                <title lang="de">Meta-Beschreibung</title>
+                            </meta>
+                        </property>
+                    </properties>
+                </section>
+            </properties>
+        </section>
+
+        <section name="content">
+            <meta>
+                <title lang="en">Content</title>
+                <title lang="de">Inhalt</title>
+            </meta>
+
+            <properties>
+                <block name="blocks" default-type="text" minOccurs="0">
+                    <meta>
+                        <title lang="en">Content Blocks</title>
+                        <title lang="de">Inhaltsblöcke</title>
+                    </meta>
+                    <types>
+                        <type ref="text"/>
+                        <type ref="heading"/>
+                        <type ref="box"/>
+                    </types>
+                </block>
+            </properties>
+        </section>
+    </properties>
+</template>

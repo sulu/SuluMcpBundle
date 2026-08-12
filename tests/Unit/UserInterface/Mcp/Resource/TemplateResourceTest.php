@@ -15,25 +15,29 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource;
 
 use Mcp\Capability\Attribute\McpResource;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
+use Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource\Fixture\RecordingFieldSchemaGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
 
 #[CoversClass(TemplatesResource::class)]
 final class TemplateResourceTest extends TestCase
 {
-    private MetadataProviderInterface&MockObject $formMetadataProvider;
-    private TemplatesResource $resource;
+    private RecordingFieldSchemaGenerator $schemaGenerator;
 
     protected function setUp(): void
     {
-        $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->resource = new TemplatesResource($this->formMetadataProvider);
+        $this->schemaGenerator = new RecordingFieldSchemaGenerator();
+    }
+
+    private function resource(array $metadata): TemplatesResource
+    {
+        return new TemplatesResource(new ArrayMetadataProvider($metadata), $this->schemaGenerator);
     }
 
     public function testGetTemplatesReturnsTemplatesGroupedByContentType(): void
@@ -48,23 +52,40 @@ final class TemplateResourceTest extends TestCase
         $typedMetadata = new TypedFormMetadata();
         $typedMetadata->addForm('default', $form);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typedMetadata : null);
-
-        $result = $this->resource->getTemplates();
+        $result = $this->resource(['page' => $typedMetadata])->getTemplates();
 
         $this->assertArrayHasKey('page', $result);
         $this->assertArrayHasKey('default', $result['page']);
-        $this->assertArrayHasKey('fields', $result['page']['default']);
-        $this->assertIsArray($result['page']['default']['fields']);
+        $this->assertArrayHasKey('schema', $result['page']['default']);
+        $this->assertIsArray($result['page']['default']['schema']);
     }
 
-    public function testGetTemplatesFieldIncludesNameTypeLabel(): void
+    public function testGetTemplatesEnvelopeIncludesKeyLabelAndGeneratedSchema(): void
     {
         $field = new FieldMetadata('title');
         $field->setType('text_line');
-        $field->setLabel('Title', 'en');
+
+        $form = new FormMetadata();
+        $form->setKey('default');
+        $form->setTitle('Default', 'en');
+        $form->addItem($field);
+
+        $typedMetadata = new TypedFormMetadata();
+        $typedMetadata->addForm('default', $form);
+
+        $result = $this->resource(['page' => $typedMetadata])->getTemplates();
+
+        $entry = $result['page']['default'];
+        $this->assertSame('default', $entry['key']);
+        $this->assertSame('Default', $entry['label']);
+        $this->assertSame(['title'], \array_values($entry['schema']['x-sulu-test-item-names']));
+        $this->assertSame('en', $entry['schema']['x-sulu-test-locale']);
+    }
+
+    public function testGetTemplatesPassesTheFormsRawItemsToTheGenerator(): void
+    {
+        $field = new FieldMetadata('title');
+        $field->setType('text_line');
 
         $form = new FormMetadata();
         $form->setKey('default');
@@ -73,20 +94,11 @@ final class TemplateResourceTest extends TestCase
         $typedMetadata = new TypedFormMetadata();
         $typedMetadata->addForm('default', $form);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typedMetadata : null);
+        $this->resource(['page' => $typedMetadata])->getTemplates();
 
-        $result = $this->resource->getTemplates();
-
-        $fields = $result['page']['default']['fields'];
-        $this->assertCount(1, $fields);
-        $this->assertArrayHasKey('name', $fields[0]);
-        $this->assertArrayHasKey('type', $fields[0]);
-        $this->assertArrayHasKey('label', $fields[0]);
-        $this->assertArrayHasKey('required', $fields[0]);
-        $this->assertSame('title', $fields[0]['name']);
-        $this->assertSame('text_line', $fields[0]['type']);
+        $this->assertCount(1, $this->schemaGenerator->calls);
+        $this->assertSame($form->getItems(), $this->schemaGenerator->calls[0]['items']);
+        $this->assertSame('en', $this->schemaGenerator->calls[0]['locale']);
     }
 
     public function testGetTemplatesGroupsPageArticleAndSnippet(): void
@@ -103,26 +115,16 @@ final class TemplateResourceTest extends TestCase
             return $typed;
         };
 
-        $pageMetadata = $buildTyped('default', 'title');
-        $articleMetadata = $buildTyped('blog', 'headline');
-        $snippetMetadata = $buildTyped('teaser', 'label');
-
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => match ($key) {
-                'page' => $pageMetadata,
-                'article' => $articleMetadata,
-                'snippet' => $snippetMetadata,
-                default => null,
-            });
-
-        $result = $this->resource->getTemplates();
+        $result = $this->resource([
+            'page' => $buildTyped('default', 'title'),
+            'article' => $buildTyped('blog', 'headline'),
+            'snippet' => $buildTyped('teaser', 'label'),
+        ])->getTemplates();
 
         $this->assertSame(['page', 'article', 'snippet'], array_keys($result));
         $this->assertArrayHasKey('default', $result['page']);
         $this->assertArrayHasKey('blog', $result['article']);
         $this->assertArrayHasKey('teaser', $result['snippet']);
-        $this->assertSame('headline', $result['article']['blog']['fields'][0]['name']);
     }
 
     public function testGetTemplatesOmitsContentTypesWithoutMetadata(): void
@@ -135,15 +137,22 @@ final class TemplateResourceTest extends TestCase
         $pageMetadata = new TypedFormMetadata();
         $pageMetadata->addForm('default', $form);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => match ($key) {
-                'page' => $pageMetadata,
-                'article' => throw new \RuntimeException('Article metadata not installed'),
-                default => null,
-            });
+        $provider = new class($pageMetadata) implements MetadataProviderInterface {
+            public function __construct(private readonly TypedFormMetadata $pageMetadata)
+            {
+            }
 
-        $result = $this->resource->getTemplates();
+            public function getMetadata(string $key, string $locale, array $metadataOptions): MetadataInterface
+            {
+                return match ($key) {
+                    'page' => $this->pageMetadata,
+                    'article' => throw new \RuntimeException('Article metadata not installed'),
+                    default => throw new \RuntimeException(\sprintf('No metadata registered for "%s".', $key)),
+                };
+            }
+        };
+
+        $result = (new TemplatesResource($provider, $this->schemaGenerator))->getTemplates();
 
         $this->assertSame(['page'], array_keys($result));
     }
@@ -162,13 +171,25 @@ final class TemplateResourceTest extends TestCase
 
     public function testGetTemplatesReturnsEmptyArrayWhenProviderReturnsNonTypedFormMetadata(): void
     {
-        $nonTypedMetadata = $this->createMock(MetadataInterface::class);
+        $nonTypedMetadata = new class implements MetadataInterface {
+            public function isCacheable(): bool
+            {
+                return false;
+            }
+        };
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturn($nonTypedMetadata);
+        $provider = new class($nonTypedMetadata) implements MetadataProviderInterface {
+            public function __construct(private readonly MetadataInterface $metadata)
+            {
+            }
 
-        $result = $this->resource->getTemplates();
+            public function getMetadata(string $key, string $locale, array $metadataOptions): MetadataInterface
+            {
+                return $this->metadata;
+            }
+        };
+
+        $result = (new TemplatesResource($provider, $this->schemaGenerator))->getTemplates();
 
         $this->assertSame([], $result);
     }

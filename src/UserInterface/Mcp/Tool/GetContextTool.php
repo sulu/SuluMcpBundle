@@ -45,7 +45,7 @@ class GetContextTool
      */
     #[McpTool(
         name: 'sulu_get_context',
-        description: 'Aggregates all CMS context into a single response. Returns templates (grouped by content type: `page`, `article`, `snippet`), block types, webspaces, and a `fieldTypes` legend mapping each field type to one value example/hint (look up a field\'s `type` in the legend to learn how to fill it). Call this once before creating or editing content to get full CMS awareness — including which article templates are available and which URL routing form each template expects (look at the field with type `route` or `page_tree_route`). Also returns `seoFields` and `excerptFields`: the project\'s configured SEO and excerpt field lists (with name, type, label, and required) to use when passing `seo` or `excerpt` data to create/update tools. Also returns `tools`: the full tool catalogue with per-tool availability and, for unavailable ones, the reason and the permissions required. IMPORTANT: pass the "locale" you intend to work in. Sulu roles can be restricted to specific locales, so a tool may be available in one locale and denied in another; without "locale" the catalogue is reported without any locale restriction and may list tools that will be denied when you call them.',
+        description: 'Aggregates all CMS context into a single response. Returns templates and block types as JSON Schema (grouped by content type: `page`, `article`, `snippet`), webspaces, and a `fieldTypes` legend mapping each field type to one value example/hint (look up a field\'s `x-sulu-type` — the original Sulu field type, since JSON Schema itself only expresses JSON types — in the legend to learn how to fill it). Call this once before creating or editing content to get full CMS awareness — including which article templates are available and which URL routing form each template expects (look at the field with `x-sulu-type` `route` or `page_tree_route`). Also returns `seoFields` and `excerptFields`: the project\'s configured SEO and excerpt field lists (with name, type, label, and required) to use when passing `seo` or `excerpt` data to create/update tools. Also returns `tools`: the full tool catalogue with per-tool availability and, for unavailable ones, the reason and the permissions required. IMPORTANT: pass the "locale" you intend to work in. Sulu roles can be restricted to specific locales, so a tool may be available in one locale and denied in another; without "locale" the catalogue is reported without any locale restriction and may list tools that will be denied when you call them.',
     )]
     public function getContext(
         #[Schema(description: 'The locale you intend to work in (e.g. "en"). Sulu roles can be locale-restricted, so availability is locale-dependent. Omit only if you do not yet know the locale.')]
@@ -113,8 +113,8 @@ class GetContextTool
             return;
         }
 
-        if (isset($node['type']) && \is_string($node['type'])) {
-            $types[$node['type']] = true;
+        if (isset($node['x-sulu-type']) && \is_string($node['x-sulu-type'])) {
+            $types[$node['x-sulu-type']] = true;
         }
 
         foreach ($node as $value) {

@@ -15,25 +15,40 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource;
 
 use Mcp\Capability\Attribute\McpResource;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\SectionMetadata;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TagMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
+use Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource\Fixture\RecordingFieldSchemaGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Resource\BlocksResource;
 
 #[CoversClass(BlocksResource::class)]
 final class BlockTypeResourceTest extends TestCase
 {
-    private MetadataProviderInterface&MockObject $formMetadataProvider;
-    private BlocksResource $resource;
+    private RecordingFieldSchemaGenerator $schemaGenerator;
 
     protected function setUp(): void
     {
-        $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->resource = new BlocksResource($this->formMetadataProvider);
+        $this->schemaGenerator = new RecordingFieldSchemaGenerator();
+    }
+
+    private function resource(array $metadata): BlocksResource
+    {
+        return new BlocksResource(new ArrayMetadataProvider($metadata), $this->schemaGenerator);
+    }
+
+    private function globalBlockTag(string $blockName): TagMetadata
+    {
+        $tag = new TagMetadata();
+        $tag->setName('sulu.global_block');
+        $tag->setAttributes(['global_block' => $blockName]);
+
+        return $tag;
     }
 
     public function testGetBlocksDeduplicatesBlockTypesAcrossTemplates(): void
@@ -61,14 +76,12 @@ final class BlockTypeResourceTest extends TestCase
         $typedMetadata->addForm('template1', $form1);
         $typedMetadata->addForm('template2', $form2);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturn($typedMetadata);
-
-        $result = $this->resource->getBlocks();
+        $result = $this->resource(['page' => $typedMetadata])->getBlocks();
 
         $this->assertCount(1, $result, 'text_block should be deduplicated across templates');
         $this->assertSame('text_block', $result[0]['key']);
+        $this->assertArrayHasKey('schema', $result[0]);
+        $this->assertCount(1, $this->schemaGenerator->calls);
     }
 
     public function testGetBlocksAvailableInTemplatesListsAllTemplatesContainingBlock(): void
@@ -96,16 +109,146 @@ final class BlockTypeResourceTest extends TestCase
         $typedMetadata->addForm('template1', $form1);
         $typedMetadata->addForm('template2', $form2);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturn($typedMetadata);
-
-        $result = $this->resource->getBlocks();
+        $result = $this->resource(['page' => $typedMetadata])->getBlocks();
 
         $this->assertCount(1, $result);
         $availableIn = $result[0]['available_in_templates'];
         $this->assertContains('template1', $availableIn);
         $this->assertContains('template2', $availableIn);
+    }
+
+    public function testGetBlocksResolvesGlobalBlockReferenceBeforeGeneratingSchema(): void
+    {
+        $refForm = new FormMetadata();
+        $refForm->setKey('heading');
+        $refForm->addTag($this->globalBlockTag('heading'));
+
+        $blockField = new FieldMetadata('blocks');
+        $blockField->setType('block');
+        $blockField->addType($refForm);
+
+        $templateForm = new FormMetadata();
+        $templateForm->setKey('default');
+        $templateForm->addItem($blockField);
+
+        $pageMetadata = new TypedFormMetadata();
+        $pageMetadata->addForm('default', $templateForm);
+
+        $titleField = new FieldMetadata('title');
+        $titleField->setType('text_line');
+        $globalHeading = new FormMetadata();
+        $globalHeading->setKey('heading');
+        $globalHeading->setTitle('Heading', 'en');
+        $globalHeading->addItem($titleField);
+
+        $blockMetadata = new TypedFormMetadata();
+        $blockMetadata->addForm('heading', $globalHeading);
+
+        $result = $this->resource(['page' => $pageMetadata, 'block' => $blockMetadata])->getBlocks();
+
+        $this->assertSame('heading', $result[0]['key']);
+        $this->assertSame('Heading', $result[0]['label']);
+        $this->assertSame($globalHeading->getItems(), $this->schemaGenerator->calls[0]['items']);
+    }
+
+    public function testGetBlocksFallsBackToPlaceholderFormWhenGlobalBlockNotFound(): void
+    {
+        $refForm = new FormMetadata();
+        $refForm->setKey('unknown_block');
+        $refForm->addTag($this->globalBlockTag('unknown_block'));
+
+        $blockField = new FieldMetadata('blocks');
+        $blockField->setType('block');
+        $blockField->addType($refForm);
+
+        $templateForm = new FormMetadata();
+        $templateForm->setKey('default');
+        $templateForm->addItem($blockField);
+
+        $pageMetadata = new TypedFormMetadata();
+        $pageMetadata->addForm('default', $templateForm);
+
+        $blockMetadata = new TypedFormMetadata();
+
+        $result = $this->resource(['page' => $pageMetadata, 'block' => $blockMetadata])->getBlocks();
+
+        $this->assertCount(1, $result);
+        $this->assertSame('unknown_block', $result[0]['key']);
+        $this->assertSame([], $this->schemaGenerator->calls[0]['items']);
+    }
+
+    public function testGetBlocksUsesInlineItemsWhenTypeIsNotTaggedGlobal(): void
+    {
+        $blockForm = new FormMetadata();
+        $blockForm->setKey('text');
+        $contentField = new FieldMetadata('content');
+        $contentField->setType('text_editor');
+        $blockForm->addItem($contentField);
+
+        $blockField = new FieldMetadata('blocks');
+        $blockField->setType('block');
+        $blockField->addType($blockForm);
+
+        $templateForm = new FormMetadata();
+        $templateForm->setKey('default');
+        $templateForm->addItem($blockField);
+
+        $pageMetadata = new TypedFormMetadata();
+        $pageMetadata->addForm('default', $templateForm);
+
+        $result = $this->resource(['page' => $pageMetadata])->getBlocks();
+
+        $this->assertSame('text', $result[0]['key']);
+        $this->assertSame($blockForm->getItems(), $this->schemaGenerator->calls[0]['items']);
+    }
+
+    public function testGetBlocksFindsBlockFieldDeclaredInsideSection(): void
+    {
+        $blockForm = new FormMetadata();
+        $blockForm->setKey('text');
+
+        $blockField = new FieldMetadata('homeBlocks');
+        $blockField->setType('block');
+        $blockField->addType($blockForm);
+
+        $content = new SectionMetadata('content');
+        $content->addItem($blockField);
+
+        $form = new FormMetadata();
+        $form->setKey('homepage');
+        $form->addItem($content);
+
+        $pageMetadata = new TypedFormMetadata();
+        $pageMetadata->addForm('homepage', $form);
+
+        $result = $this->resource(['page' => $pageMetadata])->getBlocks();
+
+        $this->assertCount(1, $result);
+        $this->assertSame('text', $result[0]['key']);
+        $this->assertContains('homepage', $result[0]['available_in_templates']);
+    }
+
+    public function testGetBlocksDiscoversBlockTypesInArticleTemplatesToo(): void
+    {
+        $quoteForm = new FormMetadata();
+        $quoteForm->setKey('quote');
+
+        $blockField = new FieldMetadata('blocks');
+        $blockField->setType('block');
+        $blockField->addType($quoteForm);
+
+        $articleForm = new FormMetadata();
+        $articleForm->setKey('article_default');
+        $articleForm->addItem($blockField);
+
+        $articleMetadata = new TypedFormMetadata();
+        $articleMetadata->addForm('article_default', $articleForm);
+
+        $result = $this->resource(['article' => $articleMetadata])->getBlocks();
+
+        $this->assertCount(1, $result);
+        $this->assertSame('quote', $result[0]['key']);
+        $this->assertSame(['article_default'], $result[0]['available_in_templates']);
     }
 
     public function testGetBlocksMethodHasMcpResourceAttribute(): void
@@ -122,13 +265,25 @@ final class BlockTypeResourceTest extends TestCase
 
     public function testGetBlocksReturnsEmptyArrayWhenNoTemplates(): void
     {
-        $nonTypedMetadata = $this->createMock(MetadataInterface::class);
+        $nonTypedMetadata = new class implements MetadataInterface {
+            public function isCacheable(): bool
+            {
+                return false;
+            }
+        };
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturn($nonTypedMetadata);
+        $provider = new class($nonTypedMetadata) implements MetadataProviderInterface {
+            public function __construct(private readonly MetadataInterface $metadata)
+            {
+            }
 
-        $result = $this->resource->getBlocks();
+            public function getMetadata(string $key, string $locale, array $metadataOptions): MetadataInterface
+            {
+                return $this->metadata;
+            }
+        };
+
+        $result = (new BlocksResource($provider, $this->schemaGenerator))->getBlocks();
 
         $this->assertSame([], $result);
     }

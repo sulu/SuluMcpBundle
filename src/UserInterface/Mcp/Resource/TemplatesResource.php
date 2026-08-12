@@ -14,22 +14,18 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Resource;
 
 use Mcp\Capability\Attribute\McpResource;
-use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
-use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
-use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\ItemMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
+use Sulu\Mcp\Application\Metadata\FieldSchemaGeneratorInterface;
 
 /**
  * @internal
  */
 class TemplatesResource
 {
-    /** @var array<string, FormMetadata>|null */
-    private ?array $globalBlockForms = null;
-
     public function __construct(
         private readonly MetadataProviderInterface $formMetadataProvider,
+        private readonly FieldSchemaGeneratorInterface $schemaGenerator,
     ) {
     }
 
@@ -37,7 +33,7 @@ class TemplatesResource
     #[McpResource(
         uri: 'sulu://templates',
         name: 'sulu_templates',
-        description: 'Available Sulu templates grouped by content type. Top-level keys are `page`, `article`, and `snippet` (any type with no templates installed is omitted). Each entry maps a template key to its field schema. Use the template key when creating or updating content of that type.',
+        description: 'Available Sulu templates grouped by content type. Top-level keys are `page`, `article`, and `snippet` (any type with no templates installed is omitted). Each entry maps a template key to `{key, label, schema}`, where `schema` is a JSON Schema for the flat content payload the template accepts. Each schema property also carries `x-sulu-type` — the underlying Sulu field type (see `fieldTypes` in sulu_get_context) — since JSON Schema itself only expresses JSON types. Use the template key when creating or updating content of that type.',
         mimeType: 'application/json',
     )]
     public function getTemplates(): array
@@ -68,96 +64,13 @@ class TemplatesResource
 
         $result = [];
         foreach ($typedMetadata->getForms() as $key => $formMetadata) {
-            $result[$key] = $this->normalizeTemplate($formMetadata);
+            $result[(string) $key] = [
+                'key' => $formMetadata->getKey(),
+                'label' => $formMetadata->getTitle('en'),
+                'schema' => $this->schemaGenerator->generate($formMetadata->getItems(), 'en'),
+            ];
         }
 
         return $result;
-    }
-
-    /** @return array<string, mixed> */
-    private function normalizeTemplate(FormMetadata $form): array
-    {
-        $fields = [];
-        foreach ($form->getItems() as $item) {
-            $fields[] = $this->normalizeItem($item);
-        }
-
-        return ['key' => $form->getKey(), 'fields' => $fields];
-    }
-
-    /**
-     * @param ItemMetadata        $item
-     * @param array<string, true> $visiting block type names currently on the resolution path
-     *
-     * @return array<string, mixed>
-     */
-    private function normalizeItem($item, array $visiting = []): array
-    {
-        $field = [
-            'name' => $item->getName(),
-            'type' => $item->getType(),
-            'label' => $item->getLabel('en') ?? $item->getName(),
-            'required' => $item instanceof FieldMetadata && $item->isRequired(),
-        ];
-
-        if ($item instanceof FieldMetadata && 'block' === $item->getType()) {
-            $types = [];
-            foreach ($item->getTypes() as $typeName => $blockForm) {
-                $resolvedForm = $this->resolveBlockForm($typeName, $blockForm);
-
-                if (isset($visiting[$typeName])) {
-                    $types[$typeName] = [
-                        'key' => $typeName,
-                        'label' => $resolvedForm->getTitle('en'),
-                        'fields' => [],
-                        'cyclic' => true,
-                    ];
-
-                    continue;
-                }
-
-                $blockFields = [];
-                foreach ($resolvedForm->getItems() as $blockItem) {
-                    $blockFields[] = $this->normalizeItem($blockItem, $visiting + [$typeName => true]);
-                }
-                $types[$typeName] = [
-                    'key' => $typeName,
-                    'label' => $resolvedForm->getTitle('en'),
-                    'fields' => $blockFields,
-                ];
-            }
-            $field['types'] = $types;
-        }
-
-        return $field;
-    }
-
-    private function resolveBlockForm(string $blockTypeName, FormMetadata $blockForm): FormMetadata
-    {
-        if ([] !== $blockForm->getItems()) {
-            return $blockForm;
-        }
-
-        $globalBlock = $this->getGlobalBlockForms()[$blockTypeName] ?? null;
-        if (null !== $globalBlock) {
-            return $globalBlock;
-        }
-
-        return $blockForm;
-    }
-
-    /**
-     * @return array<string, FormMetadata>
-     */
-    private function getGlobalBlockForms(): array
-    {
-        if (null === $this->globalBlockForms) {
-            $blockMetadata = $this->formMetadataProvider->getMetadata('block', 'en', ['ignore_global_blocks' => true]);
-            $this->globalBlockForms = $blockMetadata instanceof TypedFormMetadata
-                ? $blockMetadata->getForms()
-                : [];
-        }
-
-        return $this->globalBlockForms;
     }
 }
