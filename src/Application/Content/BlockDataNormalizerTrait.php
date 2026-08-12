@@ -31,9 +31,9 @@ trait BlockDataNormalizerTrait
      * Walks into all list-typed values so inline-nested children (e.g. a section's `blocks` array)
      * also receive ids — without this, parentBlockId / block_update can't find them later.
      *
-     * @param array<string, mixed> $block
+     * @param array<array-key, mixed> $block
      *
-     * @return array<string, mixed>
+     * @return array<array-key, mixed>
      */
     private function assignBlockIds(array $block, BlockIdGeneratorInterface $generator): array
     {
@@ -74,7 +74,7 @@ trait BlockDataNormalizerTrait
         }
 
         // Ensure all keys are strings (Sulu's MetadataResolver requires string keys)
-        return $this->stringifyKeys($blockData);
+        return self::stringifyKeys($blockData);
     }
 
     /**
@@ -114,16 +114,16 @@ trait BlockDataNormalizerTrait
      * Recursively convert all array keys to strings.
      * Sulu's MetadataResolver requires string keys (it uses str_contains() on keys).
      *
-     * @param array<string, mixed> $array
+     * @param array<array-key, mixed> $array
      *
      * @return array<string, mixed>
      */
-    private function stringifyKeys(array $array): array
+    private static function stringifyKeys(array $array): array
     {
         $result = [];
         foreach ($array as $key => $value) {
             $stringKey = (string) $key;
-            $result[$stringKey] = \is_array($value) ? $this->stringifyKeys($value) : $value;
+            $result[$stringKey] = \is_array($value) ? self::stringifyKeys($value) : $value;
         }
 
         return $result;
@@ -143,16 +143,16 @@ trait BlockDataNormalizerTrait
     public static function normalizeContent(array $content): array
     {
         if ([] !== $content && !\array_is_list($content)) {
-            return $content;
+            return self::stringifyKeys($content);
         }
 
         $normalized = [];
         foreach ($content as $item) {
             if (\is_array($item)) {
-                if (isset($item['name'], $item['value'])) {
-                    $normalized[(string) $item['name']] = $item['value'];
+                if (isset($item['name'], $item['value']) && \is_string($item['name'])) {
+                    $normalized[$item['name']] = $item['value'];
                 } else {
-                    $normalized = \array_merge($normalized, $item);
+                    $normalized = \array_merge($normalized, self::stringifyKeys($item));
                 }
             }
         }

@@ -38,7 +38,7 @@ trait ContentNormalizerTrait
 
     /**
      * @param array<string, mixed> $normalized
-     * @param list<string>         $blockProperties Block property names to summarize (e.g. ['blocks', 'homeBlocks'])
+     * @param list<string> $blockProperties Block property names to summarize (e.g. ['blocks', 'homeBlocks'])
      *
      * @return array<string, mixed>
      */
@@ -51,9 +51,13 @@ trait ContentNormalizerTrait
 
         // Replace block arrays with lightweight summaries
         foreach ($blockProperties as $prop) {
-            if (isset($normalized[$prop]) && \is_array($normalized[$prop])) {
-                $normalized[$prop] = $this->summarizeBlocks($normalized[$prop]);
+            if (!isset($normalized[$prop]) || !\is_array($normalized[$prop]) || !\array_is_list($normalized[$prop])) {
+                continue;
             }
+
+            /** @var list<array<string, mixed>> $blocks */
+            $blocks = $normalized[$prop];
+            $normalized[$prop] = $this->summarizeBlocks($blocks);
         }
 
         // Recursively remove null values, empty arrays, and empty strings
@@ -117,7 +121,7 @@ trait ContentNormalizerTrait
                     continue;
                 }
                 if ($this->looksLikeBlockList($value)) {
-                    /* @var list<array<string, mixed>> $value */
+                    /** @var list<array<string, mixed>> $value */
                     $summary[$key] = $this->summarizeBlocks($value);
                 }
             }
@@ -151,7 +155,7 @@ trait ContentNormalizerTrait
 
     /**
      * @param list<array<string, mixed>> $blocks
-     * @param list<int>                  $currentPath
+     * @param list<int> $currentPath
      *
      * @return list<int>|null
      */
@@ -188,7 +192,7 @@ trait ContentNormalizerTrait
      * nested block list found in the parent block.
      *
      * @param list<array<string, mixed>> $blocks
-     * @param list<int>                  $indices
+     * @param list<int> $indices
      *
      * @return array<string, mixed>
      */
@@ -213,8 +217,8 @@ trait ContentNormalizerTrait
      * Return a new blocks array with the block at $indices replaced/merged with $updated.
      *
      * @param list<array<string, mixed>> $blocks
-     * @param list<int>                  $indices
-     * @param array<string, mixed>       $updated
+     * @param list<int> $indices
+     * @param array<string, mixed> $updated
      *
      * @return list<array<string, mixed>>
      */
@@ -245,8 +249,8 @@ trait ContentNormalizerTrait
      * Insert a block into the nested block list of a parent block at the given path.
      *
      * @param list<array<string, mixed>> $blocks
-     * @param list<int>                  $parentIndices
-     * @param array<string, mixed>       $newBlock
+     * @param list<int> $parentIndices
+     * @param array<string, mixed> $newBlock
      *
      * @return array{blocks: list<array<string, mixed>>, nestedKey: string, addedAt: int}|null
      */
@@ -348,8 +352,8 @@ trait ContentNormalizerTrait
         $out['type'] = $block['type'] ?? null;
 
         // Single-property layout: block itself carries "name" + "value"
-        if (isset($block['name'], $block['value'])) {
-            $out[(string) $block['name']] = $block['value'];
+        if (isset($block['name'], $block['value']) && \is_string($block['name'])) {
+            $out[$block['name']] = $block['value'];
 
             return $out;
         }
@@ -360,13 +364,13 @@ trait ContentNormalizerTrait
                 continue;
             }
 
-            if (\is_int($key) && \is_array($value) && isset($value['name'])) {
+            if (\is_int($key) && \is_array($value) && isset($value['name']) && \is_string($value['name'])) {
                 // Multi-property layout entry
-                $out[(string) $value['name']] = $value['value'] ?? null;
+                $out[$value['name']] = $value['value'] ?? null;
             } elseif (\is_string($key)) {
                 // Already a named field (e.g. nested block list or a flat string property)
                 if (\is_array($value) && \array_is_list($value) && [] !== $value && $this->looksLikeBlockList($value)) {
-                    /* @var list<array<int|string, mixed>> $value */
+                    /** @var list<array<int|string, mixed>> $value */
                     $out[$key] = \array_map(fn (array $b) => $this->formatBlockForOutput($b), $value);
                 } else {
                     $out[$key] = $value;
@@ -378,7 +382,7 @@ trait ContentNormalizerTrait
     }
 
     /**
-     * @param array<string, mixed> $data
+     * @param array<array-key, mixed> $data
      *
      * @return array<string, mixed>
      */
@@ -394,14 +398,14 @@ trait ContentNormalizerTrait
             if (\is_array($value)) {
                 $cleaned = $this->removeEmpty($value);
                 if ([] !== $cleaned) {
-                    $result[$key] = $cleaned;
+                    $result[(string) $key] = $cleaned;
                 }
 
                 continue;
             }
 
             // Keep false and 0 — they carry meaning
-            $result[$key] = $value;
+            $result[(string) $key] = $value;
         }
 
         return $result;

@@ -92,7 +92,7 @@ class BlockUpdateTool
                 return ['error' => \sprintf('%s not found: %s', \ucfirst($type), $uuid)];
             }
 
-            $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.templateType
+            $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
@@ -128,7 +128,9 @@ class BlockUpdateTool
             // Merge new data over existing block (partial update)
             $blockData = $this->normalizeBlockData($blockData);
 
-            $existingBlock = $this->getBlockAtPath($currentData[$foundProperty], $foundIndices);
+            /** @var list<array<string, mixed>> $blocksAtFoundProperty */
+            $blocksAtFoundProperty = $currentData[$foundProperty];
+            $existingBlock = $this->getBlockAtPath($blocksAtFoundProperty, $foundIndices);
             $blockType = isset($existingBlock['type']) && \is_string($existingBlock['type'])
                 ? $existingBlock['type']
                 : null;
@@ -139,7 +141,7 @@ class BlockUpdateTool
                 return $validationError;
             }
 
-            $blockData = $this->assignBlockIds($blockData, $this->blockIdGenerator);
+            $blockData = $this->stringifyKeys($this->assignBlockIds($blockData, $this->blockIdGenerator));
 
             /** @var list<array<string, mixed>> $topLevelBlocks */
             $topLevelBlocks = $currentData[$foundProperty];

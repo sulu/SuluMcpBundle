@@ -32,8 +32,8 @@ final class ArticleRouteValidator
     /**
      * Validate a routing payload supplied to article create/update.
      *
-     * @param array<string, mixed> $content  Normalized article content
-     * @param bool                 $required When true (create), having no routing form is an error
+     * @param array<string, mixed> $content Normalized article content
+     * @param bool $required When true (create), having no routing form is an error
      *
      * @return array<string, mixed>|null Error payload, or null when the content is valid
      */
@@ -120,7 +120,7 @@ final class ArticleRouteValidator
      * it into a clear error the LLM can act on.
      *
      * @param array<string, mixed> $normalizedArticle Output of ContentManager::normalize()
-     * @param array<string, mixed> $content           The routing content the caller supplied
+     * @param array<string, mixed> $content The routing content the caller supplied
      *
      * @return array<string, string>|null
      */
@@ -151,7 +151,7 @@ final class ArticleRouteValidator
         }
 
         return self::error(
-            'Article was created but routing was dropped (url resolved to null). This usually means the URL form does not match the template\'s route property type. '.$suggestion.' Call sulu_get_context to inspect the template field types.'
+            'Article was created but routing was dropped (url resolved to null). This usually means the URL form does not match the template\'s route property type. ' . $suggestion . ' Call sulu_get_context to inspect the template field types.'
         );
     }
 
@@ -176,7 +176,7 @@ final class ArticleRouteValidator
     }
 
     /**
-     * @param array<string, mixed> $route
+     * @param array<array-key, mixed> $route
      *
      * @return array<string, mixed>|null
      */

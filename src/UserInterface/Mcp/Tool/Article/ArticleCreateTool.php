@@ -98,7 +98,7 @@ class ArticleCreateTool
                 return $blockError;
             }
 
-            $suluContent = $this->assignBlockIds($suluContent, $this->blockIdGenerator);
+            $suluContent = $this->stringifyKeys($this->assignBlockIds($suluContent, $this->blockIdGenerator));
 
             $data = \array_merge($suluContent, [
                 'locale' => $locale,

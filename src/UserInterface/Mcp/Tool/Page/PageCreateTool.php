@@ -105,11 +105,11 @@ class PageCreateTool
             );
 
             if ($webspace !== $parent->getWebspaceKey()) {
-                throw new PermissionDeniedException('sulu.webspaces.'.$parent->getWebspaceKey(), PermissionTypes::EDIT, $locale);
+                throw new PermissionDeniedException('sulu.webspaces.' . $parent->getWebspaceKey(), PermissionTypes::EDIT, $locale);
             }
 
             $this->permissionChecker->check(
-                'sulu.webspaces.'.$parent->getWebspaceKey(),
+                'sulu.webspaces.' . $parent->getWebspaceKey(),
                 [PermissionTypes::EDIT, PermissionTypes::ADD],
                 $locale,
                 Page::class,
@@ -122,13 +122,13 @@ class PageCreateTool
                 return $validationError;
             }
 
-            $normalizedContent = $this->assignBlockIds($normalizedContent, $this->blockIdGenerator);
+            $normalizedContent = $this->stringifyKeys($this->assignBlockIds($normalizedContent, $this->blockIdGenerator));
 
             $data = \array_merge($normalizedContent, [
                 'locale' => $locale,
                 'template' => $template,
                 'title' => $title,
-                'url' => $url ?? '/'.\mb_strtolower(\str_replace(' ', '-', $title)),
+                'url' => $url ?? '/' . \mb_strtolower(\str_replace(' ', '-', $title)),
             ]);
 
             $data = $this->contentMetadataMapper->applyExcerpt($data, $excerpt, $locale);

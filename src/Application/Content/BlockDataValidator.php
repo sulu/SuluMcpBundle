@@ -66,7 +66,7 @@ final readonly class BlockDataValidator
      * Reject any blockData key that is not a field of $form (ignoring the internal
      * `type`, `_id`, and `settings*` keys).
      *
-     * @param array<string, mixed> $blockData
+     * @param array<array-key, mixed> $blockData
      *
      * @return array<string, mixed>|null
      */
@@ -118,7 +118,7 @@ final readonly class BlockDataValidator
      * Validate every block found in the list-valued entries of $node, recursing
      * into each block's own list-valued fields (nested blocks).
      *
-     * @param array<string, mixed> $node
+     * @param array<array-key, mixed> $node
      *
      * @return array<string, mixed>|null
      */
@@ -167,7 +167,7 @@ final readonly class BlockDataValidator
      * AI clients sometimes emit. This shape is silently stored by Sulu and breaks
      * the admin UI -- give a tailored message before generic key validation.
      *
-     * @param array<string, mixed> $blockData
+     * @param array<array-key, mixed> $blockData
      *
      * @return array<string, mixed>|null
      */
@@ -198,7 +198,7 @@ final readonly class BlockDataValidator
      * updates stay partial-friendly and skip it. Undiscoverable block types are
      * skipped, consistent with key validation.
      *
-     * @param array<string, mixed> $blockData
+     * @param array<array-key, mixed> $blockData
      *
      * @return array<string, mixed>|null
      */
