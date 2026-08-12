@@ -15,8 +15,12 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Article;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Domain\Model\ArticleInterface;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
@@ -31,6 +35,8 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleListTool;
 #[CoversClass(ArticleListTool::class)]
 final class ArticleListToolTest extends TestCase
 {
+    use ProphecyTrait;
+
     private ArticleRepositoryInterface&MockObject $articleRepository;
     private ContentManagerInterface&MockObject $contentManager;
     private ToolPermissionCheckerInterface&MockObject $permissionChecker;
@@ -207,5 +213,99 @@ final class ArticleListToolTest extends TestCase
 
         $this->assertSame([], $result['articles']);
         $this->assertSame(0, $result['total']);
+    }
+
+    /**
+     * @return array{ArticleListTool, ObjectProphecy<ArticleRepositoryInterface>}
+     */
+    private function createToolWithProphecyRepository(): array
+    {
+        $articleRepository = $this->prophesize(ArticleRepositoryInterface::class);
+
+        $contentManager = $this->prophesize(ContentManagerInterface::class);
+        $contentManager->resolve(Argument::cetera())
+            ->willReturn($this->prophesize(DimensionContentInterface::class)->reveal());
+        $contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Test']);
+
+        $permissionChecker = $this->prophesize(ToolPermissionCheckerInterface::class);
+        $permissionChecker->has(Argument::cetera())->willReturn(true);
+
+        $tool = new ArticleListTool(
+            $articleRepository->reveal(),
+            $contentManager->reveal(),
+            $permissionChecker->reveal(),
+            $this->articleContextResolver,
+        );
+
+        return [$tool, $articleRepository];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function sortFieldAndOrderProvider(): iterable
+    {
+        foreach (['title', 'authored', 'created', 'changed', 'workflowPublished'] as $field) {
+            foreach (['asc', 'desc'] as $order) {
+                yield "{$field}/{$order}" => [$field, $order];
+            }
+        }
+    }
+
+    #[DataProvider('sortFieldAndOrderProvider')]
+    public function testListArticlesAppliesSortByToBothRepositoryCalls(string $sortBy, string $sortOrder): void
+    {
+        [$tool, $articleRepository] = $this->createToolWithProphecyRepository();
+
+        $article = $this->prophesize(ArticleInterface::class);
+        $article->getUuid()->willReturn('uuid-1');
+
+        $articleRepository->countBy(Argument::type('array'))->willReturn(1);
+        $articleRepository->findIdentifiersBy(Argument::type('array'), [$sortBy => $sortOrder])
+            ->shouldBeCalledOnce()
+            ->willReturn(['uuid-1']);
+        $articleRepository->findBy(Argument::type('array'), [$sortBy => $sortOrder], Argument::type('array'))
+            ->shouldBeCalledOnce()
+            ->willReturn([$article->reveal()]);
+
+        $tool->listArticles('en', null, 1, 20, $sortBy, $sortOrder);
+    }
+
+    public function testListArticlesDefaultSortIsTitleAscendingWhenOmitted(): void
+    {
+        [$tool, $articleRepository] = $this->createToolWithProphecyRepository();
+
+        $article = $this->prophesize(ArticleInterface::class);
+        $article->getUuid()->willReturn('uuid-1');
+
+        $articleRepository->countBy(Argument::type('array'))->willReturn(1);
+        $articleRepository->findIdentifiersBy(Argument::type('array'), ['title' => 'asc'])
+            ->shouldBeCalledOnce()
+            ->willReturn(['uuid-1']);
+        $articleRepository->findBy(Argument::type('array'), ['title' => 'asc'], Argument::type('array'))
+            ->shouldBeCalledOnce()
+            ->willReturn([$article->reveal()]);
+
+        $tool->listArticles('en');
+    }
+
+    public function testListArticlesRejectsUnsupportedSortBy(): void
+    {
+        [$tool] = $this->createToolWithProphecyRepository();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported sortBy "bogus"');
+
+        $tool->listArticles('en', null, 1, 20, 'bogus', 'asc');
+    }
+
+    public function testListArticlesRejectsUnsupportedSortOrder(): void
+    {
+        [$tool] = $this->createToolWithProphecyRepository();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported sortOrder "bogus"');
+
+        $tool->listArticles('en', null, 1, 20, 'title', 'bogus');
     }
 }

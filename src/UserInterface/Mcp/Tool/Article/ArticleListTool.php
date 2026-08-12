@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Article;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Capability\Attribute\Schema;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
@@ -36,6 +37,9 @@ class ArticleListTool
         'shadowOn', 'shadowLocale',
         'mainWebspace',
     ];
+
+    private const ALLOWED_SORT_FIELDS = ['title', 'authored', 'created', 'changed', 'workflowPublished'];
+    private const ALLOWED_SORT_ORDERS = ['asc', 'desc'];
 
     public function __construct(
         private readonly ArticleRepositoryInterface $articleRepository,
@@ -62,7 +66,24 @@ class ArticleListTool
         ?string $template = null,
         int $page = 1,
         int $limit = 20,
+        #[Schema(
+            description: 'Field to sort articles by. "authored" is the field for "latest articles" — it is the editorial date shown to readers (settable by the author, so it can be backdated). "created" is the immutable database insertion timestamp and is usually NOT what "latest" means to a reader. "changed" is the last-edited timestamp. "workflowPublished" is when the article was last published. Defaults to "title".',
+            enum: ['title', 'authored', 'created', 'changed', 'workflowPublished'],
+        )]
+        string $sortBy = 'title',
+        #[Schema(description: 'Sort direction, "asc" or "desc". Defaults to "asc".', enum: ['asc', 'desc'])]
+        string $sortOrder = 'asc',
     ): array {
+        if (!\in_array($sortBy, self::ALLOWED_SORT_FIELDS, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unsupported sortBy "%s". Supported: %s.', $sortBy, \implode(', ', self::ALLOWED_SORT_FIELDS)));
+        }
+
+        if (!\in_array($sortOrder, self::ALLOWED_SORT_ORDERS, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unsupported sortOrder "%s". Supported: %s.', $sortOrder, \implode(', ', self::ALLOWED_SORT_ORDERS)));
+        }
+
+        $sortBys = [$sortBy => $sortOrder];
+
         // Constrain to the templates of every article group the user may read, so rows
         // and `total` agree. countBy() and findIdentifiersBy() build their query without
         // the admin select group, so templateKeys applies cleanly there.
@@ -95,14 +116,14 @@ class ArticleListTool
 
         // Two-step paging; see PageListTool. A limit on the admin select truncates
         // fetch-joined SQL rows rather than articles.
-        $uuids = [...$this->articleRepository->findIdentifiersBy($filters, ['title' => 'asc'])];
+        $uuids = [...$this->articleRepository->findIdentifiersBy($filters, $sortBys)];
         if ([] === $uuids) {
             return ['articles' => [], 'total' => $total, 'page' => $page, 'limit' => $limit];
         }
 
         $articles = $this->articleRepository->findBy(
             ['uuids' => $uuids, 'locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT],
-            ['title' => 'asc'],
+            $sortBys,
             [ArticleRepositoryInterface::GROUP_SELECT_ARTICLE_ADMIN => true],
         );
 

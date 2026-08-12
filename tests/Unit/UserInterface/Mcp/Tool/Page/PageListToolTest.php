@@ -16,8 +16,12 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Page;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
@@ -37,6 +41,8 @@ use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 #[CoversClass(PageListTool::class)]
 final class PageListToolTest extends TestCase
 {
+    use ProphecyTrait;
+
     private PageRepositoryInterface&MockObject $pageRepository;
     private ContentManagerInterface&MockObject $contentManager;
     private WebspacePermissionResolver $webspacePermissionResolver;
@@ -250,5 +256,96 @@ final class PageListToolTest extends TestCase
             ->willReturn(0);
 
         $this->tool->listPages('example', 'en');
+    }
+
+    /**
+     * @return array{PageListTool, ObjectProphecy<PageRepositoryInterface>}
+     */
+    private function createToolWithProphecyRepository(): array
+    {
+        $pageRepository = $this->prophesize(PageRepositoryInterface::class);
+
+        $contentManager = $this->prophesize(ContentManagerInterface::class);
+        $contentManager->resolve(Argument::cetera())
+            ->willReturn($this->prophesize(DimensionContentInterface::class)->reveal());
+        $contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Test']);
+
+        $tool = new PageListTool(
+            $pageRepository->reveal(),
+            $contentManager->reveal(),
+            $this->webspacePermissionResolver,
+            new AccessControlFilterFactory(null, ['view' => 64, 'add' => 32, 'edit' => 16, 'delete' => 8, 'archive' => 4, 'live' => 2, 'security' => 1]),
+        );
+
+        return [$tool, $pageRepository];
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function sortFieldAndOrderProvider(): iterable
+    {
+        foreach (['title', 'authored', 'created', 'changed', 'workflowPublished'] as $field) {
+            foreach (['asc', 'desc'] as $order) {
+                yield "{$field}/{$order}" => [$field, $order];
+            }
+        }
+    }
+
+    #[DataProvider('sortFieldAndOrderProvider')]
+    public function testListPagesAppliesSortByToBothRepositoryCalls(string $sortBy, string $sortOrder): void
+    {
+        [$tool, $pageRepository] = $this->createToolWithProphecyRepository();
+
+        $page = $this->prophesize(PageInterface::class);
+        $page->getUuid()->willReturn('uuid-1');
+
+        $pageRepository->countBy(Argument::type('array'))->willReturn(1);
+        $pageRepository->findIdentifiersBy(Argument::type('array'), [$sortBy => $sortOrder])
+            ->shouldBeCalledOnce()
+            ->willReturn(['uuid-1']);
+        $pageRepository->findBy(Argument::type('array'), [$sortBy => $sortOrder], Argument::type('array'))
+            ->shouldBeCalledOnce()
+            ->willReturn([$page->reveal()]);
+
+        $tool->listPages('example', 'en', null, null, 1, 20, $sortBy, $sortOrder);
+    }
+
+    public function testListPagesDefaultSortIsTitleAscendingWhenOmitted(): void
+    {
+        [$tool, $pageRepository] = $this->createToolWithProphecyRepository();
+
+        $page = $this->prophesize(PageInterface::class);
+        $page->getUuid()->willReturn('uuid-1');
+
+        $pageRepository->countBy(Argument::type('array'))->willReturn(1);
+        $pageRepository->findIdentifiersBy(Argument::type('array'), ['title' => 'asc'])
+            ->shouldBeCalledOnce()
+            ->willReturn(['uuid-1']);
+        $pageRepository->findBy(Argument::type('array'), ['title' => 'asc'], Argument::type('array'))
+            ->shouldBeCalledOnce()
+            ->willReturn([$page->reveal()]);
+
+        $tool->listPages('example', 'en');
+    }
+
+    public function testListPagesRejectsUnsupportedSortBy(): void
+    {
+        [$tool] = $this->createToolWithProphecyRepository();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported sortBy "bogus"');
+
+        $tool->listPages('example', 'en', null, null, 1, 20, 'bogus', 'asc');
+    }
+
+    public function testListPagesRejectsUnsupportedSortOrder(): void
+    {
+        [$tool] = $this->createToolWithProphecyRepository();
+
+        $this->expectException(\InvalidArgumentException::class);
+        $this->expectExceptionMessage('Unsupported sortOrder "bogus"');
+
+        $tool->listPages('example', 'en', null, null, 1, 20, 'title', 'bogus');
     }
 }

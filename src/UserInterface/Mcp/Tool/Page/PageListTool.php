@@ -38,6 +38,9 @@ class PageListTool
         'navigationContexts',
     ];
 
+    private const ALLOWED_SORT_FIELDS = ['title', 'authored', 'created', 'changed', 'workflowPublished'];
+    private const ALLOWED_SORT_ORDERS = ['asc', 'desc'];
+
     public function __construct(
         private readonly PageRepositoryInterface $pageRepository,
         private readonly ContentManagerInterface $contentManager,
@@ -66,7 +69,24 @@ class PageListTool
         ?string $parentId = null,
         int $page = 1,
         int $limit = 20,
+        #[Schema(
+            description: 'Field to sort pages by. "authored" is the field for "latest pages" — it is the editorial date shown to readers (settable by the author, so it can be backdated). "created" is the immutable database insertion timestamp and is usually NOT what "latest" means to a reader. "changed" is the last-edited timestamp. "workflowPublished" is when the page was last published. Defaults to "title".',
+            enum: ['title', 'authored', 'created', 'changed', 'workflowPublished'],
+        )]
+        string $sortBy = 'title',
+        #[Schema(description: 'Sort direction, "asc" or "desc". Defaults to "asc".', enum: ['asc', 'desc'])]
+        string $sortOrder = 'asc',
     ): array {
+        if (!\in_array($sortBy, self::ALLOWED_SORT_FIELDS, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unsupported sortBy "%s". Supported: %s.', $sortBy, \implode(', ', self::ALLOWED_SORT_FIELDS)));
+        }
+
+        if (!\in_array($sortOrder, self::ALLOWED_SORT_ORDERS, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unsupported sortOrder "%s". Supported: %s.', $sortOrder, \implode(', ', self::ALLOWED_SORT_ORDERS)));
+        }
+
+        $sortBys = [$sortBy => $sortOrder];
+
         $permitted = $this->webspacePermissionResolver->permittedWebspaceKeys(PermissionTypes::VIEW, $locale);
         if (!\in_array($webspace, $permitted, true)) {
             return [
@@ -105,14 +125,14 @@ class PageListTool
         // that fetch-joins the to-many dimension contents, truncating SQL rows rather
         // than pages -- `limit: 3` returned 2 pages, the last partially hydrated.
         // findIdentifiersBy() selects DISTINCT uuids, so the limit applies to pages.
-        $uuids = [...$this->pageRepository->findIdentifiersBy($filters, ['title' => 'asc'])];
+        $uuids = [...$this->pageRepository->findIdentifiersBy($filters, $sortBys)];
         if ([] === $uuids) {
             return ['pages' => [], 'total' => $total, 'page' => $page, 'limit' => $limit];
         }
 
         $pages = $this->pageRepository->findBy(
             ['uuids' => $uuids, 'locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT],
-            ['title' => 'asc'],
+            $sortBys,
             [PageRepositoryInterface::GROUP_SELECT_PAGE_ADMIN => true],
         );
 
