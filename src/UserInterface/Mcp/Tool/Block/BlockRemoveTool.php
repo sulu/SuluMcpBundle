@@ -95,7 +95,7 @@ class BlockRemoveTool
                 return ['error' => \sprintf('%s not found: %s', \ucfirst($type), $uuid)];
             }
 
-            $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.templateType
+            $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);

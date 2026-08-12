@@ -67,7 +67,9 @@ class TemplatesResource
         }
 
         $result = [];
-        foreach ($typedMetadata->getForms() as $key => $formMetadata) {
+        $forms = $typedMetadata->getForms();
+        /** @var array<string, FormMetadata> $forms */
+        foreach ($forms as $key => $formMetadata) {
             $result[$key] = $this->normalizeTemplate($formMetadata);
         }
 
@@ -102,7 +104,9 @@ class TemplatesResource
 
         if ($item instanceof FieldMetadata && 'block' === $item->getType()) {
             $types = [];
-            foreach ($item->getTypes() as $typeName => $blockForm) {
+            $types = $item->getTypes();
+            /** @var array<string, FormMetadata> $types */
+            foreach ($types as $typeName => $blockForm) {
                 $resolvedForm = $this->resolveBlockForm($typeName, $blockForm);
 
                 if (isset($visiting[$typeName])) {
@@ -153,9 +157,9 @@ class TemplatesResource
     {
         if (null === $this->globalBlockForms) {
             $blockMetadata = $this->formMetadataProvider->getMetadata('block', 'en', ['ignore_global_blocks' => true]);
-            $this->globalBlockForms = $blockMetadata instanceof TypedFormMetadata
-                ? $blockMetadata->getForms()
-                : [];
+            /** @var array<string, FormMetadata> $forms */
+            $forms = $blockMetadata instanceof TypedFormMetadata ? $blockMetadata->getForms() : [];
+            $this->globalBlockForms = $forms;
         }
 
         return $this->globalBlockForms;

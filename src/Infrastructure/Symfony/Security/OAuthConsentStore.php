@@ -38,7 +38,7 @@ final readonly class OAuthConsentStore
             $event->getClient()->getIdentifier(),
             $event->getClient()->getName(),
             $event->getRedirectUri(),
-            \array_map(static fn (object $scope): string => (string) $scope, $event->getScopes()),
+            \array_values(\array_map(static fn (object $scope): string => (string) $scope, $event->getScopes())),
             $event->getState(),
         );
 
@@ -54,6 +54,8 @@ final readonly class OAuthConsentStore
             return null;
         }
 
+        // Entries are only ever written by save() with a string-keyed toArray() payload.
+        /** @var array<string, mixed> $entry */
         return OAuthConsentRequest::fromArray($entry);
     }
 
@@ -104,8 +106,13 @@ final readonly class OAuthConsentStore
     private function entries(Request $request): array
     {
         $entries = $this->session($request)->get(self::SESSION_KEY, []);
+        if (!\is_array($entries)) {
+            return [];
+        }
 
-        return \is_array($entries) ? $entries : [];
+        // SessionInterface::get() only declares `mixed`; save() always stores string keys
+        /** @var array<string, mixed> $entries */
+        return $entries;
     }
 
     private function session(Request $request): SessionInterface
@@ -122,14 +129,14 @@ final readonly class OAuthConsentStore
         $queryString = $request->server->get('QUERY_STRING', '');
         $queryString = \is_string($queryString) ? $this->withoutConsentRequestId($queryString) : '';
 
-        return $request->getPathInfo().('' !== $queryString ? '?'.$queryString : '');
+        return $request->getPathInfo() . ('' !== $queryString ? '?' . $queryString : '');
     }
 
     private function withConsentRequestId(string $authorizationUrl, string $id): string
     {
         $separator = \str_contains($authorizationUrl, '?') ? '&' : '?';
 
-        return $authorizationUrl.$separator.\rawurlencode(self::REQUEST_ID_PARAMETER).'='.\rawurlencode($id);
+        return $authorizationUrl . $separator . \rawurlencode(self::REQUEST_ID_PARAMETER) . '=' . \rawurlencode($id);
     }
 
     private function withoutConsentRequestId(string $queryString): string

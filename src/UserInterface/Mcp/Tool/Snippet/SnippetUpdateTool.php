@@ -80,7 +80,9 @@ class SnippetUpdateTool
                 return ['error' => \sprintf('Snippet not found: %s', $uuid)];
             }
 
-            $currentDimensionContent = $this->contentManager->resolve($snippet, [ // @phpstan-ignore argument.templateType
+            // upstream generic is invariant; loadDraft() returns a bare object
+            /** @var SnippetInterface $snippet */
+            $currentDimensionContent = $this->contentManager->resolve($snippet, [
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);

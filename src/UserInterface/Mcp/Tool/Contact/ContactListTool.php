@@ -48,6 +48,8 @@ class ContactListTool
 
         try {
             if ('account' === $type) {
+                // findAllSelect() only declares `array`; rows here are the selected fields
+                /** @var list<array<string, mixed>> $items */
                 $items = $this->accountRepository->findAllSelect(['id', 'name']);
                 $results = [];
                 foreach (\array_slice($items, $offset, $limit) as $item) {
@@ -60,6 +62,8 @@ class ContactListTool
                 return ['items' => $results, 'type' => 'account'];
             }
 
+            // findGetAll() only declares `array`; rows here are the selected fields
+            /** @var list<array<string, mixed>> $items */
             $items = $this->contactRepository->findGetAll($limit, $offset, [], []);
             $results = [];
             foreach ($items as $contact) {

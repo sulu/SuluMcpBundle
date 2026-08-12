@@ -53,12 +53,16 @@ class BlocksResource
     private function extractBlockTypes(TypedFormMetadata $typedMetadata): array
     {
         $blockTypes = [];
-        foreach ($typedMetadata->getForms() as $templateKey => $formMetadata) {
+        $forms = $typedMetadata->getForms();
+        /** @var array<string, FormMetadata> $forms */
+        foreach ($forms as $templateKey => $formMetadata) {
             foreach ($formMetadata->getItems() as $item) {
                 if (!$item instanceof FieldMetadata || 'block' !== $item->getType()) {
                     continue;
                 }
-                foreach ($item->getTypes() as $blockTypeName => $blockForm) {
+                $types = $item->getTypes();
+                /** @var array<string, FormMetadata> $types */
+                foreach ($types as $blockTypeName => $blockForm) {
                     if (!isset($blockTypes[$blockTypeName])) {
                         $resolvedForm = $this->resolveBlockForm($blockTypeName, $blockForm);
                         $blockTypes[$blockTypeName] = [
@@ -97,9 +101,9 @@ class BlocksResource
     {
         if (null === $this->globalBlockForms) {
             $blockMetadata = $this->formMetadataProvider->getMetadata('block', 'en', ['ignore_global_blocks' => true]);
-            $this->globalBlockForms = $blockMetadata instanceof TypedFormMetadata
-                ? $blockMetadata->getForms()
-                : [];
+            /** @var array<string, FormMetadata> $forms */
+            $forms = $blockMetadata instanceof TypedFormMetadata ? $blockMetadata->getForms() : [];
+            $this->globalBlockForms = $forms;
         }
 
         return $this->globalBlockForms;
@@ -122,7 +126,9 @@ class BlocksResource
 
             if ($item instanceof FieldMetadata && 'block' === $item->getType()) {
                 $types = [];
-                foreach ($item->getTypes() as $typeName => $nestedBlockForm) {
+                $types = $item->getTypes();
+                /** @var array<string, FormMetadata> $types */
+                foreach ($types as $typeName => $nestedBlockForm) {
                     $resolvedNested = $this->resolveBlockForm($typeName, $nestedBlockForm);
 
                     if (isset($visiting[$typeName])) {

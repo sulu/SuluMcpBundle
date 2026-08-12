@@ -37,8 +37,12 @@ final class McpDiscoveryPathPass implements CompilerPassInterface
             return;
         }
 
-        $bundleSrcDir = \dirname(__DIR__, 5).'/src';
-        $scanDir = Path::makeRelative($bundleSrcDir, $container->getParameter('kernel.project_dir'));
+        $bundleSrcDir = \dirname(__DIR__, 5) . '/src';
+        $projectDir = $container->getParameter('kernel.project_dir');
+        if (!\is_string($projectDir)) {
+            return;
+        }
+        $scanDir = Path::makeRelative($bundleSrcDir, $projectDir);
 
         /** @var list<string> $scanDirs */
         $scanDirs = $container->getParameter('mcp.discovery.scan_dirs');

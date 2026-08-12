@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
+use Sulu\Bundle\TagBundle\Tag\TagInterface;
 use Sulu\Bundle\TagBundle\Tag\TagManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
@@ -45,6 +46,8 @@ class TagCreateTool
     public function createTag(string $name): array
     {
         try {
+            // save() declares no return type; it always returns the saved TagInterface
+            /** @var TagInterface $tag */
             $tag = $this->tagManager->save(['name' => $name]);
 
             $result = [

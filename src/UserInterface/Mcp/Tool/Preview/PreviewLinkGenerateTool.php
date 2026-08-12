@@ -88,7 +88,7 @@ class PreviewLinkGenerateTool
             }
 
             $dimensionContent = 'article' === $type
-                ? $this->contentManager->resolve($entity, ['locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT]) // @phpstan-ignore argument.templateType
+                ? $this->contentManager->resolve($entity, ['locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT]) // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
                 : null;
 
             // Preview links are gated on EDIT, stricter than the admin UI's VIEW.
@@ -107,9 +107,9 @@ class PreviewLinkGenerateTool
             // The token is rendered later under this webspace's portal/theme/routes, so
             // it is a context the caller must be allowed to use -- not just a label.
             if ('page' === $type && $entity instanceof PageInterface && $webspace !== $entity->getWebspaceKey()) {
-                throw new PermissionDeniedException('sulu.webspaces.'.$webspace, PermissionTypes::EDIT, $locale);
+                throw new PermissionDeniedException('sulu.webspaces.' . $webspace, PermissionTypes::EDIT, $locale);
             }
-            $this->permissionChecker->check('sulu.webspaces.'.$webspace, PermissionTypes::EDIT, $locale);
+            $this->permissionChecker->check('sulu.webspaces.' . $webspace, PermissionTypes::EDIT, $locale);
 
             $resourceKey = self::TYPE_MAP[$type] ?? $type;
             $options = ['webspaceKey' => $webspace];

@@ -31,10 +31,10 @@ final class ToolPermissionMapPass implements CompilerPassInterface
     public function process(ContainerBuilder $container): void
     {
         $map = [];
-        foreach (array_keys($container->findTaggedServiceIds('mcp.tool')) as $serviceId) {
+        foreach (\array_keys($container->findTaggedServiceIds('mcp.tool')) as $serviceId) {
             $definition = $container->getDefinition($serviceId);
             $class = $definition->getClass() ?? $serviceId;
-            if (!class_exists($class)) {
+            if (!\class_exists($class)) {
                 continue;
             }
             $entry = self::extract($class);
@@ -47,6 +47,8 @@ final class ToolPermissionMapPass implements CompilerPassInterface
     }
 
     /**
+     * @param class-string $class
+     *
      * @return array{name: string, requirements: list<array{context: string, permission: string}>, contextArgument: ?string, contextResolver: ?string, objectResolved: bool, discoveryContexts: list<string>}|null
      */
     public static function extract(string $class): ?array
@@ -61,6 +63,10 @@ final class ToolPermissionMapPass implements CompilerPassInterface
 
             $tool = $toolAttrs[0]->newInstance();
             $perm = $permAttrs[0]->newInstance();
+
+            if (null === $tool->name) {
+                throw new \LogicException(\sprintf('Tool method in %s declares #[McpTool] without an explicit name.', $class));
+            }
 
             if ([] === $perm->requirements) {
                 throw new \LogicException(\sprintf('Tool %s declares #[RequiresPermission] with no requirements.', $class));

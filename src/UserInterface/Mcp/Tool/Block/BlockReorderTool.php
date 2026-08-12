@@ -54,7 +54,7 @@ class BlockReorderTool
     }
 
     /**
-     * @param list<int>|null         $newOrder
+     * @param list<int>|null $newOrder
      * @param array<int, mixed>|null $blockIds
      *
      * @return array<string, mixed>
@@ -109,7 +109,7 @@ class BlockReorderTool
                 return ['error' => \sprintf('%s not found: %s', \ucfirst($type), $uuid)];
             }
 
-            $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.templateType
+            $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
@@ -158,8 +158,8 @@ class BlockReorderTool
 
                 return [
                     'error' => 'The order must reference each block from 0 to '
-                        .(\count($blocks) - 1)
-                        .' exactly once. Got: ['.\implode(', ', \array_map(static fn (mixed $v): string => (string) $v, $supplied)).']',
+                        . (\count($blocks) - 1)
+                        . ' exactly once. Got: [' . \implode(', ', \array_map(static fn (mixed $v): string => \is_scalar($v) ? (string) $v : \gettype($v), $supplied)) . ']',
                 ];
             }
 
@@ -202,7 +202,7 @@ class BlockReorderTool
      * Resolve an ordered list of block _id values to their current 0-based indices.
      * Returns the offending id as a string when one cannot be found.
      *
-     * @param array<int, mixed>          $blockIds
+     * @param array<int, mixed> $blockIds
      * @param list<array<string, mixed>> $blocks
      *
      * @return list<int>|string

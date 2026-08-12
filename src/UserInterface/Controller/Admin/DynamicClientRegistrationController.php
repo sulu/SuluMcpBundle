@@ -48,7 +48,7 @@ class DynamicClientRegistrationController
     public function register(Request $request): JsonResponse
     {
         try {
-            $body = json_decode($request->getContent(), true, 512, \JSON_THROW_ON_ERROR);
+            $body = \json_decode($request->getContent(), true, 512, \JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
             return $this->invalidClientMetadata('Request body must be valid JSON.');
         }
@@ -100,22 +100,22 @@ class DynamicClientRegistrationController
             return $this->invalidClientMetadata('scope must include at least one supported scope.');
         }
 
-        $clientId = bin2hex(random_bytes(16));
-        $clientSecret = 'none' === $tokenEndpointAuthMethod ? null : bin2hex(random_bytes(32));
+        $clientId = \bin2hex(\random_bytes(16));
+        $clientSecret = 'none' === $tokenEndpointAuthMethod ? null : \bin2hex(\random_bytes(32));
 
         $client = new Client($clientName, $clientId, $clientSecret);
 
-        $client->setRedirectUris(...array_map(
+        $client->setRedirectUris(...\array_map(
             static fn (string $uri) => new RedirectUri($uri),
             $redirectUris,
         ));
 
-        $client->setGrants(...array_map(
+        $client->setGrants(...\array_map(
             static fn (string $grant) => new Grant($grant),
             $grantTypes,
         ));
 
-        $client->setScopes(...array_map(static fn (string $scope) => new Scope($scope), $scopes));
+        $client->setScopes(...\array_map(static fn (string $scope) => new Scope($scope), $scopes));
 
         $this->clientManager->save($client);
 
@@ -144,11 +144,11 @@ class DynamicClientRegistrationController
     }
 
     /**
-     * @return list<string>|null
+     * @return list<non-empty-string>|null
      */
     private function listOfStrings(mixed $value): ?array
     {
-        if (!\is_array($value) || array_is_list($value)) {
+        if (!\is_array($value) || \array_is_list($value)) {
             return $this->normalizeStringList($value);
         }
 
@@ -156,7 +156,7 @@ class DynamicClientRegistrationController
     }
 
     /**
-     * @return list<string>|null
+     * @return list<non-empty-string>|null
      */
     private function normalizeStringList(mixed $value): ?array
     {
@@ -182,7 +182,7 @@ class DynamicClientRegistrationController
 
     private function isAllowedRedirectUri(string $uri): bool
     {
-        $parts = parse_url($uri);
+        $parts = \parse_url($uri);
         if (false === $parts || !isset($parts['scheme']) || isset($parts['fragment'])) {
             return false;
         }
@@ -199,16 +199,18 @@ class DynamicClientRegistrationController
         }
 
         // Private-use URI scheme for native apps (RFC 8252), e.g. "com.example.app:/oauth".
-        return str_contains($scheme, '.');
+        return \str_contains($scheme, '.');
     }
 
     /**
-     * @return list<string>|null
+     * @return list<non-empty-string>|null
      */
     private function requestedScopes(mixed $scope): ?array
     {
+        $allowedScopes = \array_values(\array_filter($this->allowedScopes, static fn (string $s): bool => '' !== $s));
+
         if (null === $scope || '' === $scope) {
-            return $this->allowedScopes;
+            return $allowedScopes;
         }
 
         if (!\is_string($scope)) {
@@ -217,12 +219,10 @@ class DynamicClientRegistrationController
 
         $requested = \array_values(\array_unique(\array_filter(\explode(' ', $scope), static fn (string $part): bool => '' !== $part)));
         if ([] === $requested) {
-            return $this->allowedScopes;
+            return $allowedScopes;
         }
 
-        $granted = \array_values(\array_intersect($requested, $this->allowedScopes));
-
-        return $granted;
+        return \array_values(\array_intersect($requested, $allowedScopes));
     }
 
     private function normalizeHost(string $host): string

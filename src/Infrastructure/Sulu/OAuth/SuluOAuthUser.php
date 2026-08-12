@@ -30,6 +30,10 @@ class SuluOAuthUser implements UserEntityInterface
 
     public function __construct(string $identifier)
     {
+        if ('' === $identifier) {
+            throw new \InvalidArgumentException('SuluOAuthUser identifier must not be empty.');
+        }
+
         $this->setIdentifier($identifier);
     }
 }

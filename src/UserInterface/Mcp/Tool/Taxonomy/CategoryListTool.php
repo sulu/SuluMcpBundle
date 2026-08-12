@@ -17,6 +17,7 @@ use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Sulu\Bundle\CategoryBundle\Api\Category as ApiCategory;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
+use Sulu\Bundle\CategoryBundle\Entity\CategoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
@@ -47,6 +48,8 @@ class CategoryListTool
         ?int $maxDepth = null,
     ): array {
         try {
+            // findChildrenByParentId() only declares `array`; elements are CategoryInterface
+            /** @var array<CategoryInterface> $entities */
             $entities = $this->categoryManager->findChildrenByParentId(null);
             $apiCategories = $this->categoryManager->getApiObjects($entities, $locale);
 

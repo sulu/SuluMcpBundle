@@ -84,7 +84,7 @@ class ContentUnpublishTool
             }
 
             $dimensionContent = 'article' === $type
-                ? $this->contentManager->resolve($entity, ['locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT]) // @phpstan-ignore argument.templateType
+                ? $this->contentManager->resolve($entity, ['locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT]) // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
                 : null;
             $context = $this->contentSecurityContextResolver->forEntity(
                 $type,
