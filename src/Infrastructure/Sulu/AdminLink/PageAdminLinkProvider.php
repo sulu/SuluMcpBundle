@@ -40,7 +40,7 @@ final readonly class PageAdminLinkProvider implements AdminLinkProviderInterface
         $locale = $this->requireString($context, 'locale');
         $uuid = $this->requireString($context, 'uuid');
 
-        if (in_array(null, [$webspace, $locale, $uuid], true)) {
+        if (\in_array(null, [$webspace, $locale, $uuid], true)) {
             return null;
         }
 

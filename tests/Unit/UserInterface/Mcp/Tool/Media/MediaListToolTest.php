@@ -187,7 +187,7 @@ final class MediaListToolTest extends TestCase
         // per-collection EDIT filtering from the system-collection gate below.
         $this->permissionChecker
             ->method('has')
-            ->willReturnCallback(static function (string $context, string $permission, ?string $locale = null, ?string $objectType = null, mixed $objectId = null): bool {
+            ->willReturnCallback(static function(string $context, string $permission, ?string $locale = null, ?string $objectType = null, mixed $objectId = null): bool {
                 if ('sulu.media.system_collections' === $context) {
                     return true;
                 }

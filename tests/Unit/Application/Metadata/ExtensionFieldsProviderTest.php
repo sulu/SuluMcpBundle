@@ -49,8 +49,8 @@ final class ExtensionFieldsProviderTest extends TestCase
     }
 
     /**
-     * @param array<string,string> $fields   name => type
-     * @param array<string,bool>   $required name => isRequired (defaults to false)
+     * @param array<string,string> $fields name => type
+     * @param array<string,bool> $required name => isRequired (defaults to false)
      */
     private function form(array $fields, array $required = []): FormMetadata
     {

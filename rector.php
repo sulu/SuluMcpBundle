@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 use Rector\Config\RectorConfig;
+use Rector\PHPUnit\PHPUnit100\Rector\Class_\StaticDataProviderClassMethodRector;
+use Rector\PHPUnit\Set\PHPUnitSetList;
 
 return RectorConfig::configure()
     ->withPaths([
@@ -14,5 +16,12 @@ return RectorConfig::configure()
         __DIR__ . '/tests/Application/var',
     ])
     ->withImportNames(importShortClasses: false)
-    ->withPreparedSets(codeQuality: true)
-    ->withPhpSets(php82: true);
+    ->withSets([
+        // Currently disabled as code is not typed enough:
+        // SetList::CODE_QUALITY,
+        // LevelSetList::UP_TO_PHP_82,
+        PHPUnitSetList::ANNOTATIONS_TO_ATTRIBUTES,
+    ])
+    ->withRules([
+        StaticDataProviderClassMethodRector::class,
+    ]);

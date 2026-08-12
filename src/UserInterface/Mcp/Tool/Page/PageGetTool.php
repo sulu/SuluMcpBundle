@@ -70,7 +70,7 @@ class PageGetTool
 
             // Context comes from the loaded entity; the page ACL is checked object-level.
             $this->permissionChecker->check(
-                'sulu.webspaces.'.$page->getWebspaceKey(),
+                'sulu.webspaces.' . $page->getWebspaceKey(),
                 PermissionTypes::VIEW,
                 $locale,
                 Page::class,
@@ -96,7 +96,7 @@ class PageGetTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (PageNotFoundException) {
             return [
-                'error' => 'Page not found: '.$uuid,
+                'error' => 'Page not found: ' . $uuid,
                 'hint' => 'Verify the UUID and locale. Use sulu_page_list or sulu_content_search to find pages.',
             ];
         }

@@ -33,7 +33,7 @@ final class CategoryAdminLinkProviderTest extends TestCase
     {
         $this->viewRegistry = $this->createMock(ViewRegistry::class);
         $this->viewRegistry->method('findViewByName')->willReturnCallback(
-            static function (string $name): View {
+            static function(string $name): View {
                 if (CategoryAdmin::EDIT_FORM_VIEW === $name) {
                     return new View($name, '/categories/:locale/:id', 'form');
                 }

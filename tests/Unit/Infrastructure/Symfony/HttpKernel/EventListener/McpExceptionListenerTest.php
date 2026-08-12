@@ -58,7 +58,7 @@ final class McpExceptionListenerTest extends TestCase
         $this->assertNotNull($response);
         $this->assertSame(403, $response->getStatusCode());
 
-        $body = json_decode($response->getContent(), true);
+        $body = \json_decode($response->getContent(), true);
         $this->assertSame('2.0', $body['jsonrpc']);
         $this->assertSame(-32603, $body['error']['code']);
         $this->assertSame('permission_denied', $body['error']['data']['type']);
@@ -76,7 +76,7 @@ final class McpExceptionListenerTest extends TestCase
         $this->assertNotNull($response);
         $this->assertSame(400, $response->getStatusCode());
 
-        $body = json_decode($response->getContent(), true);
+        $body = \json_decode($response->getContent(), true);
         $this->assertSame(-32602, $body['error']['code']);
         $this->assertSame('invalid_params', $body['error']['data']['type']);
     }
@@ -92,7 +92,7 @@ final class McpExceptionListenerTest extends TestCase
         $this->assertNotNull($response);
         $this->assertSame(500, $response->getStatusCode());
 
-        $body = json_decode($response->getContent(), true);
+        $body = \json_decode($response->getContent(), true);
         $this->assertSame(-32603, $body['error']['code']);
         $this->assertSame('internal_error', $body['error']['data']['type']);
     }
@@ -108,7 +108,7 @@ final class McpExceptionListenerTest extends TestCase
         $response = $event->getResponse();
         $this->assertNotNull($response);
 
-        $body = json_decode($response->getContent(), true);
+        $body = \json_decode($response->getContent(), true);
         $this->assertSame('Something went wrong', $body['error']['data']['detail']);
     }
 
@@ -123,7 +123,7 @@ final class McpExceptionListenerTest extends TestCase
         $response = $event->getResponse();
         $this->assertNotNull($response);
 
-        $body = json_decode($response->getContent(), true);
+        $body = \json_decode($response->getContent(), true);
         $this->assertSame('An internal error occurred.', $body['error']['data']['detail']);
         $this->assertStringNotContainsString('Something went wrong', $response->getContent());
     }
@@ -215,7 +215,7 @@ final class McpExceptionListenerTest extends TestCase
         $this->assertStringContainsString('oauth-protected-resource', $wwwAuth);
         $this->assertStringContainsString('https://sulu.example.com', $wwwAuth);
 
-        $body = json_decode($response->getContent(), true);
+        $body = \json_decode($response->getContent(), true);
         $this->assertSame('2.0', $body['jsonrpc']);
         $this->assertSame(-32001, $body['error']['code']);
     }

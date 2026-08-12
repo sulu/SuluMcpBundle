@@ -47,8 +47,8 @@ final readonly class PermissionAwareCallToolHandler implements RequestHandlerInt
 
     /**
      * @param array<string, array{name: string, requirements: list<array{context: string, permission: string}>, contextArgument: ?string, contextResolver: ?string, objectResolved: bool, discoveryContexts: list<string>}> $permissionMap
-     * @param array<string, ToolContextResolverInterface>                                                                                                                                                                   $contextResolvers
-     * @param list<string>                                                                                                                                                                                                  $allowlist
+     * @param array<string, ToolContextResolverInterface> $contextResolvers
+     * @param list<string> $allowlist
      */
     public function __construct(
         RegistryInterface $registry,
@@ -174,7 +174,7 @@ final readonly class PermissionAwareCallToolHandler implements RequestHandlerInt
 
     /**
      * @param array{contextArgument: ?string, contextResolver: ?string} $entry
-     * @param array<string, mixed>                                      $arguments
+     * @param array<string, mixed> $arguments
      */
     private function resolveContext(string $template, array $entry, array $arguments): string
     {
@@ -185,7 +185,7 @@ final readonly class PermissionAwareCallToolHandler implements RequestHandlerInt
         if (null !== $entry['contextArgument']) {
             $value = $arguments[$entry['contextArgument']] ?? '';
 
-            return str_replace('#context#', \is_string($value) ? $value : '', $template);
+            return \str_replace('#context#', \is_string($value) ? $value : '', $template);
         }
 
         return $template;

@@ -33,7 +33,7 @@ final class SnippetAdminLinkProviderTest extends TestCase
     {
         $this->viewRegistry = $this->createMock(ViewRegistry::class);
         $this->viewRegistry->method('findViewByName')->willReturnCallback(
-            static function (string $name): View {
+            static function(string $name): View {
                 if (SnippetAdmin::EDIT_TABS_VIEW === $name) {
                     return new View($name, '/snippets/:locale/:id', 'form');
                 }

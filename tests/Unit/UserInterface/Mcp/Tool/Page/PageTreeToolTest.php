@@ -138,7 +138,7 @@ final class PageTreeToolTest extends TestCase
         $childDimensionContent = $this->createDimensionContentMock('About Us', '/about', 'default', 'draft');
 
         $this->contentManager->method('resolve')
-            ->willReturnCallback(function (PageInterface $page) use ($parent, $parentDimensionContent, $childDimensionContent) {
+            ->willReturnCallback(function(PageInterface $page) use ($parent, $parentDimensionContent, $childDimensionContent) {
                 if ($page === $parent) {
                     return $parentDimensionContent;
                 }
@@ -192,7 +192,7 @@ final class PageTreeToolTest extends TestCase
         $childDim = $this->createDimensionContentMock('Child', '/child', 'default', 'published');
 
         $this->contentManager->method('resolve')
-            ->willReturnCallback(function (PageInterface $page) use ($parent, $parentDim, $childDim) {
+            ->willReturnCallback(function(PageInterface $page) use ($parent, $parentDim, $childDim) {
                 if ($page === $parent) {
                     return $parentDim;
                 }

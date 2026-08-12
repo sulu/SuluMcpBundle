@@ -62,7 +62,7 @@ final class ToolDiscoverySmokeTest extends FunctionalTestCase
         self::assertTrue(
             $byName['sulu_category_list']['available'],
             'sulu_category_list requires only VIEW on sulu.settings.categories, which this role has -- '
-            .'must be available, proving availability tracks real grants, not just the allowlist.',
+            . 'must be available, proving availability tracks real grants, not just the allowlist.',
         );
 
         /** @var RegistryInterface $registry */

@@ -207,7 +207,7 @@ final class MediaUpdateToolTest extends TestCase
         $this->permissionChecker
             ->expects($this->exactly(2))
             ->method('check')
-            ->willReturnCallback(function (string $context, string $permission) use (&$calls): void {
+            ->willReturnCallback(function(string $context, string $permission) use (&$calls): void {
                 $calls[] = [$context, $permission];
             });
 

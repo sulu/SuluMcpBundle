@@ -70,7 +70,7 @@ final class BlocksResourceGlobalBlockTest extends TestCase
             ->willReturnCallback(fn (string $key) => match ($key) {
                 'page' => $pageMetadata,
                 'block' => $blockMetadata,
-                default => throw new \LogicException('Unexpected metadata key: '.$key),
+                default => throw new \LogicException('Unexpected metadata key: ' . $key),
             });
 
         $result = $this->resource->getBlocks();
@@ -144,7 +144,7 @@ final class BlocksResourceGlobalBlockTest extends TestCase
             ->willReturnCallback(fn (string $key) => match ($key) {
                 'page' => $pageMetadata,
                 'block' => $blockMetadata,
-                default => throw new \LogicException('Unexpected key: '.$key),
+                default => throw new \LogicException('Unexpected key: ' . $key),
             });
 
         $result = $this->resource->getBlocks();
@@ -194,13 +194,13 @@ final class BlocksResourceGlobalBlockTest extends TestCase
         $callCount = 0;
         $this->formMetadataProvider
             ->method('getMetadata')
-            ->willReturnCallback(function (string $key) use ($pageMetadata, $blockMetadata, &$callCount) {
+            ->willReturnCallback(function(string $key) use ($pageMetadata, $blockMetadata, &$callCount) {
                 ++$callCount;
 
                 return match ($key) {
                     'page' => $pageMetadata,
                     'block' => $blockMetadata,
-                    default => throw new \LogicException('Unexpected key: '.$key),
+                    default => throw new \LogicException('Unexpected key: ' . $key),
                 };
             });
 
@@ -249,7 +249,7 @@ final class BlocksResourceGlobalBlockTest extends TestCase
             ->willReturnCallback(fn (string $key) => match ($key) {
                 'page' => $pageMetadata,
                 'block' => $blockMetadata,
-                default => throw new \LogicException('Unexpected key: '.$key),
+                default => throw new \LogicException('Unexpected key: ' . $key),
             });
 
         $result = $this->resource->getBlocks();

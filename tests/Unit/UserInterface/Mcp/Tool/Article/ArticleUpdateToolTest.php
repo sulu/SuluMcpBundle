@@ -138,7 +138,7 @@ final class ArticleUpdateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($updatedArticle) {
+            ->willReturnCallback(function(Envelope $envelope) use ($updatedArticle) {
                 $stamps = $envelope->all();
                 $this->assertArrayHasKey(EnableFlushStamp::class, $stamps);
 
@@ -257,7 +257,7 @@ final class ArticleUpdateToolTest extends TestCase
 
         // User has EDIT on the base group (source context) but not on the blog group (target context).
         $this->permissionChecker->method('check')->willReturnCallback(
-            function (string $context, string $permission, ?string $locale = null): void {
+            function(string $context, string $permission, ?string $locale = null): void {
                 if ('sulu.article.articles_blog' === $context) {
                     throw new PermissionDeniedException($context, $permission, $locale);
                 }
@@ -311,7 +311,7 @@ final class ArticleUpdateToolTest extends TestCase
         // User has EDIT on both the base group (source) and the blog group (target).
         $checkedContexts = [];
         $this->permissionChecker->method('check')->willReturnCallback(
-            function (string $context) use (&$checkedContexts): void {
+            function(string $context) use (&$checkedContexts): void {
                 $checkedContexts[] = $context;
             },
         );
@@ -369,7 +369,7 @@ final class ArticleUpdateToolTest extends TestCase
         // template, so the (denied) blog-group target check must never fire.
         $checkedContexts = [];
         $this->permissionChecker->method('check')->willReturnCallback(
-            function (string $context, string $permission, ?string $locale = null) use (&$checkedContexts): void {
+            function(string $context, string $permission, ?string $locale = null) use (&$checkedContexts): void {
                 $checkedContexts[] = $context;
                 if ('sulu.article.articles_blog' === $context) {
                     throw new PermissionDeniedException($context, $permission, $locale);
@@ -380,7 +380,7 @@ final class ArticleUpdateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($updatedArticle, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($updatedArticle, &$capturedData) {
                 $capturedData = $envelope->getMessage()->getData();
 
                 return $envelope->with(new HandledStamp($updatedArticle, 'handler'));
@@ -435,7 +435,7 @@ final class ArticleUpdateToolTest extends TestCase
 
         $checkedContexts = [];
         $this->permissionChecker->method('check')->willReturnCallback(
-            function (string $context, string $permission, ?string $locale = null) use (&$checkedContexts): void {
+            function(string $context, string $permission, ?string $locale = null) use (&$checkedContexts): void {
                 $checkedContexts[] = $context;
                 if ('sulu.article.articles_blog' === $context) {
                     throw new PermissionDeniedException($context, $permission, $locale);
@@ -446,7 +446,7 @@ final class ArticleUpdateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($updatedArticle, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($updatedArticle, &$capturedData) {
                 $capturedData = $envelope->getMessage()->getData();
 
                 return $envelope->with(new HandledStamp($updatedArticle, 'handler'));
@@ -475,7 +475,7 @@ final class ArticleUpdateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($updatedArticle, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($updatedArticle, &$capturedData) {
                 $capturedData = $envelope->getMessage()->getData();
 
                 return $envelope->with(new HandledStamp($updatedArticle, 'handler'));
@@ -529,7 +529,7 @@ final class ArticleUpdateToolTest extends TestCase
         // template, so no group change happens and the target check must not fire.
         $checkedContexts = [];
         $this->permissionChecker->method('check')->willReturnCallback(
-            function (string $context, string $permission, ?string $locale = null) use (&$checkedContexts): void {
+            function(string $context, string $permission, ?string $locale = null) use (&$checkedContexts): void {
                 $checkedContexts[] = $context;
                 if ('sulu.article.articles_blog' === $context) {
                     throw new PermissionDeniedException($context, $permission, $locale);
@@ -593,7 +593,7 @@ final class ArticleUpdateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($updatedArticle) {
+            ->willReturnCallback(function(Envelope $envelope) use ($updatedArticle) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifyArticleMessage::class, $message);
                 $this->assertSame([
@@ -653,7 +653,7 @@ final class ArticleUpdateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($updatedArticle, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($updatedArticle, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifyArticleMessage::class, $message);
                 $capturedData = $message->getData();
@@ -786,7 +786,7 @@ final class ArticleUpdateToolTest extends TestCase
         $capturedMessage = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($updatedArticle, &$capturedMessage) {
+            ->willReturnCallback(function(Envelope $envelope) use ($updatedArticle, &$capturedMessage) {
                 $capturedMessage = $envelope->getMessage();
 
                 return $envelope->with(new HandledStamp($updatedArticle, 'handler'));

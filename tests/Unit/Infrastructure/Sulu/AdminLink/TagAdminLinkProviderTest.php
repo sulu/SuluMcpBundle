@@ -33,7 +33,7 @@ final class TagAdminLinkProviderTest extends TestCase
     {
         $this->viewRegistry = $this->createMock(ViewRegistry::class);
         $this->viewRegistry->method('findViewByName')->willReturnCallback(
-            static function (string $name): View {
+            static function(string $name): View {
                 if (TagAdmin::EDIT_FORM_VIEW === $name) {
                     return new View($name, '/tags/:id', 'form');
                 }

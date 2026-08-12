@@ -83,7 +83,7 @@ final readonly class ArticleSecurityContextResolver implements ToolContextResolv
                 ? self::BASE_CONTEXT
                 : \sprintf('%s_%s', self::BASE_CONTEXT, $group->identifier);
 
-            $map[$context] = [...($map[$context] ?? []), ...array_values($group->templates)];
+            $map[$context] = [...($map[$context] ?? []), ...\array_values($group->templates)];
         }
 
         return $map;
@@ -103,6 +103,6 @@ final readonly class ArticleSecurityContextResolver implements ToolContextResolv
                 : \sprintf('%s_%s', self::BASE_CONTEXT, $group->identifier);
         }
 
-        return array_values(array_unique($contexts));
+        return \array_values(\array_unique($contexts));
     }
 }

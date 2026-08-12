@@ -32,7 +32,7 @@ class MediaFixtures extends Fixture
 
     public function load(ObjectManager $manager): void
     {
-        $tmpDir = \sys_get_temp_dir().'/sulu-mcp-fixture-media';
+        $tmpDir = \sys_get_temp_dir() . '/sulu-mcp-fixture-media';
         $fs = new Filesystem();
         $fs->mkdir($tmpDir);
 
@@ -58,7 +58,7 @@ class MediaFixtures extends Fixture
      */
     private function uploadMedia(string $tmpDir, int $collectionId, array $item): void
     {
-        $filePath = $tmpDir.'/'.$item['filename'];
+        $filePath = $tmpDir . '/' . $item['filename'];
         $this->generatePlaceholderPng($filePath, $item['color'], $item['label']);
 
         $uploadedFile = new UploadedFile(

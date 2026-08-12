@@ -64,7 +64,7 @@ class McpAuthenticationEntryPoint implements AuthenticationEntryPointInterface
             'id' => null,
         ], 401);
 
-        $prmUrl = rtrim($this->serverUrl, '/').'/.well-known/oauth-protected-resource';
+        $prmUrl = \rtrim($this->serverUrl, '/') . '/.well-known/oauth-protected-resource';
         $response->headers->set(
             'WWW-Authenticate',
             \sprintf('Bearer resource_metadata="%s", scope="mcp:tools mcp:resources"', $prmUrl)

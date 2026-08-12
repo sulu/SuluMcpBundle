@@ -53,7 +53,7 @@ class ExtensionFieldsProvider
      */
     private function fields(array $formKeys, string $namespace): array
     {
-        $prefix = $namespace.'/';
+        $prefix = $namespace . '/';
         $fields = [];
         foreach ($formKeys as $formKey) {
             try {

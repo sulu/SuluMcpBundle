@@ -69,7 +69,7 @@ final class TemplatesResourceGlobalBlockTest extends TestCase
             ->willReturnCallback(fn (string $key) => match ($key) {
                 'page' => $pageMetadata,
                 'block' => $blockMetadata,
-                default => throw new \LogicException('Unexpected: '.$key),
+                default => throw new \LogicException('Unexpected: ' . $key),
             });
 
         $result = $this->resource->getTemplates();
@@ -186,7 +186,7 @@ final class TemplatesResourceGlobalBlockTest extends TestCase
             ->willReturnCallback(fn (string $key) => match ($key) {
                 'page' => $pageMetadata,
                 'block' => $blockMetadata,
-                default => throw new \LogicException('Unexpected: '.$key),
+                default => throw new \LogicException('Unexpected: ' . $key),
             });
 
         $result = $this->resource->getTemplates();
@@ -248,7 +248,7 @@ final class TemplatesResourceGlobalBlockTest extends TestCase
             ->willReturnCallback(fn (string $key) => match ($key) {
                 'page' => $pageMetadata,
                 'block' => $blockMetadata,
-                default => throw new \LogicException('Unexpected key: '.$key),
+                default => throw new \LogicException('Unexpected key: ' . $key),
             });
 
         $result = $this->resource->getTemplates();

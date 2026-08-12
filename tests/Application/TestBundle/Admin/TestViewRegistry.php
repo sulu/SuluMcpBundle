@@ -35,11 +35,11 @@ final class TestViewRegistry extends ViewRegistry
 
     public function findViewByName(string $name): View
     {
-        $articlePrefix = ArticleAdmin::EDIT_TABS_VIEW.'_';
+        $articlePrefix = ArticleAdmin::EDIT_TABS_VIEW . '_';
         if (\str_starts_with($name, $articlePrefix)) {
             $group = \substr($name, \strlen($articlePrefix));
 
-            return new View($name, '/:locale/'.$group.'/:id', 'form');
+            return new View($name, '/:locale/' . $group . '/:id', 'form');
         }
 
         $paths = [

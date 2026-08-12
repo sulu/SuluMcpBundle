@@ -113,7 +113,7 @@ final class BlockAddToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($expectedMessageClass) {
+            ->willReturnCallback(function(Envelope $envelope) use ($expectedMessageClass) {
                 $this->assertInstanceOf($expectedMessageClass, $envelope->getMessage());
 
                 return $envelope->with(new HandledStamp(null, 'handler'));
@@ -169,7 +169,7 @@ final class BlockAddToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) {
+            ->willReturnCallback(function(Envelope $envelope) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifyPageMessage::class, $message);
 
@@ -193,7 +193,7 @@ final class BlockAddToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) {
+            ->willReturnCallback(function(Envelope $envelope) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifyPageMessage::class, $message);
 

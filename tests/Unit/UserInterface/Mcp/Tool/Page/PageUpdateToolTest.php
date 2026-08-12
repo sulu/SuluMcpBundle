@@ -145,7 +145,7 @@ final class PageUpdateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockUpdatedPage) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockUpdatedPage) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifyPageMessage::class, $message);
 
@@ -174,7 +174,7 @@ final class PageUpdateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockPage, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockPage, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifyPageMessage::class, $message);
                 $capturedData = $message->getData();
@@ -354,7 +354,7 @@ final class PageUpdateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockPage, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockPage, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifyPageMessage::class, $message);
                 $capturedData = $message->getData();
@@ -476,7 +476,7 @@ final class PageUpdateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockPage, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockPage, &$capturedData) {
                 $capturedData = $envelope->getMessage()->getData();
 
                 return $envelope->with(new HandledStamp($mockPage, 'handler'));
@@ -505,7 +505,7 @@ final class PageUpdateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockPage, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockPage, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifyPageMessage::class, $message);
                 $capturedData = $message->getData();

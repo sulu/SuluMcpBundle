@@ -85,7 +85,7 @@ final class OAuthConsentControllerTest extends TestCase
         $consentRequest = $this->store->create($request, $this->event(['mcp:tools']));
 
         $response = $this->controller->decision(
-            $this->request('/admin/mcp/consent/'.$consentRequest->getId(), '{"approved": true}', $request->getSession()),
+            $this->request('/admin/mcp/consent/' . $consentRequest->getId(), '{"approved": true}', $request->getSession()),
             $consentRequest->getId(),
         );
         $body = $this->json($response);
@@ -101,7 +101,7 @@ final class OAuthConsentControllerTest extends TestCase
         $consentRequest = $this->store->create($request, $this->event(['mcp:tools']));
 
         $response = $this->controller->decision(
-            $this->request('/admin/mcp/consent/'.$consentRequest->getId(), '{"approved": false}', $request->getSession()),
+            $this->request('/admin/mcp/consent/' . $consentRequest->getId(), '{"approved": false}', $request->getSession()),
             $consentRequest->getId(),
         );
 
@@ -115,7 +115,7 @@ final class OAuthConsentControllerTest extends TestCase
         $consentRequest = $this->store->create($request, $this->event(['mcp:tools']));
 
         $response = $this->controller->decision(
-            $this->request('/admin/mcp/consent/'.$consentRequest->getId(), '{"approved": "yes"}', $request->getSession()),
+            $this->request('/admin/mcp/consent/' . $consentRequest->getId(), '{"approved": "yes"}', $request->getSession()),
             $consentRequest->getId(),
         );
 
@@ -151,9 +151,9 @@ final class OAuthConsentControllerTest extends TestCase
 
         return new AuthorizationRequestResolveEvent(
             $authorizationRequest,
-            array_map(static fn (string $scope): Scope => new Scope($scope), $scopes),
+            \array_map(static fn (string $scope): Scope => new Scope($scope), $scopes),
             new Client('ChatGPT', 'client-1', 'secret'),
-            new class implements UserInterface {
+            new class() implements UserInterface {
                 public function getRoles(): array
                 {
                     return [];
@@ -176,7 +176,7 @@ final class OAuthConsentControllerTest extends TestCase
      */
     private function json(JsonResponse $response): array
     {
-        $data = json_decode((string) $response->getContent(), true);
+        $data = \json_decode((string) $response->getContent(), true);
         self::assertIsArray($data);
 
         return $data;

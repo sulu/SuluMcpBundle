@@ -40,7 +40,7 @@ final class RequestListenerOrderTest extends KernelTestCase
         // either predicate -- the firewall is registered more than once -- so taking
         // the first match would hide a straggler.
         $router = \min($this->prioritiesOf(
-            static fn (object $listener): bool => str_ends_with($listener::class, '\\RouterListener'),
+            static fn (object $listener): bool => \str_ends_with($listener::class, '\\RouterListener'),
             'router',
         ));
         $firewall = \max($this->prioritiesOf(
@@ -52,7 +52,7 @@ final class RequestListenerOrderTest extends KernelTestCase
             $firewall,
             $router,
             'The router must run before the firewall, so a request to an unrouted path under the MCP '
-            .'prefix is rejected with a 404 before authentication is attempted.',
+            . 'prefix is rejected with a 404 before authentication is attempted.',
         );
     }
 

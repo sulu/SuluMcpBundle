@@ -47,7 +47,7 @@ final readonly class ArticleAdminLinkProvider implements AdminLinkProviderInterf
 
         // Each article group registers its own edit view; the group segment is
         // baked into that view's path, so only :locale and :id remain.
-        $viewName = ArticleAdmin::EDIT_TABS_VIEW.'_'.$group;
+        $viewName = ArticleAdmin::EDIT_TABS_VIEW . '_' . $group;
 
         return $this->resolveViewPath($this->viewRegistry, $viewName, [
             ':locale' => $locale,

@@ -117,8 +117,8 @@ final class ToolPermissionGoldenTest extends TestCase
      */
     private function discoverToolClasses(): array
     {
-        $srcRoot = \dirname(__DIR__, 6).'/src';
-        $root = $srcRoot.'/UserInterface/Mcp/Tool';
+        $srcRoot = \dirname(__DIR__, 6) . '/src';
+        $root = $srcRoot . '/UserInterface/Mcp/Tool';
 
         $files = new \RecursiveIteratorIterator(
             new \RecursiveDirectoryIterator($root, \FilesystemIterator::SKIP_DOTS),
@@ -132,7 +132,7 @@ final class ToolPermissionGoldenTest extends TestCase
 
             $relative = \substr((string) $file->getPathname(), \strlen($srcRoot) + 1);
             $relative = \str_replace(\DIRECTORY_SEPARATOR, '\\', $relative);
-            $class = 'Sulu\\Mcp\\'.\substr($relative, 0, -4);
+            $class = 'Sulu\\Mcp\\' . \substr($relative, 0, -4);
 
             if (!\class_exists($class)) {
                 continue;
@@ -162,7 +162,7 @@ final class ToolPermissionGoldenTest extends TestCase
             $expected,
             $this->discoverToolClasses(),
             'A tool class carrying #[McpTool] was found under src/UserInterface/Mcp/Tool/ that is not in '
-            .'GOLDEN and not in the attribute-free allowlist (Ping, GetContext). Add it to GOLDEN.',
+            . 'GOLDEN and not in the attribute-free allowlist (Ping, GetContext). Add it to GOLDEN.',
         );
     }
 
@@ -189,7 +189,7 @@ final class ToolPermissionGoldenTest extends TestCase
         self::assertNotNull($extracted, \sprintf('%s declares no #[RequiresPermission].', $class));
         self::assertSame($name, $extracted['name']);
 
-        $actual = array_map(
+        $actual = \array_map(
             static fn (array $r): array => [$r['context'], $r['permission']],
             $extracted['requirements'],
         );
@@ -198,13 +198,13 @@ final class ToolPermissionGoldenTest extends TestCase
 
     public function testAllToolNamesAreUnique(): void
     {
-        $names = array_map($this->mcpToolName(...), $this->discoverToolClasses());
+        $names = \array_map($this->mcpToolName(...), $this->discoverToolClasses());
 
         self::assertCount(
             \count($names),
-            array_unique($names),
+            \array_unique($names),
             'Duplicate MCP tool name found -- ToolPermissionMapPass::process() silently overwrites '
-            .'earlier entries on a name collision (ToolPermissionMapPass.php:31).',
+            . 'earlier entries on a name collision (ToolPermissionMapPass.php:31).',
         );
     }
 

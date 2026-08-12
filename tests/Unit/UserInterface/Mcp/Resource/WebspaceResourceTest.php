@@ -98,7 +98,7 @@ final class WebspaceResourceTest extends TestCase
      */
     private function createWebspaceWithPortal(string $key, string $name, array $locales, ?string $prodUrl): Webspace&MockObject
     {
-        $localizations = \array_map(function (string $locale) {
+        $localizations = \array_map(function(string $locale) {
             $loc = $this->createMock(Localization::class);
             $loc->method('getLocale')->willReturn($locale);
 
@@ -123,7 +123,7 @@ final class WebspaceResourceTest extends TestCase
             /** @var Portal $portal */
             $portalForException = $portal;
             $portal->method('getEnvironment')->with('prod')->willReturnCallback(
-                static function () use ($portalForException) {
+                static function() use ($portalForException) {
                     throw new EnvironmentNotFoundException($portalForException, 'prod');
                 }
             );
@@ -142,12 +142,12 @@ final class WebspaceResourceTest extends TestCase
     /**
      * Helper: create webspace mock with portal having multiple environments.
      *
-     * @param list<string>          $locales
+     * @param list<string> $locales
      * @param array<string, string> $envUrls keyed by environment type
      */
     private function createWebspaceWithMultipleEnvPortal(string $key, string $name, array $locales, array $envUrls): Webspace&MockObject
     {
-        $localizations = \array_map(function (string $locale) {
+        $localizations = \array_map(function(string $locale) {
             $loc = $this->createMock(Localization::class);
             $loc->method('getLocale')->willReturn($locale);
 
@@ -155,7 +155,7 @@ final class WebspaceResourceTest extends TestCase
         }, $locales);
 
         $portal = $this->createMock(Portal::class);
-        $portal->method('getEnvironment')->willReturnCallback(function (string $envType) use ($envUrls, $portal) {
+        $portal->method('getEnvironment')->willReturnCallback(function(string $envType) use ($envUrls, $portal) {
             if (isset($envUrls[$envType])) {
                 $url = $this->createMock(Url::class);
                 $url->method('getUrl')->willReturn($envUrls[$envType]);

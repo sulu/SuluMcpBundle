@@ -105,7 +105,7 @@ final class ContentDeleteToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) {
+            ->willReturnCallback(function(Envelope $envelope) {
                 $this->assertInstanceOf(RemovePageMessage::class, $envelope->getMessage());
                 $this->assertArrayHasKey(EnableFlushStamp::class, $envelope->all());
 
@@ -123,7 +123,7 @@ final class ContentDeleteToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) {
+            ->willReturnCallback(function(Envelope $envelope) {
                 $this->assertInstanceOf(RemoveSnippetMessage::class, $envelope->getMessage());
 
                 return $envelope->with(new HandledStamp(null, 'handler'));
@@ -140,7 +140,7 @@ final class ContentDeleteToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) {
+            ->willReturnCallback(function(Envelope $envelope) {
                 $this->assertInstanceOf(RemoveArticleMessage::class, $envelope->getMessage());
 
                 return $envelope->with(new HandledStamp(null, 'handler'));
@@ -237,7 +237,7 @@ final class ContentDeleteToolTest extends TestCase
         $this->permissionChecker
             ->expects($this->once())
             ->method('check')
-            ->willReturnCallback(function (string $context, string|array $permissions, ?string $locale, ?string $objectType, mixed $objectId) use (&$recordedCalls): void {
+            ->willReturnCallback(function(string $context, string|array $permissions, ?string $locale, ?string $objectType, mixed $objectId) use (&$recordedCalls): void {
                 $recordedCalls[] = [$permissions, $objectType, $objectId];
             });
 

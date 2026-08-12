@@ -105,7 +105,7 @@ class PageUpdateTool
 
             // Context comes from the loaded entity; the page ACL is checked object-level.
             $this->permissionChecker->check(
-                'sulu.webspaces.'.$page->getWebspaceKey(),
+                'sulu.webspaces.' . $page->getWebspaceKey(),
                 PermissionTypes::EDIT,
                 $locale,
                 Page::class,

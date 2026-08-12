@@ -127,11 +127,11 @@ final class CreateMcpClientCommandTest extends TestCase
         $client = null;
         $this->clientManager->expects($this->once())
             ->method('save')
-            ->willReturnCallback(static function (ClientInterface $saved) use (&$client): void {
+            ->willReturnCallback(static function(ClientInterface $saved) use (&$client): void {
                 $client = $saved;
             });
 
-        return static function () use (&$client): ?ClientInterface {
+        return static function() use (&$client): ?ClientInterface {
             return $client;
         };
     }
@@ -144,11 +144,11 @@ final class CreateMcpClientCommandTest extends TestCase
         $redirectUris = [];
         $this->clientManager->expects($this->exactly($expectedSaves))
             ->method('save')
-            ->willReturnCallback(function (ClientInterface $saved) use (&$redirectUris): void {
+            ->willReturnCallback(function(ClientInterface $saved) use (&$redirectUris): void {
                 $redirectUris[] = $this->stringValues($saved->getRedirectUris());
             });
 
-        return static function () use (&$redirectUris): array {
+        return static function() use (&$redirectUris): array {
             return $redirectUris;
         };
     }
@@ -160,6 +160,6 @@ final class CreateMcpClientCommandTest extends TestCase
      */
     private function stringValues(array $values): array
     {
-        return array_map(static fn (\Stringable $value): string => (string) $value, $values);
+        return \array_map(static fn (\Stringable $value): string => (string) $value, $values);
     }
 }

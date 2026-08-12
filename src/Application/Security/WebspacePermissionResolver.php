@@ -47,7 +47,7 @@ final readonly class WebspacePermissionResolver
         $keys = [];
         foreach ($this->webspaceManager->getWebspaceCollection() as $webspace) {
             $key = $webspace->getKey();
-            if ($this->permissionChecker->has(self::CONTEXT_PREFIX.$key, $permission, $locale)) {
+            if ($this->permissionChecker->has(self::CONTEXT_PREFIX . $key, $permission, $locale)) {
                 $keys[] = $key;
             }
         }

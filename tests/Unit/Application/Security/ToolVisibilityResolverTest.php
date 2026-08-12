@@ -45,7 +45,7 @@ final class ToolVisibilityResolverTest extends TestCase
 
     /**
      * @param array<string, array{name: string, requirements: list<array{context: string, permission: string}>, contextArgument: ?string, contextResolver: ?string, objectResolved: bool, discoveryContexts: list<string>}> $map
-     * @param array<string, ToolContextResolverInterface>                                                                                                                                                                   $contextResolvers
+     * @param array<string, ToolContextResolverInterface> $contextResolvers
      */
     private function resolver(
         array $map,
@@ -83,7 +83,7 @@ final class ToolVisibilityResolverTest extends TestCase
         $securityChecker = $this->createMock(SecurityCheckerInterface::class);
         $securityChecker->method('hasPermission')->willReturnCallback(
             static fn ($condition, string $permission): bool => \in_array(
-                str_replace('sulu.webspaces.', '', $condition->getSecurityContext()),
+                \str_replace('sulu.webspaces.', '', $condition->getSecurityContext()),
                 $grantedWebspaceKeys,
                 true,
             ),
@@ -303,7 +303,7 @@ final class ToolVisibilityResolverTest extends TestCase
         ]);
 
         $rows = $resolver->describeAll();
-        $byName = array_column($rows, null, 'name');
+        $byName = \array_column($rows, null, 'name');
 
         self::assertArrayHasKey('sulu_tag_create', $byName);
         self::assertFalse($byName['sulu_tag_create']['available']);
@@ -315,6 +315,6 @@ final class ToolVisibilityResolverTest extends TestCase
         self::assertArrayHasKey('sulu_get_context', $byName);
         self::assertTrue($byName['sulu_get_context']['available']);
 
-        self::assertSame(['sulu_get_context', 'sulu_ping', 'sulu_tag_create'], array_column($rows, 'name'));
+        self::assertSame(['sulu_get_context', 'sulu_ping', 'sulu_tag_create'], \array_column($rows, 'name'));
     }
 }

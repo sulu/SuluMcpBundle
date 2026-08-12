@@ -16,22 +16,22 @@ use Symfony\Bundle\FrameworkBundle\Console\Application;
 use Symfony\Component\Console\Input\ArgvInput;
 
 if (false === \in_array(\PHP_SAPI, ['cli', 'phpdbg', 'embed'], true)) {
-    echo 'Warning: The console should be invoked via the CLI version of PHP, not the '.\PHP_SAPI.' SAPI'.\PHP_EOL;
+    echo 'Warning: The console should be invoked via the CLI version of PHP, not the ' . \PHP_SAPI . ' SAPI' . \PHP_EOL;
 }
 
-require __DIR__.'/../../../vendor/autoload.php';
+require __DIR__ . '/../../../vendor/autoload.php';
 
 $input = new ArgvInput();
 if (null !== $env = $input->getParameterOption(['--env', '-e'], null, true)) {
     \assert(\is_string($env));
-    \putenv('APP_ENV='.$_SERVER['APP_ENV'] = $_ENV['APP_ENV'] = $env);
+    \putenv('APP_ENV=' . $_SERVER['APP_ENV'] = $_ENV['APP_ENV'] = $env);
 }
 
 if ($input->hasParameterOption('--no-debug', true)) {
-    \putenv('APP_DEBUG='.$_SERVER['APP_DEBUG'] = $_ENV['APP_DEBUG'] = '0');
+    \putenv('APP_DEBUG=' . $_SERVER['APP_DEBUG'] = $_ENV['APP_DEBUG'] = '0');
 }
 
-require \dirname(__DIR__).'/config/bootstrap.php';
+require \dirname(__DIR__) . '/config/bootstrap.php';
 
 if ($_SERVER['APP_DEBUG']) {
     \umask(0000);

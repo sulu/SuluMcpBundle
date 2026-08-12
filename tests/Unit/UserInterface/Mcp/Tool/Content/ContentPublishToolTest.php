@@ -78,7 +78,7 @@ final class ContentPublishToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) {
+            ->willReturnCallback(function(Envelope $envelope) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ApplyWorkflowTransitionPageMessage::class, $message);
                 $this->assertArrayHasKey(EnableFlushStamp::class, $envelope->all());

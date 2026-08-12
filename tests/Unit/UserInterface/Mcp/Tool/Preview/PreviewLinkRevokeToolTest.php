@@ -109,7 +109,7 @@ final class PreviewLinkRevokeToolTest extends TestCase
         $this->previewLinkManager
             ->expects($this->once())
             ->method('revoke')
-            ->willReturnCallback(function (string $resourceKey) use (&$capturedResourceKey): void {
+            ->willReturnCallback(function(string $resourceKey) use (&$capturedResourceKey): void {
                 $capturedResourceKey = $resourceKey;
             });
 

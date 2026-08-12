@@ -86,7 +86,7 @@ class GetContextTool
         $this->collectTypes($structures, $presentTypes);
 
         $legend = [];
-        foreach (array_keys($presentTypes) as $type) {
+        foreach (\array_keys($presentTypes) as $type) {
             $valueInfo = $this->valueExampleProvider->describe($type);
             if (null === $valueInfo) {
                 continue;

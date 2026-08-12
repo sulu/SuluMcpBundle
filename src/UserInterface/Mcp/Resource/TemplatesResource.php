@@ -88,7 +88,7 @@ class TemplatesResource
     }
 
     /**
-     * @param ItemMetadata        $item
+     * @param ItemMetadata $item
      * @param array<string, true> $visiting block type names currently on the resolution path
      *
      * @return array<string, mixed>

@@ -41,7 +41,7 @@ final readonly class ContentMetadataMapper
     }
 
     /**
-     * @param array<string, mixed>      $data
+     * @param array<string, mixed> $data
      * @param array<string, mixed>|null $excerpt
      *
      * @return array<string, mixed>
@@ -52,7 +52,7 @@ final readonly class ContentMetadataMapper
     }
 
     /**
-     * @param array<string, mixed>      $data
+     * @param array<string, mixed> $data
      * @param array<string, mixed>|null $seo
      *
      * @return array<string, mixed>
@@ -63,9 +63,9 @@ final readonly class ContentMetadataMapper
     }
 
     /**
-     * @param array<string, mixed>      $data
+     * @param array<string, mixed> $data
      * @param array<string, mixed>|null $input
-     * @param list<string>              $formKeys
+     * @param list<string> $formKeys
      *
      * @return array<string, mixed>
      */
@@ -115,7 +115,7 @@ final readonly class ContentMetadataMapper
             return $key;
         }
 
-        return $namespace.'/'.$key;
+        return $namespace . '/' . $key;
     }
 
     /**
@@ -174,7 +174,7 @@ final readonly class ContentMetadataMapper
      */
     private function inputKeys(array $validNames, string $namespace): array
     {
-        $prefix = $namespace.'/';
+        $prefix = $namespace . '/';
 
         return \array_map(
             static fn (string $name): string => \str_starts_with($name, $prefix) ? \substr($name, \strlen($prefix)) : $name,

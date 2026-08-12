@@ -76,7 +76,7 @@ final class PermissionAwareCallToolHandlerTest extends TestCase
         $securityChecker = $this->createMock(SecurityCheckerInterface::class);
         $securityChecker->method('hasPermission')->willReturnCallback(
             static fn ($condition, string $permission): bool => \in_array(
-                str_replace('sulu.webspaces.', '', $condition->getSecurityContext()),
+                \str_replace('sulu.webspaces.', '', $condition->getSecurityContext()),
                 $grantedWebspaceKeys,
                 true,
             ),

@@ -99,7 +99,7 @@ final class FilteredRegistryTest extends TestCase
 
         $registry = new FilteredRegistry($this->inner, $this->visibilityResolver($map, $checker));
 
-        $names = array_keys((array) $registry->getTools(null, null)->getArrayCopy());
+        $names = \array_keys((array) $registry->getTools(null, null)->getArrayCopy());
 
         self::assertContains('sulu_ping', $names);
         self::assertContains('sulu_tag_list', $names);
@@ -127,9 +127,9 @@ final class FilteredRegistryTest extends TestCase
         self::assertCount(1, $secondPage->references);
         self::assertNull($secondPage->nextCursor);
 
-        $collected = [...array_values($firstPage->references), ...array_values($secondPage->references)];
-        $collectedNames = array_map(static fn (Tool $tool): string => $tool->name, $collected);
-        sort($collectedNames);
+        $collected = [...\array_values($firstPage->references), ...\array_values($secondPage->references)];
+        $collectedNames = \array_map(static fn (Tool $tool): string => $tool->name, $collected);
+        \sort($collectedNames);
         self::assertSame(['sulu_get_context', 'sulu_ping'], $collectedNames);
     }
 
@@ -184,7 +184,7 @@ final class FilteredRegistryTest extends TestCase
         $state = new DiscoveryState(tools: ['sulu_dangerous' => $dangerousRef, 'sulu_safe' => $safeRef]);
 
         $this->inner->expects(self::once())->method('setDiscoveryState')->with(
-            self::callback(static function (DiscoveryState $passed) {
+            self::callback(static function(DiscoveryState $passed) {
                 $tools = $passed->getTools();
 
                 return !isset($tools['sulu_dangerous']) && isset($tools['sulu_safe']);

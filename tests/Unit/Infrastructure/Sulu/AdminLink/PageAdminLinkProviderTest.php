@@ -33,7 +33,7 @@ final class PageAdminLinkProviderTest extends TestCase
     {
         $this->viewRegistry = $this->createMock(ViewRegistry::class);
         $this->viewRegistry->method('findViewByName')->willReturnCallback(
-            static function (string $name): View {
+            static function(string $name): View {
                 if (PageAdmin::EDIT_FORM_VIEW === $name) {
                     return new View($name, '/webspaces/:webspace/pages/:locale/:id', 'form');
                 }

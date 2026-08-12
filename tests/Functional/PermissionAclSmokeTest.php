@@ -62,7 +62,7 @@ final class PermissionAclSmokeTest extends FunctionalTestCase
         // Webspace-level EDIT grant, plus everything else, to keep the "context"
         // side of the check unambiguous.
         $role = $builder->role('Editor', [
-            'sulu.webspaces.'.self::WEBSPACE_KEY => [
+            'sulu.webspaces.' . self::WEBSPACE_KEY => [
                 PermissionTypes::VIEW => true,
                 PermissionTypes::ADD => true,
                 PermissionTypes::EDIT => true,
@@ -92,7 +92,7 @@ final class PermissionAclSmokeTest extends FunctionalTestCase
         // Real SecurityChecker, concrete Page::class: the per-page deny must
         // win over the webspace-level grant.
         $condition = new SecurityCondition(
-            'sulu.webspaces.'.self::WEBSPACE_KEY,
+            'sulu.webspaces.' . self::WEBSPACE_KEY,
             self::LOCALE,
             Page::class,
             self::PAGE_UUID,
@@ -108,7 +108,7 @@ final class PermissionAclSmokeTest extends FunctionalTestCase
         // lookup finds nothing and silently falls back to the webspace grant,
         // hiding the deny -- this assertion catches a regression back to it.
         $bypassCondition = new SecurityCondition(
-            'sulu.webspaces.'.self::WEBSPACE_KEY,
+            'sulu.webspaces.' . self::WEBSPACE_KEY,
             self::LOCALE,
             PageInterface::class,
             self::PAGE_UUID,
@@ -117,7 +117,7 @@ final class PermissionAclSmokeTest extends FunctionalTestCase
         self::assertTrue(
             $securityChecker->hasPermission($bypassCondition, PermissionTypes::EDIT),
             'Using PageInterface::class must find no matching ACL row and fall back to the webspace grant - '
-            .'this is exactly the bypass the Page::class fix closed.',
+            . 'this is exactly the bypass the Page::class fix closed.',
         );
 
         // The bundle's own wrapper (what tools actually call) denies too,
@@ -127,7 +127,7 @@ final class PermissionAclSmokeTest extends FunctionalTestCase
 
         self::assertFalse(
             $toolPermissionChecker->has(
-                'sulu.webspaces.'.self::WEBSPACE_KEY,
+                'sulu.webspaces.' . self::WEBSPACE_KEY,
                 PermissionTypes::EDIT,
                 self::LOCALE,
                 Page::class,

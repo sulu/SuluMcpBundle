@@ -34,7 +34,7 @@ final readonly class RequiresPermission
 {
     /**
      * @param list<PermissionRequirement> $requirements
-     * @param list<string>                $discoveryContexts
+     * @param list<string> $discoveryContexts
      */
     public function __construct(
         public array $requirements,

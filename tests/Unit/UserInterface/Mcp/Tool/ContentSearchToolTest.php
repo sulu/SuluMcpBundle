@@ -108,7 +108,7 @@ final class ContentSearchToolTest extends TestCase
         $this->searcher
             ->expects($this->once())
             ->method('search')
-            ->with($this->callback(function (Search $search): bool {
+            ->with($this->callback(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof EqualCondition
                         && 'resourceKey' === $filter->field
@@ -140,7 +140,7 @@ final class ContentSearchToolTest extends TestCase
         $this->searcher
             ->expects($this->once())
             ->method('search')
-            ->with($this->callback(function (Search $search): bool {
+            ->with($this->callback(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof EqualCondition
                         && 'resourceKey' === $filter->field
@@ -169,7 +169,7 @@ final class ContentSearchToolTest extends TestCase
         $this->searcher
             ->expects($this->once())
             ->method('search')
-            ->with($this->callback(function (Search $search): bool {
+            ->with($this->callback(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof EqualCondition
                         && 'resourceKey' === $filter->field
@@ -223,7 +223,7 @@ final class ContentSearchToolTest extends TestCase
         $this->searcher
             ->expects($this->once())
             ->method('search')
-            ->with($this->callback(function (Search $search): bool {
+            ->with($this->callback(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof EqualCondition && 'resourceKey' === $filter->field) {
                         return false;
@@ -279,7 +279,7 @@ final class ContentSearchToolTest extends TestCase
         $this->searcher
             ->expects($this->once())
             ->method('search')
-            ->with($this->callback(function (Search $search): bool {
+            ->with($this->callback(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof InCondition
                         && 'webspaces' === $filter->field
@@ -310,7 +310,7 @@ final class ContentSearchToolTest extends TestCase
         $this->searcher
             ->expects($this->once())
             ->method('search')
-            ->with($this->callback(function (Search $search): bool {
+            ->with($this->callback(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof InCondition
                         && 'webspaces' === $filter->field

@@ -62,7 +62,7 @@ final readonly class ToolPermissionChecker implements ToolPermissionCheckerInter
         ?string $objectType = null,
         mixed $objectId = null,
     ): bool {
-        if ('' === $context || str_contains($context, '#')) {
+        if ('' === $context || \str_contains($context, '#')) {
             return false;
         }
 

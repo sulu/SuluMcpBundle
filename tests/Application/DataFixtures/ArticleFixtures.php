@@ -260,7 +260,7 @@ class ArticleFixtures extends Fixture implements DependentFixtureInterface
                 'Pearl', 'Her posthumous album <em>Pearl</em> (1971), completed after her heroin overdose at twenty-seven, contained <em>Me and Bobby McGee</em> — her only number-one single. She remains the template for every female rock vocalist who has followed.'],
         ];
 
-        return \array_values(\array_map(static function (array $a) use ($musicPageUuid): array {
+        return \array_values(\array_map(static function(array $a) use ($musicPageUuid): array {
             [$name, $slug, $intro, $sec1Title, $sec1Text, $quote, $quoteAttr, $sec2Title, $sec2Text] = $a;
 
             return [
@@ -269,23 +269,23 @@ class ArticleFixtures extends Fixture implements DependentFixtureInterface
                 'template' => 'article',
                 'url' => [
                     'page' => ['uuid' => $musicPageUuid, 'path' => '/music'],
-                    'suffix' => '/'.$slug,
+                    'suffix' => '/' . $slug,
                 ],
-                'article' => '<p>'.$intro.'</p>',
+                'article' => '<p>' . $intro . '</p>',
                 'blocks' => [
                     [
                         'type' => 'section',
                         'title' => $sec1Title,
                         'blocks' => [
-                            ['type' => 'text', 'content' => '<p>'.$sec1Text.'</p>'],
-                            ['type' => 'quote', 'text' => '<p>'.$quote.'</p>', 'attribution' => $quoteAttr],
+                            ['type' => 'text', 'content' => '<p>' . $sec1Text . '</p>'],
+                            ['type' => 'quote', 'text' => '<p>' . $quote . '</p>', 'attribution' => $quoteAttr],
                         ],
                     ],
                     [
                         'type' => 'section',
                         'title' => $sec2Title,
                         'blocks' => [
-                            ['type' => 'text', 'content' => '<p>'.$sec2Text.'</p>'],
+                            ['type' => 'text', 'content' => '<p>' . $sec2Text . '</p>'],
                         ],
                     ],
                 ],
@@ -488,7 +488,7 @@ class ArticleFixtures extends Fixture implements DependentFixtureInterface
                 'Nested Blocks', '<p>Some block types contain their own block property — a list of nested blocks. A section block, for example, has a title and a blocks property containing any number of child blocks. This allows hierarchical content structures without requiring separate content types.'],
         ];
 
-        return \array_values(\array_map(static function (array $a) use ($blogPageUuid): array {
+        return \array_values(\array_map(static function(array $a) use ($blogPageUuid): array {
             [$title, $slug, $article, $h1, $p1, $p2] = $a;
 
             return [
@@ -497,7 +497,7 @@ class ArticleFixtures extends Fixture implements DependentFixtureInterface
                 'template' => 'article',
                 'url' => [
                     'page' => ['uuid' => $blogPageUuid, 'path' => '/blog'],
-                    'suffix' => '/'.$slug,
+                    'suffix' => '/' . $slug,
                 ],
                 'article' => $article,
                 'blocks' => [

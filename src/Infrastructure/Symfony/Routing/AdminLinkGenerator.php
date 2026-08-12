@@ -54,7 +54,7 @@ final readonly class AdminLinkGenerator implements AdminLinkGeneratorInterface
 
                 $base = \rtrim($this->router->generate('sulu_admin', [], UrlGeneratorInterface::ABSOLUTE_URL), '/');
 
-                return $base.'/#'.$path;
+                return $base . '/#' . $path;
             }
         } catch (\Throwable) {
             return null;

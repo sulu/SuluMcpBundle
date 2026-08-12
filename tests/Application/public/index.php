@@ -15,7 +15,7 @@ use Sulu\Component\HttpKernel\SuluKernel;
 use Sulu\Mcp\Tests\Application\Kernel;
 use Symfony\Component\HttpFoundation\Request;
 
-require __DIR__.'/../config/bootstrap.php';
+require __DIR__ . '/../config/bootstrap.php';
 
 $suluContext = SuluKernel::CONTEXT_WEBSITE;
 

@@ -24,7 +24,7 @@ final class McpDiscoveryPathPassTest extends TestCase
     public function testAppendsBundleSrcDirRelativeToProjectDir(): void
     {
         $container = new ContainerBuilder();
-        $container->setParameter('kernel.project_dir', \dirname(__DIR__, 6).'/tests/Application');
+        $container->setParameter('kernel.project_dir', \dirname(__DIR__, 6) . '/tests/Application');
         $container->setParameter('mcp.discovery.scan_dirs', ['src']);
 
         (new McpDiscoveryPathPass())->process($container);
@@ -45,7 +45,7 @@ final class McpDiscoveryPathPassTest extends TestCase
     public function testDoesNotDuplicateAnAlreadyPresentEntry(): void
     {
         $container = new ContainerBuilder();
-        $container->setParameter('kernel.project_dir', \dirname(__DIR__, 6).'/tests/Application');
+        $container->setParameter('kernel.project_dir', \dirname(__DIR__, 6) . '/tests/Application');
         $container->setParameter('mcp.discovery.scan_dirs', ['src', '../../src']);
 
         (new McpDiscoveryPathPass())->process($container);

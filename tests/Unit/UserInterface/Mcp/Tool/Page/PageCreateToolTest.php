@@ -125,7 +125,7 @@ final class PageCreateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockPage) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockPage) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreatePageMessage::class, $message);
 
@@ -152,7 +152,7 @@ final class PageCreateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockPage) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockPage) {
                 /** @var CreatePageMessage $message */
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreatePageMessage::class, $message);
@@ -175,7 +175,7 @@ final class PageCreateToolTest extends TestCase
         $capturedMessage = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockPage, &$capturedMessage) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockPage, &$capturedMessage) {
                 $capturedMessage = $envelope->getMessage();
 
                 return $envelope->with(new HandledStamp($mockPage, 'handler'));
@@ -298,7 +298,7 @@ final class PageCreateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockPage, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockPage, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreatePageMessage::class, $message);
                 $capturedData = (new \ReflectionProperty($message, 'data'))->getValue($message);
@@ -412,7 +412,7 @@ final class PageCreateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockPage, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockPage, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreatePageMessage::class, $message);
                 $capturedData = (new \ReflectionProperty($message, 'data'))->getValue($message);
@@ -504,7 +504,7 @@ final class PageCreateToolTest extends TestCase
         $this->permissionChecker
             ->expects($this->once())
             ->method('check')
-            ->willReturnCallback(function (string $context, string|array $permissions, ?string $locale, ?string $type, mixed $id) use (&$checked): void {
+            ->willReturnCallback(function(string $context, string|array $permissions, ?string $locale, ?string $type, mixed $id) use (&$checked): void {
                 self::assertSame('sulu.webspaces.example', $context);
                 self::assertSame('en', $locale);
                 self::assertSame(Page::class, $type);
@@ -573,7 +573,7 @@ final class PageCreateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockPage, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockPage, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreatePageMessage::class, $message);
                 $capturedData = (new \ReflectionProperty($message, 'data'))->getValue($message);

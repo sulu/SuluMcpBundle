@@ -77,7 +77,7 @@ final class SnippetCreateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockSnippet) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockSnippet) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreateSnippetMessage::class, $message);
 
@@ -106,7 +106,7 @@ final class SnippetCreateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockSnippet, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockSnippet, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreateSnippetMessage::class, $message);
                 $capturedData = $message->getData();
@@ -133,7 +133,7 @@ final class SnippetCreateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockSnippet, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockSnippet, &$capturedData) {
                 $capturedData = $envelope->getMessage()->getData();
 
                 return $envelope->with(new HandledStamp($mockSnippet, 'handler'));
@@ -226,7 +226,7 @@ final class SnippetCreateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockSnippet, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockSnippet, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreateSnippetMessage::class, $message);
                 $capturedData = $message->getData();

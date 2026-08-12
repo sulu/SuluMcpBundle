@@ -56,9 +56,9 @@ class Kernel extends SuluTestKernel
         // controller and /admin/mcp would expect a session instead of a bearer token.
         // The functional tests do not use that firewall; they authenticate by setting a
         // token on the token storage.
-        $loader->load(SuluTestBundle::getConfigDir().'/context_'.$this->getContext().'.yml');
+        $loader->load(SuluTestBundle::getConfigDir() . '/context_' . $this->getContext() . '.yml');
 
-        $loader->load(__DIR__.'/config/config_'.$this->getContext().'.yml');
+        $loader->load(__DIR__ . '/config/config_' . $this->getContext() . '.yml');
     }
 }
 

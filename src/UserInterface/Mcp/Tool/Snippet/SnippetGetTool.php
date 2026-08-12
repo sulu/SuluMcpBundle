@@ -74,7 +74,7 @@ class SnippetGetTool
             ];
         } catch (SnippetNotFoundException) {
             return [
-                'error' => 'Snippet not found: '.$uuid,
+                'error' => 'Snippet not found: ' . $uuid,
                 'hint' => 'Verify the UUID and locale. Use sulu_snippet_list to find snippets.',
             ];
         }

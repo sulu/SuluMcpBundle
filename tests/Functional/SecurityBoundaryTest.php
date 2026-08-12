@@ -96,7 +96,7 @@ final class SecurityBoundaryTest extends FunctionalTestCase
         self::assertTrue(
             $checker->has('sulu.settings.tags', PermissionTypes::EDIT, 'en'),
             'The same role/user must grant EDIT once SystemStore matches the role\'s own system - '
-            .'isolating the system filter as the sole cause of the earlier deny.',
+            . 'isolating the system filter as the sole cause of the earlier deny.',
         );
     }
 }

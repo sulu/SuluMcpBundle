@@ -26,8 +26,8 @@ final readonly class ToolVisibilityResolver
 {
     /**
      * @param array<string, array{name: string, requirements: list<array{context: string, permission: string}>, contextArgument: ?string, contextResolver: ?string, objectResolved: bool, discoveryContexts: list<string>}> $permissionMap
-     * @param array<string, ToolContextResolverInterface>                                                                                                                                                                   $contextResolvers
-     * @param list<string>                                                                                                                                                                                                  $allowlist
+     * @param array<string, ToolContextResolverInterface> $contextResolvers
+     * @param list<string> $allowlist
      */
     public function __construct(
         private array $permissionMap,
@@ -82,7 +82,7 @@ final readonly class ToolVisibilityResolver
         $contextArgument = $entry['contextArgument'] ?? null;
 
         // The raw `#context#` template tells a client nothing about what to grant.
-        $requirements = array_map(
+        $requirements = \array_map(
             fn (array $requirement): array => [
                 'context' => $this->renderContext($requirement['context'], $contextArgument),
                 'permission' => $requirement['permission'],
@@ -95,7 +95,7 @@ final readonly class ToolVisibilityResolver
             $reason = [] !== $requirements
                 ? \sprintf(
                     'Your Sulu role does not grant %s.',
-                    implode(' and ', array_map(
+                    \implode(' and ', \array_map(
                         static fn (array $requirement): string => \sprintf('"%s" on "%s"', $requirement['permission'], $requirement['context']),
                         $requirements,
                     )),
@@ -118,10 +118,10 @@ final readonly class ToolVisibilityResolver
      */
     public function describeAll(?string $locale = null): array
     {
-        $names = array_unique([...array_keys($this->permissionMap), ...$this->allowlist]);
-        sort($names);
+        $names = \array_unique([...\array_keys($this->permissionMap), ...$this->allowlist]);
+        \sort($names);
 
-        return array_map(fn (string $name): array => $this->describe($name, $locale), $names);
+        return \array_map(fn (string $name): array => $this->describe($name, $locale), $names);
     }
 
     /**
@@ -130,7 +130,7 @@ final readonly class ToolVisibilityResolver
      */
     private function renderContext(string $context, ?string $contextArgument): string
     {
-        if (!str_contains($context, '#context#')) {
+        if (!\str_contains($context, '#context#')) {
             return $context;
         }
 
@@ -138,9 +138,9 @@ final readonly class ToolVisibilityResolver
             return '<the security context of the target item>';
         }
 
-        $hint = $contextArgument ?? (str_starts_with($context, 'sulu.webspaces.') ? 'webspace' : 'resolved-at-call-time');
+        $hint = $contextArgument ?? (\str_starts_with($context, 'sulu.webspaces.') ? 'webspace' : 'resolved-at-call-time');
 
-        return str_replace('#context#', '<'.$hint.'>', $context);
+        return \str_replace('#context#', '<' . $hint . '>', $context);
     }
 
     private function grants(string $candidate, string $permission, ?string $locale): bool
@@ -187,11 +187,11 @@ final readonly class ToolVisibilityResolver
         // webspace-arg tools: '#context#' in a webspace template => any webspace
         $out = [];
         foreach ($entry['requirements'] as $requirement) {
-            $out[] = str_contains($requirement['context'], '#')
+            $out[] = \str_contains($requirement['context'], '#')
                 ? WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT
                 : $requirement['context']; // static literal context
         }
 
-        return array_values(array_unique($out));
+        return \array_values(\array_unique($out));
     }
 }

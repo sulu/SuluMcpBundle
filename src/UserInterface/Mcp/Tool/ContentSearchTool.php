@@ -68,7 +68,7 @@ class ContentSearchTool
             return ['items' => [], 'total' => 0, 'hint' => 'No webspaces are readable with your permissions.'];
         }
 
-        $effective = null !== $webspace ? array_values(array_intersect($permitted, [$webspace])) : $permitted;
+        $effective = null !== $webspace ? \array_values(\array_intersect($permitted, [$webspace])) : $permitted;
         if ([] === $effective) {
             return ['items' => [], 'total' => 0, 'hint' => \sprintf('Webspace "%s" is not readable with your permissions.', $webspace)];
         }

@@ -82,7 +82,7 @@ final class OAuthAuthorizeEntryPointTest extends TestCase
 
         $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
         $urlGenerator->method('generate')->willReturnCallback(
-            static fn (string $name): string => $paths[$name] ?? self::fail('Unexpected route "'.$name.'".'),
+            static fn (string $name): string => $paths[$name] ?? self::fail('Unexpected route "' . $name . '".'),
         );
 
         return $urlGenerator;

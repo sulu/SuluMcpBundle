@@ -167,7 +167,7 @@ final class PreviewLinkGenerateToolTest extends TestCase
         $this->previewLinkManager
             ->expects($this->once())
             ->method('generate')
-            ->willReturnCallback(function (string $resourceKey) use (&$capturedResourceKey, $previewLink) {
+            ->willReturnCallback(function(string $resourceKey) use (&$capturedResourceKey, $previewLink) {
                 $capturedResourceKey = $resourceKey;
 
                 return $previewLink;

@@ -124,7 +124,7 @@ final class ArticleCreateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockArticle) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreateArticleMessage::class, $message);
 
@@ -189,7 +189,7 @@ final class ArticleCreateToolTest extends TestCase
         $capturedMessage = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockArticle, &$capturedMessage) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle, &$capturedMessage) {
                 $capturedMessage = $envelope->getMessage();
 
                 return $envelope->with(new HandledStamp($mockArticle, 'handler'));
@@ -235,7 +235,7 @@ final class ArticleCreateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockArticle) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreateArticleMessage::class, $message);
                 $this->assertSame([
@@ -286,7 +286,7 @@ final class ArticleCreateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockArticle, $route) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle, $route) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreateArticleMessage::class, $message);
                 $this->assertSame($route, $message->getData()['url']);
@@ -439,7 +439,7 @@ final class ArticleCreateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockArticle, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(CreateArticleMessage::class, $message);
                 $capturedData = $message->getData();
@@ -527,7 +527,7 @@ final class ArticleCreateToolTest extends TestCase
         $capturedMessage = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockArticle, &$capturedMessage) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle, &$capturedMessage) {
                 $capturedMessage = $envelope->getMessage();
 
                 return $envelope->with(new HandledStamp($mockArticle, 'handler'));
@@ -586,7 +586,7 @@ final class ArticleCreateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockArticle, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle, &$capturedData) {
                 $capturedData = $envelope->getMessage()->getData();
 
                 return $envelope->with(new HandledStamp($mockArticle, 'handler'));

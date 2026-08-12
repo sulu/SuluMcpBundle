@@ -93,7 +93,7 @@ class ArticleGetTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (ArticleNotFoundException) {
             return [
-                'error' => 'Article not found: '.$uuid,
+                'error' => 'Article not found: ' . $uuid,
                 'hint' => 'Verify the UUID and locale. Use sulu_article_list or sulu_content_search to find articles.',
             ];
         }

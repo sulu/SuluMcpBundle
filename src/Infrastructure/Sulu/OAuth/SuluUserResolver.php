@@ -39,7 +39,7 @@ class SuluUserResolver
     {
         $user = $token->getUser();
         if (!$user instanceof User) {
-            throw new \RuntimeException('Expected Sulu User entity, got '.($user instanceof UserInterface ? $user::class : self::class));
+            throw new \RuntimeException('Expected Sulu User entity, got ' . ($user instanceof UserInterface ? $user::class : self::class));
         }
 
         return new SuluOAuthUser($user->getUserIdentifier());

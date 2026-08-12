@@ -166,7 +166,7 @@ final class McpLoginSuccessListenerTest extends TestCase
     {
         self::assertInstanceOf(JsonResponse::class, $response);
 
-        $data = json_decode((string) $response->getContent(), true);
+        $data = \json_decode((string) $response->getContent(), true);
         self::assertIsArray($data);
 
         return $data;
@@ -178,7 +178,7 @@ final class McpLoginSuccessListenerTest extends TestCase
         $urlGenerator->method('generate')->willReturnCallback(
             static fn (string $name): string => 'sulu_mcp_oauth_authorize' === $name
                 ? '/admin/mcp/authorize'
-                : self::fail('Unexpected route "'.$name.'".'),
+                : self::fail('Unexpected route "' . $name . '".'),
         );
 
         return $urlGenerator;

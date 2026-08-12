@@ -108,7 +108,7 @@ final class BlockUpdateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->with($this->callback(function (Envelope $envelope): bool {
+            ->with($this->callback(function(Envelope $envelope): bool {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifyPageMessage::class, $message);
 
@@ -148,7 +148,7 @@ final class BlockUpdateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->with($this->callback(function (Envelope $envelope): bool {
+            ->with($this->callback(function(Envelope $envelope): bool {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifyArticleMessage::class, $message);
 
@@ -185,7 +185,7 @@ final class BlockUpdateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->with($this->callback(function (Envelope $envelope): bool {
+            ->with($this->callback(function(Envelope $envelope): bool {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifySnippetMessage::class, $message);
 
@@ -264,7 +264,7 @@ final class BlockUpdateToolTest extends TestCase
         $dispatchedBlocks = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->with($this->callback(function (Envelope $envelope) use (&$dispatchedBlocks): bool {
+            ->with($this->callback(function(Envelope $envelope) use (&$dispatchedBlocks): bool {
                 /** @var ModifyPageMessage $message */
                 $message = $envelope->getMessage();
                 $data = (new \ReflectionProperty($message, 'data'))->getValue($message);

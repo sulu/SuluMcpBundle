@@ -33,7 +33,7 @@ final class MediaAdminLinkProviderTest extends TestCase
     {
         $this->viewRegistry = $this->createMock(ViewRegistry::class);
         $this->viewRegistry->method('findViewByName')->willReturnCallback(
-            static function (string $name): View {
+            static function(string $name): View {
                 if (MediaAdmin::EDIT_FORM_VIEW === $name) {
                     return new View($name, '/media/:locale/:id', 'form');
                 }

@@ -54,7 +54,7 @@ final readonly class McpLoginSuccessListener
         $response = $event->getResponse();
 
         if ($response instanceof JsonResponse) {
-            $data = json_decode((string) $response->getContent(), true);
+            $data = \json_decode((string) $response->getContent(), true);
             // Login not finished yet (e.g. 2FA pending): keep the target for the next step.
             if (!\is_array($data) || false === ($data['completed'] ?? true)) {
                 return;
@@ -90,10 +90,10 @@ final readonly class McpLoginSuccessListener
 
         $relative = $parts['path'];
         if (isset($parts['query'])) {
-            $relative .= '?'.$parts['query'];
+            $relative .= '?' . $parts['query'];
         }
         if (isset($parts['fragment'])) {
-            $relative .= '#'.$parts['fragment'];
+            $relative .= '#' . $parts['fragment'];
         }
 
         return $relative;

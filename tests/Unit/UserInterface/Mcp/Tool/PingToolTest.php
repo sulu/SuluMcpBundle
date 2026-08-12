@@ -142,7 +142,7 @@ final class PingToolTest extends TestCase
     {
         $webspaces = [];
         foreach ($webspacesWithLocales as $key => $locales) {
-            $localizations = \array_map(function (string $locale) {
+            $localizations = \array_map(function(string $locale) {
                 $localization = $this->createMock(Localization::class);
                 $localization->method('getLocale')->willReturn($locale);
 

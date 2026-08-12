@@ -68,7 +68,7 @@ final class DangerousToolsPass implements CompilerPassInterface
                 continue;
             }
 
-            foreach (array_keys($tools) as $class) {
+            foreach (\array_keys($tools) as $class) {
                 if ($container->hasDefinition($class)) {
                     $container->removeDefinition($class);
                 }

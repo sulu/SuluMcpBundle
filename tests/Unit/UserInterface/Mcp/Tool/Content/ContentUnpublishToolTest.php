@@ -78,7 +78,7 @@ final class ContentUnpublishToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) {
+            ->willReturnCallback(function(Envelope $envelope) {
                 $this->assertInstanceOf(ApplyWorkflowTransitionSnippetMessage::class, $envelope->getMessage());
                 $this->assertArrayHasKey(EnableFlushStamp::class, $envelope->all());
 

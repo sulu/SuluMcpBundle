@@ -40,8 +40,8 @@ class WellKnownController
     public function protectedResourceMetadata(): JsonResponse
     {
         return new JsonResponse([
-            'resource' => rtrim($this->serverUrl, '/').$this->mcpPath,
-            'authorization_servers' => [rtrim($this->serverUrl, '/')],
+            'resource' => \rtrim($this->serverUrl, '/') . $this->mcpPath,
+            'authorization_servers' => [\rtrim($this->serverUrl, '/')],
             'scopes_supported' => $this->scopes,
             'bearer_methods_supported' => ['header'],
         ]);
@@ -50,18 +50,18 @@ class WellKnownController
     #[Route('/.well-known/oauth-authorization-server', name: 'sulu_mcp_as_metadata', methods: ['GET'])]
     public function authorizationServerMetadata(): JsonResponse
     {
-        $base = rtrim($this->serverUrl, '/');
+        $base = \rtrim($this->serverUrl, '/');
 
         return new JsonResponse([
             'issuer' => $base,
-            'authorization_endpoint' => $base.$this->routePath('sulu_mcp_oauth_authorize'),
-            'token_endpoint' => $base.$this->routePath('sulu_mcp_oauth_token'),
+            'authorization_endpoint' => $base . $this->routePath('sulu_mcp_oauth_authorize'),
+            'token_endpoint' => $base . $this->routePath('sulu_mcp_oauth_token'),
             'response_types_supported' => ['code'],
             'grant_types_supported' => ['authorization_code', 'refresh_token'],
             'code_challenge_methods_supported' => ['S256'],
             'token_endpoint_auth_methods_supported' => ['client_secret_post', 'client_secret_basic', 'none'],
             'scopes_supported' => $this->scopes,
-            'registration_endpoint' => $base.$this->routePath('sulu_mcp_client_registration'),
+            'registration_endpoint' => $base . $this->routePath('sulu_mcp_client_registration'),
         ]);
     }
 

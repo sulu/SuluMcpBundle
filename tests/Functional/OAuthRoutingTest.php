@@ -53,7 +53,7 @@ final class OAuthRoutingTest extends FunctionalTestCase
             $route,
             \sprintf(
                 'Route "%s" is not registered. Check the attribute `resource` paths in '
-                .'config/routing_admin.yaml and config/routing_website.yaml still point at their controller directories.',
+                . 'config/routing_admin.yaml and config/routing_website.yaml still point at their controller directories.',
                 $name,
             ),
         );

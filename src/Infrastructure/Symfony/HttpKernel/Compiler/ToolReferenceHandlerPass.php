@@ -33,7 +33,7 @@ final class ToolReferenceHandlerPass implements CompilerPassInterface
     public function process(ContainerBuilder $container): void
     {
         $references = [];
-        foreach (array_keys($container->findTaggedServiceIds('mcp.tool')) as $serviceId) {
+        foreach (\array_keys($container->findTaggedServiceIds('mcp.tool')) as $serviceId) {
             $class = $container->getDefinition($serviceId)->getClass() ?? $serviceId;
             if (isset($references[$class])) {
                 continue;

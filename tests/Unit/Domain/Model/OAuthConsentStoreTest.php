@@ -41,7 +41,7 @@ final class OAuthConsentStoreTest extends TestCase
         self::assertMatchesRegularExpression('/^[a-f0-9]{32}$/', $consentRequest->getId());
         self::assertSame('/admin/mcp/authorize?response_type=code&client_id=client-1&state=state-1', $consentRequest->getAuthorizationUrl());
         self::assertStringStartsWith('/admin/mcp/authorize?', $consentRequest->getContinuationUrl());
-        self::assertStringContainsString('sulu_mcp_consent='.$consentRequest->getId(), $consentRequest->getContinuationUrl());
+        self::assertStringContainsString('sulu_mcp_consent=' . $consentRequest->getId(), $consentRequest->getContinuationUrl());
         self::assertStringContainsString('client_id=client-1', $consentRequest->getContinuationUrl());
         self::assertSame('client-1', $consentRequest->getClientId());
         self::assertSame('Claude Code', $consentRequest->getClientName());
@@ -79,7 +79,7 @@ final class OAuthConsentStoreTest extends TestCase
             $consentRequest->getAuthorizationUrl(),
         );
         self::assertSame(
-            $consentRequest->getAuthorizationUrl().'&sulu_mcp_consent='.$consentRequest->getId(),
+            $consentRequest->getAuthorizationUrl() . '&sulu_mcp_consent=' . $consentRequest->getId(),
             $consentRequest->getContinuationUrl(),
         );
     }
@@ -113,9 +113,9 @@ final class OAuthConsentStoreTest extends TestCase
 
         return new AuthorizationRequestResolveEvent(
             $authorizationRequest,
-            array_map(static fn (string $scope): Scope => new Scope($scope), $scopes),
+            \array_map(static fn (string $scope): Scope => new Scope($scope), $scopes),
             new Client('Claude Code', 'client-1', null),
-            new class implements UserInterface {
+            new class() implements UserInterface {
                 public function getRoles(): array
                 {
                     return [];

@@ -52,9 +52,9 @@ final class ToolPermissionMapCompletenessTest extends FunctionalTestCase
             $expected,
             $actual,
             'discovered mcp.tool names must equal {map keys} union {allowlist}. A mismatch means either '
-            .'a tool was added with no #[RequiresPermission] declaration and is not allowlisted (present in '
-            .'discovered, absent from expected), or a declared/allowlisted tool was silently dropped from '
-            .'discovery (present in expected, absent from discovered).',
+            . 'a tool was added with no #[RequiresPermission] declaration and is not allowlisted (present in '
+            . 'discovered, absent from expected), or a declared/allowlisted tool was silently dropped from '
+            . 'discovery (present in expected, absent from discovered).',
         );
     }
 }

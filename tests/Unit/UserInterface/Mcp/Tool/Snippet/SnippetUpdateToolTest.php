@@ -113,7 +113,7 @@ final class SnippetUpdateToolTest extends TestCase
 
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockUpdatedSnippet) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockUpdatedSnippet) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifySnippetMessage::class, $message);
 
@@ -138,7 +138,7 @@ final class SnippetUpdateToolTest extends TestCase
         $capturedMessage = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockSnippet, &$capturedMessage) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockSnippet, &$capturedMessage) {
                 $capturedMessage = $envelope->getMessage();
 
                 return $envelope->with(new HandledStamp($mockSnippet, 'handler'));
@@ -164,7 +164,7 @@ final class SnippetUpdateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockSnippet, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockSnippet, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifySnippetMessage::class, $message);
                 $capturedData = $message->getData();
@@ -264,7 +264,7 @@ final class SnippetUpdateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockSnippet, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockSnippet, &$capturedData) {
                 $message = $envelope->getMessage();
                 $this->assertInstanceOf(ModifySnippetMessage::class, $message);
                 $capturedData = $message->getData();
@@ -383,7 +383,7 @@ final class SnippetUpdateToolTest extends TestCase
         $capturedData = null;
         $this->messageBus->expects($this->once())
             ->method('dispatch')
-            ->willReturnCallback(function (Envelope $envelope) use ($mockSnippet, &$capturedData) {
+            ->willReturnCallback(function(Envelope $envelope) use ($mockSnippet, &$capturedData) {
                 $capturedData = $envelope->getMessage()->getData();
 
                 return $envelope->with(new HandledStamp($mockSnippet, 'handler'));

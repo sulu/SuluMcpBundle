@@ -33,13 +33,13 @@ final readonly class ContentSecurityContextResolver
     }
 
     /**
-     * @param object                 $aggregate        the loaded draft aggregate (Page/Article/Snippet)
+     * @param object $aggregate the loaded draft aggregate (Page/Article/Snippet)
      * @param TemplateInterface|null $dimensionContent the resolved dimension content (carries the article template key)
      */
     public function forEntity(string $type, object $aggregate, ?TemplateInterface $dimensionContent = null): string
     {
         return match ($type) {
-            'page' => $aggregate instanceof PageInterface ? 'sulu.webspaces.'.$aggregate->getWebspaceKey() : '',
+            'page' => $aggregate instanceof PageInterface ? 'sulu.webspaces.' . $aggregate->getWebspaceKey() : '',
             'article' => $this->articleContextResolver->forTemplateKey($dimensionContent?->getTemplateKey() ?? ''),
             'snippet' => 'sulu.snippet.snippets',
             default => '',
