@@ -25,6 +25,14 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 
+/**
+ * @phpstan-type SuluMcpConfig array{
+ *     server_url: string,
+ *     mcp_path: string,
+ *     oauth: array{access_token_ttl: int, refresh_token_ttl: int, scopes: list<string>},
+ *     dangerous_tools: array{delete: bool, publish: bool, block_remove: bool},
+ * }
+ */
 class SuluMcpBundle extends AbstractBundle
 {
     protected string $extensionAlias = 'sulu_mcp';
@@ -123,7 +131,7 @@ class SuluMcpBundle extends AbstractBundle
     }
 
     /**
-     * @param array<string, mixed> $config
+     * @param SuluMcpConfig $config
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
@@ -138,7 +146,7 @@ class SuluMcpBundle extends AbstractBundle
             DangerousToolsPass::resolveDisabledToolNames($config['dangerous_tools']),
         );
 
-        $container->import(\dirname(__DIR__, 4).'/config/services.yaml');
+        $container->import(\dirname(__DIR__, 4) . '/config/services.yaml');
     }
 
     public function build(ContainerBuilder $container): void
@@ -153,11 +161,12 @@ class SuluMcpBundle extends AbstractBundle
     }
 
     /**
-     * @return array<string, mixed>
+     * @return SuluMcpConfig
      */
     private function processConfig(ContainerBuilder $builder): array
     {
-        /** @var array<string, mixed> $config */
+        // processConfiguration() only declares `array`; shape guaranteed by configure() above
+        /** @var SuluMcpConfig $config */
         $config = (new Processor())->processConfiguration(
             new Configuration($this, $builder, $this->extensionAlias),
             $builder->getExtensionConfig($this->extensionAlias),

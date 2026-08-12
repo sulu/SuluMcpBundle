@@ -58,7 +58,7 @@ class CreateMcpClientCommand extends Command
     {
         $this
             ->addArgument('name', InputArgument::REQUIRED, 'Client name (e.g. "Claude.ai Production")')
-            ->addOption('client', null, InputOption::VALUE_REQUIRED, 'Target MCP client: '.implode(', ', array_keys(self::CLIENTS)))
+            ->addOption('client', null, InputOption::VALUE_REQUIRED, 'Target MCP client: ' . \implode(', ', \array_keys(self::CLIENTS)))
             ->addOption('redirect-uri', null, InputOption::VALUE_REQUIRED, 'OAuth callback URI (overrides the per-client prompt)')
             ->addOption('scope', null, InputOption::VALUE_REQUIRED | InputOption::VALUE_IS_ARRAY, 'OAuth scopes', ['mcp:tools', 'mcp:resources'])
         ;
@@ -69,11 +69,21 @@ class CreateMcpClientCommand extends Command
         $io = new SymfonyStyle($input, $output);
 
         $name = $input->getArgument('name');
-        $scopes = $input->getOption('scope');
+        if (!\is_string($name)) {
+            $io->error('Client name must be a string.');
+
+            return Command::INVALID;
+        }
+
+        $scopeOption = $input->getOption('scope');
+        // getOption() only declares `mixed`; VALUE_IS_ARRAY guarantees an array here
+        $scopes = \is_array($scopeOption)
+            ? \array_values(\array_filter($scopeOption, static fn ($s): bool => \is_string($s) && '' !== $s))
+            : [];
 
         $client = $this->resolveClient($input, $io);
         if (null === $client) {
-            $io->error(\sprintf('Unknown client. Use one of: %s.', implode(', ', array_keys(self::CLIENTS))));
+            $io->error(\sprintf('Unknown client. Use one of: %s.', \implode(', ', \array_keys(self::CLIENTS))));
 
             return Command::INVALID;
         }
@@ -137,16 +147,22 @@ class CreateMcpClientCommand extends Command
         $client = $input->getOption('client');
 
         if (null !== $client) {
-            return isset(self::CLIENTS[$client]) ? $client : null;
+            return \is_string($client) && isset(self::CLIENTS[$client]) ? $client : null;
         }
 
         if (!$input->isInteractive()) {
             return 'claude-ai';
         }
 
-        return $io->choice('Which MCP client is this connector for?', array_keys(self::CLIENTS), 'claude-ai');
+        $chosen = $io->choice('Which MCP client is this connector for?', \array_keys(self::CLIENTS), 'claude-ai');
+
+        // choice() only declares `mixed`; a non-multiselect call always returns one choice
+        return \is_string($chosen) && isset(self::CLIENTS[$chosen]) ? $chosen : null;
     }
 
+    /**
+     * @return non-empty-string|null
+     */
     private function resolveRedirectUri(InputInterface $input, SymfonyStyle $io, string $client): ?string
     {
         $explicit = $input->getOption('redirect-uri');
@@ -174,13 +190,16 @@ class CreateMcpClientCommand extends Command
         );
     }
 
+    /**
+     * @return non-empty-string
+     */
     private function askRedirectUri(SymfonyStyle $io, string $question): string
     {
-        return $io->ask(
+        $answer = $io->ask(
             $question,
             null,
-            static function (?string $value): string {
-                $value = \trim((string) $value);
+            static function(mixed $value): string {
+                $value = \is_string($value) ? \trim($value) : '';
                 if ('' === $value) {
                     throw new \RuntimeException('Redirect URI is required.');
                 }
@@ -188,11 +207,18 @@ class CreateMcpClientCommand extends Command
                 return $value;
             },
         );
+
+        // ask() only declares `mixed`; the validator above guarantees a non-empty string
+        if (!\is_string($answer) || '' === $answer) {
+            throw new \RuntimeException('Redirect URI is required.');
+        }
+
+        return $answer;
     }
 
     private function printSetupInstructions(SymfonyStyle $io, string $client, string $name, string $identifier, string $secret, bool $requiresCallbackAfterCreation): void
     {
-        $mcpUrl = \rtrim($this->serverUrl, '/').$this->mcpPath;
+        $mcpUrl = \rtrim($this->serverUrl, '/') . $this->mcpPath;
         $label = self::CLIENTS[$client];
 
         $io->section(\sprintf('%s Setup', $label));
