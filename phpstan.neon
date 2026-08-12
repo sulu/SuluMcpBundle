@@ -1,4 +1,10 @@
 parameters:
-    level: 6
+    phpVersion: 80200
+    level: max
     paths:
         - src/
+    reportUnmatchedIgnoredErrors: false
+    disallowedMethodCalls:
+        -
+            method: 'Doctrine\Common\Collections\Collection::clear()'
+            message: 'use add and removeElement methods instead of clear to avoid unintended data loss if domain event listeners reflush during postFlush event'
