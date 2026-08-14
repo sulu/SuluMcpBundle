@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Application\Content;
 
-use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
@@ -205,8 +204,8 @@ final readonly class BlockDataValidator
     private function validateRequiredFields(string $blockType, array $blockData, FormMetadata $form): ?array
     {
         $missing = [];
-        foreach ($form->getItems() as $item) {
-            if ($item instanceof FieldMetadata && $item->isRequired() && !isset($blockData[$item->getName()])) {
+        foreach ($form->getFlatFieldMetadata() as $item) {
+            if ($item->isRequired() && !isset($blockData[$item->getName()])) {
                 $missing[] = $item->getName();
             }
         }
@@ -265,8 +264,8 @@ final readonly class BlockDataValidator
 
     private function scanFormForBlockType(FormMetadata $form, string $blockType): ?FormMetadata
     {
-        foreach ($form->getItems() as $item) {
-            if (!$item instanceof FieldMetadata || 'block' !== $item->getType()) {
+        foreach ($form->getFlatFieldMetadata() as $item) {
+            if ('block' !== $item->getType()) {
                 continue;
             }
 
@@ -309,11 +308,6 @@ final readonly class BlockDataValidator
     /** @return list<string> */
     private function extractFieldNames(FormMetadata $form): array
     {
-        $names = [];
-        foreach ($form->getItems() as $item) {
-            $names[] = $item->getName();
-        }
-
-        return $names;
+        return \array_keys($form->getFlatFieldMetadata());
     }
 }

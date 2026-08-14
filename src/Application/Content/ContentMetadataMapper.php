@@ -157,7 +157,7 @@ final readonly class ContentMetadataMapper
             if (!$metadata instanceof FormMetadata) {
                 continue;
             }
-            foreach ($metadata->getItems() as $item) {
+            foreach ($metadata->getFlatFieldMetadata() as $item) {
                 $names[] = $item->getName();
             }
         }

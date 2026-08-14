@@ -70,7 +70,7 @@ final class ContentMetadataMapperTest extends TestCase
             $items[$name] = $field;
         }
         $form = $this->createMock(FormMetadata::class);
-        $form->method('getItems')->willReturn($items);
+        $form->method('getFlatFieldMetadata')->willReturn($items);
 
         return $form;
     }
@@ -130,6 +130,30 @@ final class ContentMetadataMapperTest extends TestCase
         $mapper = new ContentMetadataMapper($this->provider());
         $this->assertSame(['x' => 1], $mapper->applySeo(['x' => 1], null, 'en'));
         $this->assertSame(['x' => 1], $mapper->applyExcerpt(['x' => 1], null, 'en'));
+    }
+
+    public function testApplySeoAcceptsFieldNestedInsideSection(): void
+    {
+        // The section itself is flattened away by Sulu's own
+        // FormMetadata::getFlatFieldMetadata(); it never reaches this class.
+        $ogTitleField = $this->createMock(FieldMetadata::class);
+        $ogTitleField->method('getName')->willReturn('seo/ogTitle');
+        $ogTitleField->method('getType')->willReturn('text_line');
+
+        $seoForm = $this->createMock(FormMetadata::class);
+        $seoForm->method('getFlatFieldMetadata')->willReturn(['seo/ogTitle' => $ogTitleField]);
+
+        $provider = $this->createMock(MetadataProviderInterface::class);
+        $provider->method('getMetadata')->willReturnCallback(
+            fn (string $key) => 'content_seo_metadata' === $key ? $seoForm : $this->form([]),
+        );
+
+        $mapper = new ContentMetadataMapper($provider);
+
+        $data = $mapper->applySeo([], ['ogTitle' => 'Hello'], 'en');
+
+        $this->assertArrayNotHasKey('error', $data);
+        $this->assertSame(['ogTitle' => 'Hello'], $data['seo']);
     }
 
     public function testApplySeoPlacesTopLevelColumnWhenMetadataUnavailable(): void

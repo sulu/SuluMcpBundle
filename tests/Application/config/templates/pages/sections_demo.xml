@@ -1,0 +1,92 @@
+<?xml version="1.0" ?>
+<template xmlns="http://schemas.sulu.io/template/template"
+          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+          xsi:schemaLocation="http://schemas.sulu.io/template/template http://schemas.sulu.io/template/template-1.0.xsd">
+
+    <key>sections_demo</key>
+
+    <view>pages/default</view>
+    <controller>Sulu\Content\UserInterface\Controller\Website\ContentController::indexAction</controller>
+    <cacheLifetime>604800</cacheLifetime>
+
+    <meta>
+        <title lang="en">Sections Demo</title>
+        <title lang="de">Sektionen Demo</title>
+    </meta>
+
+    <properties>
+        <property name="title" type="text_line" mandatory="true">
+            <meta>
+                <title lang="en">Title</title>
+                <title lang="de">Titel</title>
+            </meta>
+
+            <tag name="sulu.rlp.part"/>
+        </property>
+
+        <property name="url" type="route" mandatory="true">
+            <meta>
+                <title lang="en">Resourcelocator</title>
+                <title lang="de">Adresse</title>
+            </meta>
+
+            <tag name="sulu.rlp"/>
+        </property>
+
+        <section name="header_section">
+            <meta>
+                <title lang="en">Header</title>
+                <title lang="de">Header</title>
+            </meta>
+
+            <properties>
+                <property name="subtitle" type="text_line">
+                    <meta>
+                        <title lang="en">Subtitle</title>
+                        <title lang="de">Untertitel</title>
+                    </meta>
+                </property>
+
+                <section name="inner_section">
+                    <meta>
+                        <title lang="en">Inner</title>
+                        <title lang="de">Innen</title>
+                    </meta>
+
+                    <properties>
+                        <property name="teaser" type="text_area">
+                            <meta>
+                                <title lang="en">Teaser</title>
+                                <title lang="de">Teaser</title>
+                            </meta>
+                        </property>
+                    </properties>
+                </section>
+
+                <block name="section_blocks" default-type="plain" minOccurs="0">
+                    <meta>
+                        <title lang="en">Section Blocks</title>
+                        <title lang="de">Sektionsblöcke</title>
+                    </meta>
+                    <types>
+                        <type name="plain">
+                            <meta>
+                                <title lang="en">Plain</title>
+                                <title lang="de">Einfach</title>
+                            </meta>
+                            <properties>
+                                <property name="body" type="text_editor">
+                                    <meta>
+                                        <title lang="en">Body</title>
+                                        <title lang="de">Inhalt</title>
+                                    </meta>
+                                </property>
+                            </properties>
+                        </type>
+                        <type ref="heading"/>
+                    </types>
+                </block>
+            </properties>
+        </section>
+    </properties>
+</template>

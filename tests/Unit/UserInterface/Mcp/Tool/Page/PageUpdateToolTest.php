@@ -106,7 +106,7 @@ final class PageUpdateToolTest extends TestCase
             $items[$name] = $field;
         }
         $form = $this->createMock(FormMetadata::class);
-        $form->method('getItems')->willReturn($items);
+        $form->method('getFlatFieldMetadata')->willReturn($items);
 
         return $form;
     }

@@ -18,6 +18,7 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\SectionMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
@@ -281,6 +282,175 @@ final class BlockDataValidatorTest extends TestCase
         $this->assertNotNull($error);
         $this->assertStringContainsString('body', $error['error']);
         $this->assertStringContainsString('required', \strtolower((string) $error['error']));
+    }
+
+    public function testFieldsInsideSectionAreAcceptedAsValidKeysAndListedInError(): void
+    {
+        $titleField = new FieldMetadata('title');
+        $titleField->setType('text_line');
+        $bodyField = new FieldMetadata('body');
+        $bodyField->setType('text_editor');
+
+        $section = new SectionMetadata('content');
+        $section->addItem($titleField);
+        $section->addItem($bodyField);
+
+        $textBlock = new FormMetadata();
+        $textBlock->setKey('text');
+        $textBlock->addItem($section);
+
+        $blocksField = new FieldMetadata('blocks');
+        $blocksField->setType('block');
+        $blocksField->addType($textBlock);
+
+        $template = new FormMetadata();
+        $template->setKey('default');
+        $template->addItem($blocksField);
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('default', $template);
+
+        $provider = $this->createMock(MetadataProviderInterface::class);
+        $provider->method('getMetadata')
+            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
+
+        $validator = new BlockDataValidator($provider);
+
+        $validContent = ['blocks' => [['type' => 'text', 'title' => 'Hello', 'body' => '<p>Body</p>']]];
+        $this->assertNull($validator->validateContentTree($validContent, 'page', 'default'));
+
+        $invalidContent = ['blocks' => [['type' => 'text', 'title' => 'Hello', 'bogus' => 'x']]];
+        $error = $validator->validateContentTree($invalidContent, 'page', 'default');
+
+        $this->assertNotNull($error);
+        $this->assertStringContainsString('bogus', $error['error']);
+        $this->assertStringContainsString('title', $error['error']);
+        $this->assertStringContainsString('body', $error['error']);
+    }
+
+    public function testRequiredFieldInsideSectionIsEnforcedByContentTreeValidation(): void
+    {
+        $imageField = new FieldMetadata('image');
+        $imageField->setType('media_selection');
+        $imageField->setRequired(true);
+        $captionField = new FieldMetadata('caption');
+        $captionField->setType('text_line');
+
+        $section = new SectionMetadata('content');
+        $section->addItem($imageField);
+        $section->addItem($captionField);
+
+        $imageBlock = new FormMetadata();
+        $imageBlock->setKey('image');
+        $imageBlock->addItem($section);
+
+        $blocksField = new FieldMetadata('blocks');
+        $blocksField->setType('block');
+        $blocksField->addType($imageBlock);
+
+        $template = new FormMetadata();
+        $template->setKey('default');
+        $template->addItem($blocksField);
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('default', $template);
+
+        $provider = $this->createMock(MetadataProviderInterface::class);
+        $provider->method('getMetadata')
+            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
+
+        $validator = new BlockDataValidator($provider);
+
+        $missingContent = ['blocks' => [['type' => 'image', 'caption' => 'no image set']]];
+        $error = $validator->validateContentTree($missingContent, 'page', 'default');
+
+        $this->assertNotNull($error);
+        $this->assertStringContainsString('image', $error['error']);
+        $this->assertStringContainsString('required', \strtolower((string) $error['error']));
+
+        $presentContent = ['blocks' => [['type' => 'image', 'image' => ['ids' => [1]], 'caption' => 'ok']]];
+        $this->assertNull($validator->validateContentTree($presentContent, 'page', 'default'));
+    }
+
+    public function testNestedSectionInsideSectionInBlockFormIsFlattened(): void
+    {
+        $teaserField = new FieldMetadata('teaser');
+        $teaserField->setType('text_line');
+
+        $innerSection = new SectionMetadata('inner');
+        $innerSection->addItem($teaserField);
+
+        $outerSection = new SectionMetadata('outer');
+        $outerSection->addItem($innerSection);
+
+        $textBlock = new FormMetadata();
+        $textBlock->setKey('text');
+        $textBlock->addItem($outerSection);
+
+        $blocksField = new FieldMetadata('blocks');
+        $blocksField->setType('block');
+        $blocksField->addType($textBlock);
+
+        $template = new FormMetadata();
+        $template->setKey('default');
+        $template->addItem($blocksField);
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('default', $template);
+
+        $provider = $this->createMock(MetadataProviderInterface::class);
+        $provider->method('getMetadata')
+            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
+
+        $validator = new BlockDataValidator($provider);
+
+        $content = ['blocks' => [['type' => 'text', 'teaser' => 'Hello']]];
+        $this->assertNull($validator->validateContentTree($content, 'page', 'default'));
+
+        $invalidContent = ['blocks' => [['type' => 'text', 'bogus' => 'x']]];
+        $error = $validator->validateContentTree($invalidContent, 'page', 'default');
+
+        $this->assertNotNull($error);
+        $this->assertStringContainsString('bogus', $error['error']);
+    }
+
+    public function testBlockFieldInsideTemplateSectionIsFoundAndValidated(): void
+    {
+        $titleField = new FieldMetadata('title');
+        $titleField->setType('text_line');
+
+        $textBlock = new FormMetadata();
+        $textBlock->setKey('text');
+        $textBlock->addItem($titleField);
+
+        $blocksField = new FieldMetadata('blocks');
+        $blocksField->setType('block');
+        $blocksField->addType($textBlock);
+
+        $section = new SectionMetadata('content');
+        $section->addItem($blocksField);
+
+        $template = new FormMetadata();
+        $template->setKey('default');
+        $template->addItem($section);
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('default', $template);
+
+        $provider = $this->createMock(MetadataProviderInterface::class);
+        $provider->method('getMetadata')
+            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
+
+        $validator = new BlockDataValidator($provider);
+
+        $validContent = ['blocks' => [['type' => 'text', 'title' => 'Hello']]];
+        $this->assertNull($validator->validateContentTree($validContent, 'page', 'default'));
+
+        $invalidContent = ['blocks' => [['type' => 'text', 'bogus' => 'x']]];
+        $error = $validator->validateContentTree($invalidContent, 'page', 'default');
+
+        $this->assertNotNull($error, 'block field declared inside a template section must still be discovered and validated');
+        $this->assertStringContainsString('bogus', $error['error']);
     }
 
     /**

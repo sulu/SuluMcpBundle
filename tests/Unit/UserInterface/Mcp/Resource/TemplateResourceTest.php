@@ -19,9 +19,11 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\SectionMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
+use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
 
 #[CoversClass(TemplatesResource::class)]
@@ -33,7 +35,7 @@ final class TemplateResourceTest extends TestCase
     protected function setUp(): void
     {
         $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->resource = new TemplatesResource($this->formMetadataProvider);
+        $this->resource = new TemplatesResource($this->formMetadataProvider, new FieldNormalizer());
     }
 
     public function testGetTemplatesReturnsTemplatesGroupedByContentType(): void
@@ -181,5 +183,73 @@ final class TemplateResourceTest extends TestCase
         $this->assertStringContainsString('page', $attribute->description);
         $this->assertStringContainsString('article', $attribute->description);
         $this->assertStringContainsString('snippet', $attribute->description);
+    }
+
+    public function testGetTemplatesFlattensSectionFieldsWithoutSectionEntry(): void
+    {
+        $title = new FieldMetadata('title');
+        $title->setType('text_line');
+
+        $nestedField = new FieldMetadata('subtitle');
+        $nestedField->setType('text_line');
+        $nestedSection = new SectionMetadata('nested');
+        $nestedSection->addItem($nestedField);
+
+        $section = new SectionMetadata('content');
+        $section->addItem($title);
+        $section->addItem($nestedSection);
+
+        $form = new FormMetadata();
+        $form->setKey('default');
+        $form->addItem($section);
+
+        $typedMetadata = new TypedFormMetadata();
+        $typedMetadata->addForm('default', $form);
+
+        $this->formMetadataProvider
+            ->method('getMetadata')
+            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typedMetadata : null);
+
+        $result = $this->resource->getTemplates();
+
+        $fields = $result['page']['default']['fields'];
+        $this->assertSame(['title', 'subtitle'], \array_column($fields, 'name'));
+        $this->assertNotContains('section', \array_column($fields, 'type'));
+    }
+
+    public function testGetTemplatesDiscoversBlockFieldInsideSection(): void
+    {
+        $itemField = new FieldMetadata('headline');
+        $itemField->setType('text_line');
+
+        $typeForm = new FormMetadata();
+        $typeForm->setKey('default');
+        $typeForm->setTitle('Default', 'en');
+        $typeForm->addItem($itemField);
+
+        $block = new FieldMetadata('blocks');
+        $block->setType('block');
+        $block->addType($typeForm);
+
+        $section = new SectionMetadata('content');
+        $section->addItem($block);
+
+        $form = new FormMetadata();
+        $form->setKey('default');
+        $form->addItem($section);
+
+        $typedMetadata = new TypedFormMetadata();
+        $typedMetadata->addForm('default', $form);
+
+        $this->formMetadataProvider
+            ->method('getMetadata')
+            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typedMetadata : null);
+
+        $result = $this->resource->getTemplates();
+
+        $fields = $result['page']['default']['fields'];
+        $this->assertSame('blocks', $fields[0]['name']);
+        $this->assertArrayHasKey('types', $fields[0]);
+        $this->assertSame('headline', $fields[0]['types']['default']['fields'][0]['name']);
     }
 }

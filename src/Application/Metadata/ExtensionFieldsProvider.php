@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Application\Metadata;
 
-use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 
@@ -64,14 +63,14 @@ class ExtensionFieldsProvider
             if (!$metadata instanceof FormMetadata) {
                 continue;
             }
-            foreach ($metadata->getItems() as $item) {
+            foreach ($metadata->getFlatFieldMetadata() as $item) {
                 $rawName = $item->getName();
                 $name = \str_starts_with($rawName, $prefix) ? \substr($rawName, \strlen($prefix)) : $rawName;
                 $fields[] = [
                     'name' => $name,
                     'type' => $item->getType(),
                     'label' => $item->getLabel('en') ?? $name,
-                    'required' => $item instanceof FieldMetadata && $item->isRequired(),
+                    'required' => $item->isRequired(),
                 ];
             }
         }

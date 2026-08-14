@@ -48,6 +48,32 @@ final class ExtensionFieldsProviderTest extends TestCase
         ], $result['excerpt']);
     }
 
+    public function testFlattensSectionChildrenIntoSeoFields(): void
+    {
+        // The section itself is flattened away by Sulu's own
+        // FormMetadata::getFlatFieldMetadata(); it never reaches this class.
+        $ogTitleField = $this->createMock(FieldMetadata::class);
+        $ogTitleField->method('getName')->willReturn('seo/ogTitle');
+        $ogTitleField->method('getType')->willReturn('text_line');
+        $ogTitleField->method('getLabel')->with('en')->willReturn('Og Title');
+        $ogTitleField->method('isRequired')->willReturn(true);
+
+        $seoForm = $this->createMock(FormMetadata::class);
+        $seoForm->method('getFlatFieldMetadata')->willReturn(['seo/ogTitle' => $ogTitleField]);
+
+        $provider = $this->createMock(MetadataProviderInterface::class);
+        $provider->method('getMetadata')->willReturnCallback(
+            fn (string $key) => 'content_seo_metadata' === $key ? $seoForm : $this->form([]),
+        );
+
+        $resource = new ExtensionFieldsProvider($provider);
+        $result = $resource->getExtensionFields();
+
+        $this->assertSame([
+            ['name' => 'ogTitle', 'type' => 'text_line', 'label' => 'Og Title', 'required' => true],
+        ], $result['seo']);
+    }
+
     /**
      * @param array<string,string> $fields name => type
      * @param array<string,bool> $required name => isRequired (defaults to false)
@@ -65,7 +91,7 @@ final class ExtensionFieldsProviderTest extends TestCase
             $items[$name] = $field;
         }
         $form = $this->createMock(FormMetadata::class);
-        $form->method('getItems')->willReturn($items);
+        $form->method('getFlatFieldMetadata')->willReturn($items);
 
         return $form;
     }

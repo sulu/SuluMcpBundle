@@ -19,9 +19,11 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\SectionMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
+use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 use Sulu\Mcp\UserInterface\Mcp\Resource\BlocksResource;
 
 #[CoversClass(BlocksResource::class)]
@@ -33,79 +35,82 @@ final class BlockTypeResourceTest extends TestCase
     protected function setUp(): void
     {
         $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->resource = new BlocksResource($this->formMetadataProvider);
+        $this->resource = new BlocksResource($this->formMetadataProvider, new FieldNormalizer());
     }
 
-    public function testGetBlocksDeduplicatesBlockTypesAcrossTemplates(): void
+    public function testGetBlocksListsEachGlobalBlockFormOnceWithKeyLabelFields(): void
     {
-        $blockForm = new FormMetadata();
-        $blockForm->setKey('text_block');
+        $headlineField = new FieldMetadata('headline');
+        $headlineField->setType('text_line');
 
-        $blockField1 = new FieldMetadata('blocks');
-        $blockField1->setType('block');
-        $blockField1->addType($blockForm);
+        $textBlockForm = new FormMetadata();
+        $textBlockForm->setKey('text_block');
+        $textBlockForm->setTitle('Text Block', 'en');
+        $textBlockForm->addItem($headlineField);
 
-        $blockField2 = new FieldMetadata('blocks');
-        $blockField2->setType('block');
-        $blockField2->addType($blockForm);
-
-        $form1 = new FormMetadata();
-        $form1->setKey('template1');
-        $form1->addItem($blockField1);
-
-        $form2 = new FormMetadata();
-        $form2->setKey('template2');
-        $form2->addItem($blockField2);
-
-        $typedMetadata = new TypedFormMetadata();
-        $typedMetadata->addForm('template1', $form1);
-        $typedMetadata->addForm('template2', $form2);
+        $blockMetadata = new TypedFormMetadata();
+        $blockMetadata->addForm('text_block', $textBlockForm);
 
         $this->formMetadataProvider
+            ->expects($this->once())
             ->method('getMetadata')
-            ->willReturn($typedMetadata);
+            ->with('block', 'en', ['ignore_global_blocks' => true])
+            ->willReturn($blockMetadata);
 
         $result = $this->resource->getBlocks();
 
-        $this->assertCount(1, $result, 'text_block should be deduplicated across templates');
-        $this->assertSame('text_block', $result[0]['key']);
+        $this->assertSame([
+            [
+                'key' => 'text_block',
+                'label' => 'Text Block',
+                'fields' => [
+                    ['name' => 'headline', 'type' => 'text_line', 'label' => 'headline', 'required' => false],
+                ],
+            ],
+        ], $result);
     }
 
-    public function testGetBlocksAvailableInTemplatesListsAllTemplatesContainingBlock(): void
+    public function testGetBlocksFlattensSectionsInsideAGlobalBlockForm(): void
     {
+        $headlineField = new FieldMetadata('headline');
+        $headlineField->setType('text_line');
+
+        $section = new SectionMetadata('content');
+        $section->addItem($headlineField);
+
         $blockForm = new FormMetadata();
         $blockForm->setKey('text_block');
+        $blockForm->setTitle('Text Block', 'en');
+        $blockForm->addItem($section);
 
-        $blockField1 = new FieldMetadata('blocks');
-        $blockField1->setType('block');
-        $blockField1->addType($blockForm);
-
-        $blockField2 = new FieldMetadata('blocks');
-        $blockField2->setType('block');
-        $blockField2->addType($blockForm);
-
-        $form1 = new FormMetadata();
-        $form1->setKey('template1');
-        $form1->addItem($blockField1);
-
-        $form2 = new FormMetadata();
-        $form2->setKey('template2');
-        $form2->addItem($blockField2);
-
-        $typedMetadata = new TypedFormMetadata();
-        $typedMetadata->addForm('template1', $form1);
-        $typedMetadata->addForm('template2', $form2);
+        $blockMetadata = new TypedFormMetadata();
+        $blockMetadata->addForm('text_block', $blockForm);
 
         $this->formMetadataProvider
             ->method('getMetadata')
-            ->willReturn($typedMetadata);
+            ->willReturn($blockMetadata);
 
         $result = $this->resource->getBlocks();
 
-        $this->assertCount(1, $result);
-        $availableIn = $result[0]['available_in_templates'];
-        $this->assertContains('template1', $availableIn);
-        $this->assertContains('template2', $availableIn);
+        $this->assertSame(['headline'], \array_column($result[0]['fields'], 'name'));
+        $this->assertNotContains('section', \array_column($result[0]['fields'], 'type'));
+    }
+
+    public function testGetBlocksNeverCallsProviderWithPageArticleOrSnippet(): void
+    {
+        $blockMetadata = new TypedFormMetadata();
+
+        $this->formMetadataProvider
+            ->method('getMetadata')
+            ->willReturnCallback(function(string $key, string $locale, array $options) use ($blockMetadata) {
+                $this->assertNotSame('page', $key);
+                $this->assertNotSame('article', $key);
+                $this->assertNotSame('snippet', $key);
+
+                return $blockMetadata;
+            });
+
+        $this->resource->getBlocks();
     }
 
     public function testGetBlocksMethodHasMcpResourceAttribute(): void
@@ -120,7 +125,7 @@ final class BlockTypeResourceTest extends TestCase
         $this->assertSame('sulu_blocks', $instance->name);
     }
 
-    public function testGetBlocksReturnsEmptyArrayWhenNoTemplates(): void
+    public function testGetBlocksReturnsEmptyArrayWhenNotTypedFormMetadata(): void
     {
         $nonTypedMetadata = $this->createMock(MetadataInterface::class);
 
