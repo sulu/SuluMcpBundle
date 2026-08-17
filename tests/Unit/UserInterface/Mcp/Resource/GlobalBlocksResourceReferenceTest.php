@@ -22,18 +22,18 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TagMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
-use Sulu\Mcp\UserInterface\Mcp\Resource\BlocksResource;
+use Sulu\Mcp\UserInterface\Mcp\Resource\GlobalBlocksResource;
 
-#[CoversClass(BlocksResource::class)]
-final class BlocksResourceGlobalBlockTest extends TestCase
+#[CoversClass(GlobalBlocksResource::class)]
+final class GlobalBlocksResourceReferenceTest extends TestCase
 {
     private MetadataProviderInterface&MockObject $formMetadataProvider;
-    private BlocksResource $resource;
+    private GlobalBlocksResource $resource;
 
     protected function setUp(): void
     {
         $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->resource = new BlocksResource($this->formMetadataProvider, new FieldNormalizer());
+        $this->resource = new GlobalBlocksResource($this->formMetadataProvider, new FieldNormalizer());
     }
 
     public function testGlobalBlockFieldReferencingAnotherGlobalBlockEmitsReferenceShape(): void
@@ -63,7 +63,7 @@ final class BlocksResourceGlobalBlockTest extends TestCase
             ->method('getMetadata')
             ->willReturn($blockMetadata);
 
-        $result = $this->resource->getBlocks();
+        $result = $this->resource->getGlobalBlocks();
 
         $this->assertCount(1, $result);
         $this->assertSame('section', $result[0]['key']);
@@ -102,7 +102,7 @@ final class BlocksResourceGlobalBlockTest extends TestCase
             ->method('getMetadata')
             ->willReturn($blockMetadata);
 
-        $result = $this->resource->getBlocks();
+        $result = $this->resource->getGlobalBlocks();
 
         $this->assertCount(1, $result);
         $this->assertSame('section', $result[0]['key']);

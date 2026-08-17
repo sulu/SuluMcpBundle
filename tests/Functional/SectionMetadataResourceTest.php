@@ -15,7 +15,7 @@ namespace Sulu\Mcp\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\CoversNothing;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
-use Sulu\Mcp\UserInterface\Mcp\Resource\BlocksResource;
+use Sulu\Mcp\UserInterface\Mcp\Resource\GlobalBlocksResource;
 use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
 
 #[CoversNothing]
@@ -44,9 +44,9 @@ final class SectionMetadataResourceTest extends FunctionalTestCase
 
     public function testBlocksCatalogueListsEachGlobalBlockOnceWithFlatFieldsAndNestedReferences(): void
     {
-        /** @var BlocksResource $resource */
-        $resource = self::getContainer()->get(BlocksResource::class);
-        $byKey = \array_column($resource->getBlocks(), null, 'key');
+        /** @var GlobalBlocksResource $resource */
+        $resource = self::getContainer()->get(GlobalBlocksResource::class);
+        $byKey = \array_column($resource->getGlobalBlocks(), null, 'key');
 
         self::assertSame(['note', 'boxTitle'], \array_column($byKey['box']['fields'], 'name'), 'section inside a global block is flattened');
         $boxByName = \array_column($byKey['box']['fields'], null, 'name');

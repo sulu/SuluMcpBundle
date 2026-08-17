@@ -21,7 +21,7 @@ use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 /**
  * @internal
  */
-class BlocksResource
+class GlobalBlocksResource
 {
     public function __construct(
         private readonly MetadataProviderInterface $formMetadataProvider,
@@ -31,27 +31,27 @@ class BlocksResource
 
     /** @return list<array<string, mixed>> */
     #[McpResource(
-        uri: 'sulu://blocks',
-        name: 'sulu_blocks',
-        description: 'Catalogue of global block types, each listed once with its field definitions. Block types defined inline in a template are listed with that template in sulu://templates instead; a template block type referencing a global block carries a `globalBlock: <name>` reference pointing at an entry here.',
+        uri: 'sulu://global_blocks',
+        name: 'sulu_global_blocks',
+        description: 'Catalogue of the project\'s global block types — block types defined once centrally and reusable across templates — each listed once with its field definitions. This resource does NOT list every block type in the project: block types defined inline in a template are listed with that template in sulu://templates instead, and are usually the majority. A template block type referencing a global block carries a `globalBlock: <name>` reference pointing at an entry here.',
         mimeType: 'application/json',
     )]
-    public function getBlocks(): array
+    public function getGlobalBlocks(): array
     {
         $typedMetadata = $this->formMetadataProvider->getMetadata('block', 'en', ['ignore_global_blocks' => true]);
         if (!$typedMetadata instanceof TypedFormMetadata) {
             return [];
         }
 
-        $blocks = [];
+        $globalBlocks = [];
         foreach ($typedMetadata->getForms() as $key => $form) {
-            $blocks[] = [
+            $globalBlocks[] = [
                 'key' => $key,
                 'label' => $form->getTitle('en'),
                 'fields' => $this->fieldNormalizer->normalizeForm($form, 'en'),
             ];
         }
 
-        return $blocks;
+        return $globalBlocks;
     }
 }

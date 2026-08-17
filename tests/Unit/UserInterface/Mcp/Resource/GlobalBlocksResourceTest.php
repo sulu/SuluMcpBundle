@@ -24,18 +24,18 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
-use Sulu\Mcp\UserInterface\Mcp\Resource\BlocksResource;
+use Sulu\Mcp\UserInterface\Mcp\Resource\GlobalBlocksResource;
 
-#[CoversClass(BlocksResource::class)]
-final class BlockTypeResourceTest extends TestCase
+#[CoversClass(GlobalBlocksResource::class)]
+final class GlobalBlocksResourceTest extends TestCase
 {
     private MetadataProviderInterface&MockObject $formMetadataProvider;
-    private BlocksResource $resource;
+    private GlobalBlocksResource $resource;
 
     protected function setUp(): void
     {
         $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->resource = new BlocksResource($this->formMetadataProvider, new FieldNormalizer());
+        $this->resource = new GlobalBlocksResource($this->formMetadataProvider, new FieldNormalizer());
     }
 
     public function testGetBlocksListsEachGlobalBlockFormOnceWithKeyLabelFields(): void
@@ -57,7 +57,7 @@ final class BlockTypeResourceTest extends TestCase
             ->with('block', 'en', ['ignore_global_blocks' => true])
             ->willReturn($blockMetadata);
 
-        $result = $this->resource->getBlocks();
+        $result = $this->resource->getGlobalBlocks();
 
         $this->assertSame([
             [
@@ -90,7 +90,7 @@ final class BlockTypeResourceTest extends TestCase
             ->method('getMetadata')
             ->willReturn($blockMetadata);
 
-        $result = $this->resource->getBlocks();
+        $result = $this->resource->getGlobalBlocks();
 
         $this->assertSame(['headline'], \array_column($result[0]['fields'], 'name'));
         $this->assertNotContains('section', \array_column($result[0]['fields'], 'type'));
@@ -110,19 +110,19 @@ final class BlockTypeResourceTest extends TestCase
                 return $blockMetadata;
             });
 
-        $this->resource->getBlocks();
+        $this->resource->getGlobalBlocks();
     }
 
     public function testGetBlocksMethodHasMcpResourceAttribute(): void
     {
-        $reflection = new \ReflectionMethod(BlocksResource::class, 'getBlocks');
+        $reflection = new \ReflectionMethod(GlobalBlocksResource::class, 'getGlobalBlocks');
         $attributes = $reflection->getAttributes(McpResource::class);
 
-        $this->assertCount(1, $attributes, 'getBlocks() method must have exactly one #[McpResource] attribute');
+        $this->assertCount(1, $attributes, 'getGlobalBlocks() method must have exactly one #[McpResource] attribute');
 
         $instance = $attributes[0]->newInstance();
-        $this->assertSame('sulu://blocks', $instance->uri);
-        $this->assertSame('sulu_blocks', $instance->name);
+        $this->assertSame('sulu://global_blocks', $instance->uri);
+        $this->assertSame('sulu_global_blocks', $instance->name);
     }
 
     public function testGetBlocksReturnsEmptyArrayWhenNotTypedFormMetadata(): void
@@ -133,7 +133,7 @@ final class BlockTypeResourceTest extends TestCase
             ->method('getMetadata')
             ->willReturn($nonTypedMetadata);
 
-        $result = $this->resource->getBlocks();
+        $result = $this->resource->getGlobalBlocks();
 
         $this->assertSame([], $result);
     }

@@ -34,7 +34,7 @@ class TemplatesResource
     #[McpResource(
         uri: 'sulu://templates',
         name: 'sulu_templates',
-        description: 'Available Sulu templates grouped by content type. Top-level keys are `page`, `article`, and `snippet` (any type with no templates installed is omitted). Each entry maps a template key to its field schema. Use the template key when creating or updating content of that type. Block fields list their allowed types with fields inlined, except types referencing a global block, which carry `globalBlock: <name>`; their field definitions are listed once in sulu://blocks.',
+        description: 'Available Sulu templates grouped by content type. Top-level keys are `page`, `article`, and `snippet` (any type with no templates installed is omitted). Each entry maps a template key to its field schema. Use the template key when creating or updating content of that type. Block fields list their allowed types with fields inlined, except types referencing a global block, which carry `globalBlock: <name>`; their field definitions are listed once in sulu://global_blocks.',
         mimeType: 'application/json',
     )]
     public function getTemplates(): array

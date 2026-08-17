@@ -20,7 +20,7 @@ use Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider;
 use Sulu\Mcp\Application\Metadata\FieldValueExampleProvider;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
-use Sulu\Mcp\UserInterface\Mcp\Resource\BlocksResource;
+use Sulu\Mcp\UserInterface\Mcp\Resource\GlobalBlocksResource;
 use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
 use Sulu\Mcp\UserInterface\Mcp\Resource\WebspacesResource;
 
@@ -31,7 +31,7 @@ class GetContextTool
 {
     public function __construct(
         private readonly TemplatesResource $templatesResource,
-        private readonly BlocksResource $blocksResource,
+        private readonly GlobalBlocksResource $globalBlocksResource,
         private readonly WebspacesResource $webspacesResource,
         private readonly FieldValueExampleProvider $valueExampleProvider,
         private readonly ExtensionFieldsProvider $extensionFieldsProvider,
@@ -45,14 +45,14 @@ class GetContextTool
      */
     #[McpTool(
         name: 'sulu_get_context',
-        description: 'Aggregates all CMS context into a single response. Returns templates (grouped by content type: `page`, `article`, `snippet`), the global block type catalogue, webspaces, and a `fieldTypes` legend mapping each field type to one value example/hint (look up a field\'s `type` in the legend to learn how to fill it). A template\'s block fields either inline their types directly or reference the block catalogue via `globalBlock`. Call this once before creating or editing content to get full CMS awareness — including which article templates are available and which URL routing form each template expects (look at the field with type `route` or `page_tree_route`). Also returns `seoFields` and `excerptFields`: the project\'s configured SEO and excerpt field lists (with name, type, label, and required) to use when passing `seo` or `excerpt` data to create/update tools. Also returns `tools`: the full tool catalogue with per-tool availability and, for unavailable ones, the reason and the permissions required. IMPORTANT: pass the "locale" you intend to work in. Sulu roles can be restricted to specific locales, so a tool may be available in one locale and denied in another; without "locale" the catalogue is reported without any locale restriction and may list tools that will be denied when you call them.',
+        description: 'Aggregates all CMS context into a single response. Returns templates (grouped by content type: `page`, `article`, `snippet`), `globalBlocks` (the catalogue of centrally-defined block types, NOT every block type — inline ones live on their template), webspaces, and a `fieldTypes` legend mapping each field type to one value example/hint (look up a field\'s `type` in the legend to learn how to fill it). A template\'s block fields either inline their types directly or reference `globalBlocks` via `globalBlock: <name>`. Call this once before creating or editing content to get full CMS awareness — including which article templates are available and which URL routing form each template expects (look at the field with type `route` or `page_tree_route`). Also returns `seoFields` and `excerptFields`: the project\'s configured SEO and excerpt field lists (with name, type, label, and required) to use when passing `seo` or `excerpt` data to create/update tools. Also returns `tools`: the full tool catalogue with per-tool availability and, for unavailable ones, the reason and the permissions required. IMPORTANT: pass the "locale" you intend to work in. Sulu roles can be restricted to specific locales, so a tool may be available in one locale and denied in another; without "locale" the catalogue is reported without any locale restriction and may list tools that will be denied when you call them.',
     )]
     public function getContext(
         #[Schema(description: 'The locale you intend to work in (e.g. "en"). Sulu roles can be locale-restricted, so availability is locale-dependent. Omit only if you do not yet know the locale.')]
         ?string $locale = null,
     ): array {
         $templates = $this->templatesResource->getTemplates();
-        $blocks = $this->blocksResource->getBlocks();
+        $globalBlocks = $this->globalBlocksResource->getGlobalBlocks();
         $extensionFields = $this->extensionFieldsProvider->getExtensionFields();
 
         $permitted = $this->webspacePermissionResolver->permittedWebspaceKeys(PermissionTypes::VIEW, $locale);
@@ -63,11 +63,11 @@ class GetContextTool
 
         return [
             'templates' => $templates,
-            'blocks' => $blocks,
+            'globalBlocks' => $globalBlocks,
             'webspaces' => $webspaces,
             'seoFields' => $extensionFields['seo'],
             'excerptFields' => $extensionFields['excerpt'],
-            'fieldTypes' => $this->buildFieldTypeLegend([$templates, $blocks]),
+            'fieldTypes' => $this->buildFieldTypeLegend([$templates, $globalBlocks]),
             'tools' => $this->toolVisibilityResolver->describeAll($locale),
         ];
     }

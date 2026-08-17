@@ -29,7 +29,7 @@ use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
-use Sulu\Mcp\UserInterface\Mcp\Resource\BlocksResource;
+use Sulu\Mcp\UserInterface\Mcp\Resource\GlobalBlocksResource;
 use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
 use Sulu\Mcp\UserInterface\Mcp\Resource\WebspacesResource;
 use Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool;
@@ -114,7 +114,7 @@ final class GetContextToolTest extends TestCase
     public function testGetContextAddsDedupedFieldTypeLegend(): void
     {
         $templates = $this->createMock(TemplatesResource::class);
-        $blocks = $this->createMock(BlocksResource::class);
+        $blocks = $this->createMock(GlobalBlocksResource::class);
         $webspaces = $this->createMock(WebspacesResource::class);
         $extensionFields = $this->createMock(ExtensionFieldsProvider::class);
 
@@ -134,7 +134,7 @@ final class GetContextToolTest extends TestCase
                 ],
             ],
         ]);
-        $blocks->method('getBlocks')->willReturn([]);
+        $blocks->method('getGlobalBlocks')->willReturn([]);
         $webspaces->method('getWebspaces')->willReturn([]);
         $extensionFields->method('getExtensionFields')->willReturn(['seo' => [], 'excerpt' => []]);
 
@@ -165,7 +165,7 @@ final class GetContextToolTest extends TestCase
     public function testGetContextOmitsLegendWhenNoKnownTypesPresent(): void
     {
         $templates = $this->createMock(TemplatesResource::class);
-        $blocks = $this->createMock(BlocksResource::class);
+        $blocks = $this->createMock(GlobalBlocksResource::class);
         $webspaces = $this->createMock(WebspacesResource::class);
         $extensionFields = $this->createMock(ExtensionFieldsProvider::class);
 
@@ -174,7 +174,7 @@ final class GetContextToolTest extends TestCase
                 ['name' => 'image', 'type' => 'media_selection'],
             ]]],
         ]);
-        $blocks->method('getBlocks')->willReturn([]);
+        $blocks->method('getGlobalBlocks')->willReturn([]);
         $webspaces->method('getWebspaces')->willReturn([]);
         $extensionFields->method('getExtensionFields')->willReturn(['seo' => [], 'excerpt' => []]);
 
@@ -190,12 +190,12 @@ final class GetContextToolTest extends TestCase
     public function testGetContextIncludesToolCatalogue(): void
     {
         $templates = $this->createMock(TemplatesResource::class);
-        $blocks = $this->createMock(BlocksResource::class);
+        $blocks = $this->createMock(GlobalBlocksResource::class);
         $webspaces = $this->createMock(WebspacesResource::class);
         $extensionFields = $this->createMock(ExtensionFieldsProvider::class);
 
         $templates->method('getTemplates')->willReturn([]);
-        $blocks->method('getBlocks')->willReturn([]);
+        $blocks->method('getGlobalBlocks')->willReturn([]);
         $webspaces->method('getWebspaces')->willReturn([]);
         $extensionFields->method('getExtensionFields')->willReturn(['seo' => [], 'excerpt' => []]);
 
@@ -224,12 +224,12 @@ final class GetContextToolTest extends TestCase
     public function testGetContextEvaluatesAvailabilityForTheRequestedLocale(): void
     {
         $templates = $this->createMock(TemplatesResource::class);
-        $blocks = $this->createMock(BlocksResource::class);
+        $blocks = $this->createMock(GlobalBlocksResource::class);
         $webspaces = $this->createMock(WebspacesResource::class);
         $extensionFields = $this->createMock(ExtensionFieldsProvider::class);
 
         $templates->method('getTemplates')->willReturn([]);
-        $blocks->method('getBlocks')->willReturn([]);
+        $blocks->method('getGlobalBlocks')->willReturn([]);
         $webspaces->method('getWebspaces')->willReturn([]);
         $extensionFields->method('getExtensionFields')->willReturn(['seo' => [], 'excerpt' => []]);
 
@@ -270,12 +270,12 @@ final class GetContextToolTest extends TestCase
     public function testGetContextFiltersWebspacesToPermittedOnly(): void
     {
         $templates = $this->createMock(TemplatesResource::class);
-        $blocks = $this->createMock(BlocksResource::class);
+        $blocks = $this->createMock(GlobalBlocksResource::class);
         $webspaces = $this->createMock(WebspacesResource::class);
         $extensionFields = $this->createMock(ExtensionFieldsProvider::class);
 
         $templates->method('getTemplates')->willReturn([]);
-        $blocks->method('getBlocks')->willReturn([]);
+        $blocks->method('getGlobalBlocks')->willReturn([]);
         $webspaces->method('getWebspaces')->willReturn([
             ['key' => 'example', 'name' => 'Example', 'locales' => ['en'], 'url' => null],
             ['key' => 'blog', 'name' => 'Blog', 'locales' => ['en'], 'url' => null],
