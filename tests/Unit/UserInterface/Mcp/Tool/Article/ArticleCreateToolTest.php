@@ -33,6 +33,7 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ArticleAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
@@ -42,6 +43,7 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(ArticleCreateTool::class)]
 final class ArticleCreateToolTest extends TestCase
@@ -82,7 +84,7 @@ final class ArticleCreateToolTest extends TestCase
         $this->tool = new ArticleCreateTool(
             $this->messageBus,
             $this->contentManager,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             $adminLinkGenerator,
@@ -168,7 +170,7 @@ final class ArticleCreateToolTest extends TestCase
         $tool = new ArticleCreateTool(
             $this->messageBus,
             $this->contentManager,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
@@ -499,7 +501,7 @@ final class ArticleCreateToolTest extends TestCase
         $this->tool = new ArticleCreateTool(
             $this->messageBus,
             $this->contentManager,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
@@ -576,7 +578,7 @@ final class ArticleCreateToolTest extends TestCase
         $tool = new ArticleCreateTool(
             $this->messageBus,
             $this->contentManager,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($mapperMetadataProvider),
             new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),

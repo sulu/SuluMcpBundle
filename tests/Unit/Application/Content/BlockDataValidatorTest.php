@@ -22,6 +22,8 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\SectionMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(BlockDataValidator::class)]
 final class BlockDataValidatorTest extends TestCase
@@ -66,7 +68,7 @@ final class BlockDataValidatorTest extends TestCase
         $this->formMetadataProvider->method('getMetadata')
             ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
 
-        $this->validator = new BlockDataValidator($this->formMetadataProvider);
+        $this->validator = new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
     }
 
     public function testValidContentTreeReturnsNull(): void
@@ -194,7 +196,7 @@ final class BlockDataValidatorTest extends TestCase
         $provider->method('getMetadata')
             ->willReturnCallback(fn (string $key) => 'snippet' === $key ? $typed : null);
 
-        $validator = new BlockDataValidator($provider);
+        $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
         $content = [
             'blocks' => [
@@ -229,7 +231,7 @@ final class BlockDataValidatorTest extends TestCase
         $provider->method('getMetadata')
             ->willReturnCallback(fn (string $key) => 'snippet' === $key ? $typed : null);
 
-        $validator = new BlockDataValidator($provider);
+        $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
         $content = [
             'blocks' => [
@@ -269,7 +271,7 @@ final class BlockDataValidatorTest extends TestCase
         $provider->method('getMetadata')
             ->willReturnCallback(fn (string $key) => 'snippet' === $key ? $typed : null);
 
-        $validator = new BlockDataValidator($provider);
+        $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
         $content = [
             'blocks' => [
@@ -314,7 +316,7 @@ final class BlockDataValidatorTest extends TestCase
         $provider->method('getMetadata')
             ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
 
-        $validator = new BlockDataValidator($provider);
+        $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
         $validContent = ['blocks' => [['type' => 'text', 'title' => 'Hello', 'body' => '<p>Body</p>']]];
         $this->assertNull($validator->validateContentTree($validContent, 'page', 'default'));
@@ -359,7 +361,7 @@ final class BlockDataValidatorTest extends TestCase
         $provider->method('getMetadata')
             ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
 
-        $validator = new BlockDataValidator($provider);
+        $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
         $missingContent = ['blocks' => [['type' => 'image', 'caption' => 'no image set']]];
         $error = $validator->validateContentTree($missingContent, 'page', 'default');
@@ -402,7 +404,7 @@ final class BlockDataValidatorTest extends TestCase
         $provider->method('getMetadata')
             ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
 
-        $validator = new BlockDataValidator($provider);
+        $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
         $content = ['blocks' => [['type' => 'text', 'teaser' => 'Hello']]];
         $this->assertNull($validator->validateContentTree($content, 'page', 'default'));
@@ -441,7 +443,7 @@ final class BlockDataValidatorTest extends TestCase
         $provider->method('getMetadata')
             ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
 
-        $validator = new BlockDataValidator($provider);
+        $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
         $validContent = ['blocks' => [['type' => 'text', 'title' => 'Hello']]];
         $this->assertNull($validator->validateContentTree($validContent, 'page', 'default'));
@@ -494,6 +496,6 @@ final class BlockDataValidatorTest extends TestCase
         $provider->method('getMetadata')
             ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
 
-        return new BlockDataValidator($provider);
+        return new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
     }
 }

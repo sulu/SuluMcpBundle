@@ -29,6 +29,7 @@ use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\PageAdminLinkProvider;
@@ -44,6 +45,7 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(PageUpdateTool::class)]
 final class PageUpdateToolTest extends TestCase
@@ -88,7 +90,7 @@ final class PageUpdateToolTest extends TestCase
             $this->messageBus,
             $this->contentManager,
             $this->pageRepository,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             $this->adminLinkGenerator,
@@ -412,7 +414,7 @@ final class PageUpdateToolTest extends TestCase
             $this->messageBus,
             $this->contentManager,
             $this->pageRepository,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             $this->adminLinkGenerator,

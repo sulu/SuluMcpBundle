@@ -19,6 +19,8 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(ExtensionFieldsProvider::class)]
 final class ExtensionFieldsProviderTest extends TestCase
@@ -35,7 +37,7 @@ final class ExtensionFieldsProviderTest extends TestCase
             },
         );
 
-        $resource = new ExtensionFieldsProvider($provider);
+        $resource = new ExtensionFieldsProvider($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
         $result = $resource->getExtensionFields();
 
         $this->assertSame([
@@ -66,7 +68,7 @@ final class ExtensionFieldsProviderTest extends TestCase
             fn (string $key) => 'content_seo_metadata' === $key ? $seoForm : $this->form([]),
         );
 
-        $resource = new ExtensionFieldsProvider($provider);
+        $resource = new ExtensionFieldsProvider($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
         $result = $resource->getExtensionFields();
 
         $this->assertSame([

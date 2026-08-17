@@ -16,6 +16,7 @@ namespace Sulu\Mcp\Application\Content;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 
 /**
  * Validates block field data against the block type's schema.
@@ -31,6 +32,7 @@ final readonly class BlockDataValidator
 {
     public function __construct(
         private MetadataProviderInterface $formMetadataProvider,
+        private MetadataLocaleResolver $localeResolver,
     ) {
     }
 
@@ -238,7 +240,7 @@ final readonly class BlockDataValidator
     private function findInTemplates(string $contentType, ?string $templateKey, string $blockType): ?FormMetadata
     {
         try {
-            $typed = $this->formMetadataProvider->getMetadata($contentType, 'en', []);
+            $typed = $this->formMetadataProvider->getMetadata($contentType, $this->localeResolver->resolve(), []);
         } catch (\Throwable) {
             return null;
         }
@@ -288,7 +290,7 @@ final readonly class BlockDataValidator
     private function findInGlobalBlocks(string $blockType): ?FormMetadata
     {
         try {
-            $typed = $this->formMetadataProvider->getMetadata('block', 'en', ['ignore_global_blocks' => true]);
+            $typed = $this->formMetadataProvider->getMetadata('block', $this->localeResolver->resolve(), ['ignore_global_blocks' => true]);
         } catch (\Throwable) {
             return null;
         }

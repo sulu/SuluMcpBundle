@@ -23,8 +23,13 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\SectionMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
+use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
 #[CoversClass(TemplatesResource::class)]
 final class TemplateResourceTest extends TestCase
@@ -35,7 +40,33 @@ final class TemplateResourceTest extends TestCase
     protected function setUp(): void
     {
         $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->resource = new TemplatesResource($this->formMetadataProvider, new FieldNormalizer());
+        $this->resource = new TemplatesResource($this->formMetadataProvider, new FieldNormalizer(), new MetadataLocaleResolver(new TokenStorage(), 'en'));
+    }
+
+    public function testGetTemplatesRequestsMetadataInTheAuthenticatedUsersLocale(): void
+    {
+        $user = $this->createMock(UserInterface::class);
+        $user->method('getLocale')->willReturn('de');
+
+        $token = $this->createMock(TokenInterface::class);
+        $token->method('getUser')->willReturn($user);
+
+        $tokenStorage = $this->createMock(TokenStorageInterface::class);
+        $tokenStorage->method('getToken')->willReturn($token);
+
+        $resource = new TemplatesResource(
+            $this->formMetadataProvider,
+            new FieldNormalizer(),
+            new MetadataLocaleResolver($tokenStorage, 'en'),
+        );
+
+        $this->formMetadataProvider
+            ->expects($this->exactly(3))
+            ->method('getMetadata')
+            ->with($this->anything(), 'de', $this->anything())
+            ->willReturn(new TypedFormMetadata());
+
+        $resource->getTemplates();
     }
 
     public function testGetTemplatesReturnsTemplatesGroupedByContentType(): void

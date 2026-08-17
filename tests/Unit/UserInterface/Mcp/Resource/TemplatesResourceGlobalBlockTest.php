@@ -22,7 +22,9 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TagMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(TemplatesResource::class)]
 final class TemplatesResourceGlobalBlockTest extends TestCase
@@ -33,7 +35,7 @@ final class TemplatesResourceGlobalBlockTest extends TestCase
     protected function setUp(): void
     {
         $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->resource = new TemplatesResource($this->formMetadataProvider, new FieldNormalizer());
+        $this->resource = new TemplatesResource($this->formMetadataProvider, new FieldNormalizer(), new MetadataLocaleResolver(new TokenStorage(), 'en'));
     }
 
     public function testGlobalBlockTypeProducesReferenceWithoutFieldsOrRecursion(): void

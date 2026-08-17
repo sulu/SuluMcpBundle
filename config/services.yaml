@@ -116,6 +116,9 @@ services:
     # MCP resources
     Sulu\Mcp\Application\Metadata\FieldValueExampleProvider: ~
     Sulu\Mcp\Application\Metadata\FieldNormalizer: ~
+    Sulu\Mcp\Application\Metadata\MetadataLocaleResolver:
+        arguments:
+            $fallbackLocale: '%sulu_core.fallback_locale%'
     Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource:
         arguments:
             $formMetadataProvider: '@sulu_admin.form_metadata_provider'

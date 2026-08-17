@@ -24,7 +24,9 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\UserInterface\Mcp\Resource\GlobalBlocksResource;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(GlobalBlocksResource::class)]
 final class GlobalBlocksResourceTest extends TestCase
@@ -35,7 +37,7 @@ final class GlobalBlocksResourceTest extends TestCase
     protected function setUp(): void
     {
         $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->resource = new GlobalBlocksResource($this->formMetadataProvider, new FieldNormalizer());
+        $this->resource = new GlobalBlocksResource($this->formMetadataProvider, new FieldNormalizer(), new MetadataLocaleResolver(new TokenStorage(), 'en'));
     }
 
     public function testGetBlocksListsEachGlobalBlockFormOnceWithKeyLabelFields(): void

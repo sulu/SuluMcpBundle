@@ -28,6 +28,7 @@ use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
@@ -41,6 +42,7 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(SnippetUpdateTool::class)]
 final class SnippetUpdateToolTest extends TestCase
@@ -75,7 +77,7 @@ final class SnippetUpdateToolTest extends TestCase
             $this->messageBus,
             $this->contentManager,
             new ContentTypeResolver($this->pageRepository, $this->articleRepository, $this->snippetRepository),
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             $adminLinkGenerator,
         );
@@ -323,7 +325,7 @@ final class SnippetUpdateToolTest extends TestCase
             $this->messageBus,
             $this->contentManager,
             new ContentTypeResolver($this->pageRepository, $this->articleRepository, $this->snippetRepository),
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new AdminLinkGenerator($router, [new SnippetAdminLinkProvider(new TestViewRegistry())]),
         );

@@ -17,6 +17,7 @@ use Mcp\Capability\Attribute\McpResource;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 
 /**
  * @internal
@@ -26,6 +27,7 @@ class GlobalBlocksResource
     public function __construct(
         private readonly MetadataProviderInterface $formMetadataProvider,
         private readonly FieldNormalizer $fieldNormalizer,
+        private readonly MetadataLocaleResolver $localeResolver,
     ) {
     }
 
@@ -38,7 +40,9 @@ class GlobalBlocksResource
     )]
     public function getGlobalBlocks(): array
     {
-        $typedMetadata = $this->formMetadataProvider->getMetadata('block', 'en', ['ignore_global_blocks' => true]);
+        $locale = $this->localeResolver->resolve();
+
+        $typedMetadata = $this->formMetadataProvider->getMetadata('block', $locale, ['ignore_global_blocks' => true]);
         if (!$typedMetadata instanceof TypedFormMetadata) {
             return [];
         }
@@ -47,8 +51,8 @@ class GlobalBlocksResource
         foreach ($typedMetadata->getForms() as $key => $form) {
             $globalBlocks[] = [
                 'key' => $key,
-                'label' => $form->getTitle('en'),
-                'fields' => $this->fieldNormalizer->normalizeForm($form, 'en'),
+                'label' => $form->getTitle($locale),
+                'fields' => $this->fieldNormalizer->normalizeForm($form, $locale),
             ];
         }
 

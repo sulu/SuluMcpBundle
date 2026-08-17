@@ -36,6 +36,7 @@ use Sulu\Content\Domain\Model\TemplateInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ArticleAdminLinkProvider;
@@ -48,6 +49,7 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(ArticleUpdateTool::class)]
 final class ArticleUpdateToolTest extends TestCase
@@ -97,7 +99,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->messageBus,
             $this->contentManager,
             $this->articleRepository,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             $adminLinkGenerator,
@@ -236,7 +238,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->messageBus,
             $this->contentManager,
             $this->articleRepository,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
@@ -286,7 +288,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->messageBus,
             $this->contentManager,
             $this->articleRepository,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
@@ -343,7 +345,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->messageBus,
             $this->contentManager,
             $this->articleRepository,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
@@ -411,7 +413,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->messageBus,
             $this->contentManager,
             $this->articleRepository,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
@@ -503,7 +505,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->messageBus,
             $this->contentManager,
             $this->articleRepository,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
@@ -710,7 +712,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->messageBus,
             $this->contentManager,
             $this->articleRepository,
-            new BlockDataValidator($this->formMetadataProvider),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),

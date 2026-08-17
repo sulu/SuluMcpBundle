@@ -31,6 +31,7 @@ class ExtensionFieldsProvider
 
     public function __construct(
         private readonly MetadataProviderInterface $formMetadataProvider,
+        private readonly MetadataLocaleResolver $localeResolver,
     ) {
     }
 
@@ -52,11 +53,12 @@ class ExtensionFieldsProvider
      */
     private function fields(array $formKeys, string $namespace): array
     {
+        $locale = $this->localeResolver->resolve();
         $prefix = $namespace . '/';
         $fields = [];
         foreach ($formKeys as $formKey) {
             try {
-                $metadata = $this->formMetadataProvider->getMetadata($formKey, 'en', []);
+                $metadata = $this->formMetadataProvider->getMetadata($formKey, $locale, []);
             } catch (\Throwable) {
                 continue;
             }
@@ -69,7 +71,7 @@ class ExtensionFieldsProvider
                 $fields[] = [
                     'name' => $name,
                     'type' => $item->getType(),
-                    'label' => $item->getLabel('en') ?? $name,
+                    'label' => $item->getLabel($locale) ?? $name,
                     'required' => $item->isRequired(),
                 ];
             }

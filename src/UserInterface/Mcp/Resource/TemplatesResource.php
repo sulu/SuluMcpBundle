@@ -18,6 +18,7 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 
 /**
  * @internal
@@ -27,6 +28,7 @@ class TemplatesResource
     public function __construct(
         private readonly MetadataProviderInterface $formMetadataProvider,
         private readonly FieldNormalizer $fieldNormalizer,
+        private readonly MetadataLocaleResolver $localeResolver,
     ) {
     }
 
@@ -39,9 +41,11 @@ class TemplatesResource
     )]
     public function getTemplates(): array
     {
+        $locale = $this->localeResolver->resolve();
+
         $result = [];
         foreach (['page', 'article', 'snippet'] as $contentType) {
-            $templates = $this->loadTemplatesByType($contentType);
+            $templates = $this->loadTemplatesByType($contentType, $locale);
             if ([] !== $templates) {
                 $result[$contentType] = $templates;
             }
@@ -51,10 +55,10 @@ class TemplatesResource
     }
 
     /** @return array<string, array<string, mixed>> */
-    private function loadTemplatesByType(string $contentType): array
+    private function loadTemplatesByType(string $contentType, string $locale): array
     {
         try {
-            $typedMetadata = $this->formMetadataProvider->getMetadata($contentType, 'en', []);
+            $typedMetadata = $this->formMetadataProvider->getMetadata($contentType, $locale, []);
         } catch (\Throwable) {
             return [];
         }
@@ -67,18 +71,18 @@ class TemplatesResource
         $forms = $typedMetadata->getForms();
         /** @var array<string, FormMetadata> $forms */
         foreach ($forms as $key => $formMetadata) {
-            $result[$key] = $this->normalizeTemplate($formMetadata);
+            $result[$key] = $this->normalizeTemplate($formMetadata, $locale);
         }
 
         return $result;
     }
 
     /** @return array<string, mixed> */
-    private function normalizeTemplate(FormMetadata $form): array
+    private function normalizeTemplate(FormMetadata $form, string $locale): array
     {
         return [
             'key' => $form->getKey(),
-            'fields' => $this->fieldNormalizer->normalizeForm($form, 'en'),
+            'fields' => $this->fieldNormalizer->normalizeForm($form, $locale),
         ];
     }
 }
