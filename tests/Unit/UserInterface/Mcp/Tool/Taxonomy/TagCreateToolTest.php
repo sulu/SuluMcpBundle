@@ -15,8 +15,10 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\TagBundle\Tag\TagInterface;
 use Sulu\Bundle\TagBundle\Tag\TagManagerInterface;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\TagAdminLinkProvider;
@@ -28,30 +30,31 @@ use Symfony\Component\Routing\RouterInterface;
 #[CoversClass(TagCreateTool::class)]
 final class TagCreateToolTest extends TestCase
 {
-    private TagManagerInterface&MockObject $tagManager;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<TagManagerInterface> */
+    private ObjectProphecy $tagManager;
     private TagCreateTool $tool;
 
     protected function setUp(): void
     {
-        $this->tagManager = $this->createMock(TagManagerInterface::class);
+        $this->tagManager = $this->prophesize(TagManagerInterface::class);
 
-        $router = $this->createMock(RouterInterface::class);
-        $router->method('generate')->willReturn('https://example.com/admin/');
-        $adminLinkGenerator = new AdminLinkGenerator($router, [new TagAdminLinkProvider(new TestViewRegistry())]);
+        $router = $this->prophesize(RouterInterface::class);
+        $router->generate(Argument::cetera())->willReturn('https://example.com/admin/');
+        $adminLinkGenerator = new AdminLinkGenerator($router->reveal(), [new TagAdminLinkProvider(new TestViewRegistry())]);
 
-        $this->tool = new TagCreateTool($this->tagManager, $adminLinkGenerator);
+        $this->tool = new TagCreateTool($this->tagManager->reveal(), $adminLinkGenerator);
     }
 
     public function testCreateTagReturnsSuccessWithIdAndName(): void
     {
-        $mockTag = $this->createMock(TagInterface::class);
-        $mockTag->method('getId')->willReturn(42);
-        $mockTag->method('getName')->willReturn('breaking-news');
+        $mockTag = $this->prophesize(TagInterface::class);
+        $mockTag->getId(Argument::cetera())->willReturn(42);
+        $mockTag->getName(Argument::cetera())->willReturn('breaking-news');
 
-        $this->tagManager->expects($this->once())
-            ->method('save')
-            ->with(['name' => 'breaking-news'])
-            ->willReturn($mockTag);
+        $this->tagManager->save(['name' => 'breaking-news'])->shouldBeCalledOnce()
+            ->willReturn($mockTag->reveal());
 
         $result = $this->tool->createTag('breaking-news');
 
@@ -63,8 +66,7 @@ final class TagCreateToolTest extends TestCase
 
     public function testCreateTagReturnsErrorOnException(): void
     {
-        $this->tagManager->method('save')
-            ->willThrowException(new \RuntimeException('Duplicate tag'));
+        $this->tagManager->save(Argument::cetera())->willThrow(new \RuntimeException('Duplicate tag'));
 
         $result = $this->tool->createTag('existing-tag');
 

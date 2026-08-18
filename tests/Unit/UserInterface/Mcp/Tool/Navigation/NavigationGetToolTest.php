@@ -15,9 +15,10 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Navigation;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Component\Security\Authentication\UserInterface;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
@@ -26,19 +27,21 @@ use Sulu\Component\Webspace\Webspace;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
+use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Navigation\NavigationGetTool;
 use Sulu\Page\Domain\Repository\NavigationRepositoryInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
 #[CoversClass(NavigationGetTool::class)]
 final class NavigationGetToolTest extends TestCase
 {
-    private NavigationRepositoryInterface&MockObject $navigationRepository;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<NavigationRepositoryInterface> */
+    private ObjectProphecy $navigationRepository;
 
     protected function setUp(): void
     {
-        $this->navigationRepository = $this->createMock(NavigationRepositoryInterface::class);
+        $this->navigationRepository = $this->prophesize(NavigationRepositoryInterface::class);
     }
 
     /**
@@ -53,28 +56,31 @@ final class NavigationGetToolTest extends TestCase
             $webspaces[$key] = $webspace;
         }
 
-        $webspaceManager = $this->createMock(WebspaceManagerInterface::class);
-        $webspaceManager->method('getWebspaceCollection')->willReturn(new WebspaceCollection($webspaces));
+        /** @var ObjectProphecy<WebspaceManagerInterface> $webspaceManager */
+        $webspaceManager = $this->prophesize(WebspaceManagerInterface::class);
+        $webspaceManager->getWebspaceCollection()->willReturn(new WebspaceCollection($webspaces));
 
-        $securityChecker = $this->createMock(SecurityCheckerInterface::class);
-        $securityChecker->method('hasPermission')->willReturnCallback(
-            static fn ($condition, string $permission): bool => \in_array(
-                \str_replace('sulu.webspaces.', '', $condition->getSecurityContext()),
-                $grantedWebspaceKeys,
-                true,
-            ),
+        /** @var ObjectProphecy<SecurityCheckerInterface> $securityChecker */
+        $securityChecker = $this->prophesize(SecurityCheckerInterface::class);
+        $securityChecker->hasPermission(Argument::cetera())->will(
+            static function(array $args) use ($grantedWebspaceKeys): bool {
+                [$condition, $permission] = $args;
+
+                return \in_array(
+                    \str_replace('sulu.webspaces.', '', $condition->getSecurityContext()),
+                    $grantedWebspaceKeys,
+                    true,
+                );
+            },
         );
 
-        $tokenStorage = $this->createMock(TokenStorageInterface::class);
-        $token = $this->createMock(TokenInterface::class);
-        $token->method('getUser')->willReturn($this->createMock(UserInterface::class));
-        $tokenStorage->method('getToken')->willReturn($token);
+        $tokenStorage = (new TestUser())->inTokenStorage();
 
-        $checker = new ToolPermissionChecker($securityChecker, $tokenStorage);
+        $checker = new ToolPermissionChecker($securityChecker->reveal(), $tokenStorage);
 
         return new NavigationGetTool(
-            $this->navigationRepository,
-            new WebspacePermissionResolver($webspaceManager, $checker),
+            $this->navigationRepository->reveal(),
+            new WebspacePermissionResolver($webspaceManager->reveal(), $checker),
         );
     }
 
@@ -89,9 +95,9 @@ final class NavigationGetToolTest extends TestCase
         // NavigationTwigExtension default map). Empty values make Sulu's content
         // resolver return no "nav" group at all and NavigationRepository crashes
         // with 'Undefined array key "nav"'.
-        $this->navigationRepository->expects($this->once())
-            ->method('getNavigationTree')
-            ->with('main', 'en', 'website', null, 2, ['title' => 'title', 'url' => 'url', 'targetType' => 'object.linkData[provider]'])
+        $this->navigationRepository
+            ->getNavigationTree('main', 'en', 'website', null, 2, ['title' => 'title', 'url' => 'url', 'targetType' => 'object.linkData[provider]'])
+            ->shouldBeCalledOnce()
             ->willReturn($tree);
 
         $result = $this->tool(['website'])->getNavigation('website', 'en', 'main', 2);
@@ -104,7 +110,7 @@ final class NavigationGetToolTest extends TestCase
 
     public function testGetNavigationDeniesUnpermittedWebspace(): void
     {
-        $this->navigationRepository->expects($this->never())->method('getNavigationTree');
+        $this->navigationRepository->getNavigationTree(Argument::cetera())->shouldNotBeCalled();
 
         $result = $this->tool(['intranet'])->getNavigation('website', 'en');
 
@@ -114,8 +120,8 @@ final class NavigationGetToolTest extends TestCase
 
     public function testGetNavigationReturnsErrorOnException(): void
     {
-        $this->navigationRepository->method('getNavigationTree')
-            ->willThrowException(new \RuntimeException('Invalid webspace'));
+        $this->navigationRepository->getNavigationTree(Argument::cetera())
+            ->willThrow(new \RuntimeException('Invalid webspace'));
 
         $result = $this->tool(['website'])->getNavigation('website', 'en');
 

@@ -20,7 +20,7 @@ use Mcp\Schema\Request\CallToolRequest;
 use Mcp\Schema\Result\CallToolResult;
 use Mcp\Server\Session\SessionInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\Stub;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
@@ -35,6 +35,8 @@ use Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler;
 #[CoversClass(PermissionAwareCallToolHandler::class)]
 final class PermissionHandlerSmokeTest extends FunctionalTestCase
 {
+    use ProphecyTrait;
+
     private function handler(): PermissionAwareCallToolHandler
     {
         return self::getContainer()->get(PermissionAwareCallToolHandler::class);
@@ -68,9 +70,11 @@ final class PermissionHandlerSmokeTest extends FunctionalTestCase
         ]);
     }
 
-    private function session(): SessionInterface&Stub
+    private function session(): SessionInterface
     {
-        return $this->createStub(SessionInterface::class);
+        // CallToolHandler only stashes the session into $arguments['_session'];
+        // no method is ever invoked on it along these paths.
+        return $this->prophesize(SessionInterface::class)->reveal();
     }
 
     /**

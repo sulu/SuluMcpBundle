@@ -15,8 +15,10 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Contact;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\ContactBundle\Entity\AccountRepositoryInterface;
 use Sulu\Bundle\ContactBundle\Entity\ContactRepositoryInterface;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Contact\ContactListTool;
@@ -24,15 +26,19 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Contact\ContactListTool;
 #[CoversClass(ContactListTool::class)]
 final class ContactListToolTest extends TestCase
 {
-    private ContactRepositoryInterface&MockObject $contactRepository;
-    private AccountRepositoryInterface&MockObject $accountRepository;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<ContactRepositoryInterface> */
+    private ObjectProphecy $contactRepository;
+    /** @var ObjectProphecy<AccountRepositoryInterface> */
+    private ObjectProphecy $accountRepository;
     private ContactListTool $tool;
 
     protected function setUp(): void
     {
-        $this->contactRepository = $this->createMock(ContactRepositoryInterface::class);
-        $this->accountRepository = $this->createMock(AccountRepositoryInterface::class);
-        $this->tool = new ContactListTool($this->contactRepository, $this->accountRepository);
+        $this->contactRepository = $this->prophesize(ContactRepositoryInterface::class);
+        $this->accountRepository = $this->prophesize(AccountRepositoryInterface::class);
+        $this->tool = new ContactListTool($this->contactRepository->reveal(), $this->accountRepository->reveal());
     }
 
     public function testListContactsReturnsContacts(): void
@@ -44,7 +50,7 @@ final class ContactListToolTest extends TestCase
             'lastName' => 'Doe',
         ];
 
-        $this->contactRepository->method('findGetAll')->willReturn([$contact]);
+        $this->contactRepository->findGetAll(Argument::cetera())->willReturn([$contact]);
 
         $result = $this->tool->listContacts('contact', 1, 20);
 
@@ -57,8 +63,7 @@ final class ContactListToolTest extends TestCase
 
     public function testListAccountsReturnsAccounts(): void
     {
-        $this->accountRepository->method('findAllSelect')
-            ->willReturn([['id' => 1, 'name' => 'Acme Corp']]);
+        $this->accountRepository->findAllSelect(Argument::cetera())->willReturn([['id' => 1, 'name' => 'Acme Corp']]);
 
         $result = $this->tool->listContacts('account', 1, 20);
 
@@ -69,10 +74,7 @@ final class ContactListToolTest extends TestCase
 
     public function testListContactsCalculatesOffsetFromPage(): void
     {
-        $this->contactRepository
-            ->expects($this->once())
-            ->method('findGetAll')
-            ->with(5, 5, [], [])
+        $this->contactRepository->findGetAll(5, 5, [], [])->shouldBeCalledOnce()
             ->willReturn([]);
 
         $this->tool->listContacts('contact', 2, 5);
@@ -88,7 +90,7 @@ final class ContactListToolTest extends TestCase
             ['id' => 5, 'name' => 'E'],
             ['id' => 6, 'name' => 'F'],
         ];
-        $this->accountRepository->method('findAllSelect')->willReturn($accounts);
+        $this->accountRepository->findAllSelect(Argument::cetera())->willReturn($accounts);
 
         $result = $this->tool->listContacts('account', 2, 2);
 
@@ -99,8 +101,7 @@ final class ContactListToolTest extends TestCase
 
     public function testListContactsReturnsErrorOnException(): void
     {
-        $this->contactRepository->method('findGetAll')
-            ->willThrowException(new \RuntimeException('Bundle not installed'));
+        $this->contactRepository->findGetAll(Argument::cetera())->willThrow(new \RuntimeException('Bundle not installed'));
 
         $result = $this->tool->listContacts();
 

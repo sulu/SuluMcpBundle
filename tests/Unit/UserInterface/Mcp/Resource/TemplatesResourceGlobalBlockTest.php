@@ -14,27 +14,26 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TagMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
-use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
 use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(TemplatesResource::class)]
 final class TemplatesResourceGlobalBlockTest extends TestCase
 {
-    private MetadataProviderInterface&MockObject $formMetadataProvider;
+    private ArrayMetadataProvider $formMetadataProvider;
     private TemplatesResource $resource;
 
     protected function setUp(): void
     {
-        $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
+        $this->formMetadataProvider = new ArrayMetadataProvider();
         $this->resource = new TemplatesResource($this->formMetadataProvider, new FieldNormalizer(), new MetadataLocaleResolver(new TokenStorage(), 'en'));
     }
 
@@ -60,12 +59,7 @@ final class TemplatesResourceGlobalBlockTest extends TestCase
         $pageMetadata = new TypedFormMetadata();
         $pageMetadata->addForm('default', $templateForm);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => match ($key) {
-                'page' => $pageMetadata,
-                default => throw new \LogicException('Unexpected: ' . $key),
-            });
+        $this->formMetadataProvider->set('page', $pageMetadata);
 
         $result = $this->resource->getTemplates();
 
@@ -101,12 +95,7 @@ final class TemplatesResourceGlobalBlockTest extends TestCase
         $pageMetadata = new TypedFormMetadata();
         $pageMetadata->addForm('default', $templateForm);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => match ($key) {
-                'page' => $pageMetadata,
-                default => throw new \LogicException('Should not load block metadata for inline blocks'),
-            });
+        $this->formMetadataProvider->set('page', $pageMetadata);
 
         $result = $this->resource->getTemplates();
 
@@ -146,12 +135,7 @@ final class TemplatesResourceGlobalBlockTest extends TestCase
         $pageMetadata = new TypedFormMetadata();
         $pageMetadata->addForm('homepage', $templateForm);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => match ($key) {
-                'page' => $pageMetadata,
-                default => throw new \LogicException('Unexpected: ' . $key),
-            });
+        $this->formMetadataProvider->set('page', $pageMetadata);
 
         $result = $this->resource->getTemplates();
 
@@ -189,17 +173,10 @@ final class TemplatesResourceGlobalBlockTest extends TestCase
         $pageMetadata = new TypedFormMetadata();
         $pageMetadata->addForm('default', $templateForm);
 
-        $requestedKeys = [];
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(function(string $key) use (&$requestedKeys, $pageMetadata) {
-                $requestedKeys[] = $key;
-
-                return 'page' === $key ? $pageMetadata : null;
-            });
+        $this->formMetadataProvider->set('page', $pageMetadata);
 
         $this->resource->getTemplates();
 
-        $this->assertNotContains('block', $requestedKeys);
+        $this->assertNotContains('block', $this->formMetadataProvider->requestedKeys());
     }
 }

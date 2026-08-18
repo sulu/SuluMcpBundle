@@ -15,27 +15,27 @@ namespace Sulu\Mcp\Tests\Unit\Application\Metadata;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
-use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(ExtensionFieldsProvider::class)]
 final class ExtensionFieldsProviderTest extends TestCase
 {
+    use ProphecyTrait;
+
     public function testReturnsSeoAndExcerptFieldsWithStrippedNames(): void
     {
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')->willReturnCallback(
-            fn (string $key) => match ($key) {
-                'content_seo_metadata' => $this->form(['seo/title' => 'text_line', 'seoNoIndex' => 'checkbox'], ['seoNoIndex' => true]),
-                'content_excerpt_metadata' => $this->form(['excerpt/image' => 'single_media_selection']),
-                'content_excerpt_taxonomies' => $this->form(['excerptCategories' => 'category_selection']),
-                default => $this->form([]),
-            },
-        );
+        $provider = new ArrayMetadataProvider();
+        $provider->set('content_seo_metadata', $this->form(['seo/title' => 'text_line', 'seoNoIndex' => 'checkbox'], ['seoNoIndex' => true]));
+        $provider->set('content_excerpt_metadata', $this->form(['excerpt/image' => 'single_media_selection']));
+        $provider->set('content_excerpt_taxonomies', $this->form(['excerptCategories' => 'category_selection']));
+        $provider->setDefault($this->form([]));
 
         $resource = new ExtensionFieldsProvider($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
         $result = $resource->getExtensionFields();
@@ -54,19 +54,18 @@ final class ExtensionFieldsProviderTest extends TestCase
     {
         // The section itself is flattened away by Sulu's own
         // FormMetadata::getFlatFieldMetadata(); it never reaches this class.
-        $ogTitleField = $this->createMock(FieldMetadata::class);
-        $ogTitleField->method('getName')->willReturn('seo/ogTitle');
-        $ogTitleField->method('getType')->willReturn('text_line');
-        $ogTitleField->method('getLabel')->with('en')->willReturn('Og Title');
-        $ogTitleField->method('isRequired')->willReturn(true);
+        $ogTitleField = $this->prophesize(FieldMetadata::class);
+        $ogTitleField->getName(Argument::cetera())->willReturn('seo/ogTitle');
+        $ogTitleField->getType(Argument::cetera())->willReturn('text_line');
+        $ogTitleField->getLabel('en')->willReturn('Og Title');
+        $ogTitleField->isRequired(Argument::cetera())->willReturn(true);
 
-        $seoForm = $this->createMock(FormMetadata::class);
-        $seoForm->method('getFlatFieldMetadata')->willReturn(['seo/ogTitle' => $ogTitleField]);
+        $seoForm = $this->prophesize(FormMetadata::class);
+        $seoForm->getFlatFieldMetadata(Argument::cetera())->willReturn(['seo/ogTitle' => $ogTitleField->reveal()]);
 
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')->willReturnCallback(
-            fn (string $key) => 'content_seo_metadata' === $key ? $seoForm : $this->form([]),
-        );
+        $provider = new ArrayMetadataProvider();
+        $provider->set('content_seo_metadata', $seoForm->reveal());
+        $provider->setDefault($this->form([]));
 
         $resource = new ExtensionFieldsProvider($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
         $result = $resource->getExtensionFields();
@@ -84,17 +83,17 @@ final class ExtensionFieldsProviderTest extends TestCase
     {
         $items = [];
         foreach ($fields as $name => $type) {
-            $field = $this->createMock(FieldMetadata::class);
-            $field->method('getName')->willReturn($name);
-            $field->method('getType')->willReturn($type);
+            $field = $this->prophesize(FieldMetadata::class);
+            $field->getName(Argument::cetera())->willReturn($name);
+            $field->getType(Argument::cetera())->willReturn($type);
             $strippedName = \str_contains($name, '/') ? \substr($name, (int) \strrpos($name, '/') + 1) : $name;
-            $field->method('getLabel')->with('en')->willReturn($strippedName);
-            $field->method('isRequired')->willReturn($required[$name] ?? false);
-            $items[$name] = $field;
+            $field->getLabel('en')->willReturn($strippedName);
+            $field->isRequired(Argument::cetera())->willReturn($required[$name] ?? false);
+            $items[$name] = $field->reveal();
         }
-        $form = $this->createMock(FormMetadata::class);
-        $form->method('getFlatFieldMetadata')->willReturn($items);
+        $form = $this->prophesize(FormMetadata::class);
+        $form->getFlatFieldMetadata(Argument::cetera())->willReturn($items);
 
-        return $form;
+        return $form->reveal();
     }
 }

@@ -14,21 +14,20 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\Application\Content;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\SectionMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
-use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(BlockDataValidator::class)]
 final class BlockDataValidatorTest extends TestCase
 {
-    private MetadataProviderInterface&MockObject $formMetadataProvider;
+    private ArrayMetadataProvider $formMetadataProvider;
     private BlockDataValidator $validator;
 
     protected function setUp(): void
@@ -64,9 +63,8 @@ final class BlockDataValidatorTest extends TestCase
         $typed = new TypedFormMetadata();
         $typed->addForm('default', $template);
 
-        $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->formMetadataProvider->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
+        $this->formMetadataProvider = new ArrayMetadataProvider();
+        $this->formMetadataProvider->set('page', $typed);
 
         $this->validator = new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
     }
@@ -192,9 +190,8 @@ final class BlockDataValidatorTest extends TestCase
         $typed = new TypedFormMetadata();
         $typed->addForm('default', $template);
 
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'snippet' === $key ? $typed : null);
+        $provider = new ArrayMetadataProvider();
+        $provider->set('snippet', $typed);
 
         $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
@@ -227,9 +224,8 @@ final class BlockDataValidatorTest extends TestCase
         $typed = new TypedFormMetadata();
         $typed->addForm('default', $template);
 
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'snippet' === $key ? $typed : null);
+        $provider = new ArrayMetadataProvider();
+        $provider->set('snippet', $typed);
 
         $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
@@ -267,9 +263,8 @@ final class BlockDataValidatorTest extends TestCase
         $typed = new TypedFormMetadata();
         $typed->addForm('default', $template);
 
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'snippet' === $key ? $typed : null);
+        $provider = new ArrayMetadataProvider();
+        $provider->set('snippet', $typed);
 
         $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
@@ -312,9 +307,8 @@ final class BlockDataValidatorTest extends TestCase
         $typed = new TypedFormMetadata();
         $typed->addForm('default', $template);
 
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
+        $provider = new ArrayMetadataProvider();
+        $provider->set('page', $typed);
 
         $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
@@ -357,9 +351,8 @@ final class BlockDataValidatorTest extends TestCase
         $typed = new TypedFormMetadata();
         $typed->addForm('default', $template);
 
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
+        $provider = new ArrayMetadataProvider();
+        $provider->set('page', $typed);
 
         $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
@@ -400,9 +393,8 @@ final class BlockDataValidatorTest extends TestCase
         $typed = new TypedFormMetadata();
         $typed->addForm('default', $template);
 
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
+        $provider = new ArrayMetadataProvider();
+        $provider->set('page', $typed);
 
         $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
@@ -439,9 +431,8 @@ final class BlockDataValidatorTest extends TestCase
         $typed = new TypedFormMetadata();
         $typed->addForm('default', $template);
 
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
+        $provider = new ArrayMetadataProvider();
+        $provider->set('page', $typed);
 
         $validator = new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
 
@@ -492,9 +483,8 @@ final class BlockDataValidatorTest extends TestCase
         $typed = new TypedFormMetadata();
         $typed->addForm('default', $template);
 
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typed : null);
+        $provider = new ArrayMetadataProvider();
+        $provider->set('page', $typed);
 
         return new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
     }

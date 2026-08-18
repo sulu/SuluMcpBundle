@@ -15,11 +15,12 @@ namespace Sulu\Mcp\Tests\Unit\Application\Metadata;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\User\InMemoryUser;
 use Symfony\Component\Security\Core\User\UserInterface as SymfonyUserInterface;
 
 #[CoversClass(MetadataLocaleResolver::class)]
@@ -27,10 +28,7 @@ final class MetadataLocaleResolverTest extends TestCase
 {
     public function testResolveReturnsLocaleOfAuthenticatedSuluUser(): void
     {
-        $user = $this->createMock(UserInterface::class);
-        $user->method('getLocale')->willReturn('de');
-
-        $resolver = new MetadataLocaleResolver($this->tokenStorageWithUser($user), 'en');
+        $resolver = new MetadataLocaleResolver((new TestUser(1, 'de'))->inTokenStorage(), 'en');
 
         $this->assertSame('de', $resolver->resolve());
     }
@@ -44,8 +42,9 @@ final class MetadataLocaleResolverTest extends TestCase
 
     public function testResolveReturnsFallbackLocaleWhenUserIsNotASuluUser(): void
     {
+        // A Symfony user that is not a Sulu user carries no locale to read.
         $resolver = new MetadataLocaleResolver(
-            $this->tokenStorageWithUser($this->createMock(SymfonyUserInterface::class)),
+            $this->tokenStorageWithUser(new InMemoryUser('someone', null)),
             'de',
         );
 
@@ -54,11 +53,8 @@ final class MetadataLocaleResolverTest extends TestCase
 
     private function tokenStorageWithUser(SymfonyUserInterface $user): TokenStorageInterface
     {
-        $token = $this->createMock(TokenInterface::class);
-        $token->method('getUser')->willReturn($user);
-
-        $tokenStorage = $this->createMock(TokenStorageInterface::class);
-        $tokenStorage->method('getToken')->willReturn($token);
+        $tokenStorage = new TokenStorage();
+        $tokenStorage->setToken(new UsernamePasswordToken($user, 'admin'));
 
         return $tokenStorage;
     }

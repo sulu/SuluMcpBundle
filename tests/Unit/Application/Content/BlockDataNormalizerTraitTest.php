@@ -15,8 +15,8 @@ namespace Sulu\Mcp\Tests\Unit\Application\Content;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\AdminBundle\Application\BlockIdGenerator\BlockIdGeneratorInterface;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
+use Sulu\Mcp\Tests\Unit\Fixture\FixedBlockIdGenerator;
 
 #[CoversClass(BlockDataNormalizerTrait::class)]
 final class BlockDataNormalizerTraitTest extends TestCase
@@ -25,8 +25,7 @@ final class BlockDataNormalizerTraitTest extends TestCase
 
     public function testAssignBlockIdsGeneratesIdWhenMissing(): void
     {
-        $generator = $this->createMock(BlockIdGeneratorInterface::class);
-        $generator->method('generateId')->willReturn('gen-1');
+        $generator = new FixedBlockIdGenerator('gen-1');
 
         $result = $this->assignBlockIds(['type' => 'text', 'content' => 'hi'], $generator);
 
@@ -35,28 +34,28 @@ final class BlockDataNormalizerTraitTest extends TestCase
 
     public function testAssignBlockIdsPreservesExistingId(): void
     {
-        $generator = $this->createMock(BlockIdGeneratorInterface::class);
-        $generator->expects(self::never())->method('generateId');
+        $generator = new FixedBlockIdGenerator('id-1');
 
         $result = $this->assignBlockIds(['type' => 'text', '_id' => 'existing'], $generator);
 
         self::assertSame('existing', $result['_id']);
+        self::assertSame(0, $generator->calls());
     }
 
     public function testAssignBlockIdsSkipsArraysWithoutStringTypeKey(): void
     {
-        $generator = $this->createMock(BlockIdGeneratorInterface::class);
-        $generator->expects(self::never())->method('generateId');
+        $generator = new FixedBlockIdGenerator();
 
         $result = $this->assignBlockIds(['title' => 'not a block'], $generator);
 
         self::assertArrayNotHasKey('_id', $result);
+        self::assertSame(0, $generator->calls());
     }
 
     public function testAssignBlockIdsRecursesIntoNestedListValues(): void
     {
-        $generator = $this->createMock(BlockIdGeneratorInterface::class);
-        $generator->method('generateId')->willReturnOnConsecutiveCalls('id-section', 'id-text', 'id-image');
+        $generator = new FixedBlockIdGenerator();
+        $generator = FixedBlockIdGenerator::returning('id-section', 'id-text', 'id-image');
 
         $block = [
             'type' => 'section',
@@ -75,8 +74,7 @@ final class BlockDataNormalizerTraitTest extends TestCase
 
     public function testAssignBlockIdsLeavesNonListArrayValuesUntouched(): void
     {
-        $generator = $this->createMock(BlockIdGeneratorInterface::class);
-        $generator->method('generateId')->willReturn('id-1');
+        $generator = new FixedBlockIdGenerator('id-1');
 
         $result = $this->assignBlockIds(['type' => 'text', 'settings' => ['color' => 'red']], $generator);
 

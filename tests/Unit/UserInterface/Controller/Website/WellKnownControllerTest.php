@@ -16,7 +16,11 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Controller\Website;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\UserInterface\Controller\Website\WellKnownController;
+use Symfony\Component\Routing\Generator\UrlGenerator;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
 
 #[CoversClass(WellKnownController::class)]
 final class WellKnownControllerTest extends TestCase
@@ -48,18 +52,12 @@ final class WellKnownControllerTest extends TestCase
 
     private function urlGenerator(): UrlGeneratorInterface
     {
-        $paths = [
-            'sulu_mcp_oauth_authorize' => '/admin/mcp/authorize',
-            'sulu_mcp_oauth_token' => '/admin/mcp/token',
-            'sulu_mcp_client_registration' => '/admin/mcp/register',
-        ];
+        $routes = new RouteCollection();
+        $routes->add('sulu_mcp_oauth_authorize', new Route('/admin/mcp/authorize'));
+        $routes->add('sulu_mcp_oauth_token', new Route('/admin/mcp/token'));
+        $routes->add('sulu_mcp_client_registration', new Route('/admin/mcp/register'));
 
-        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $urlGenerator->method('generate')->willReturnCallback(
-            static fn (string $name): string => $paths[$name] ?? self::fail('Unexpected route "' . $name . '".'),
-        );
-
-        return $urlGenerator;
+        return new UrlGenerator($routes, new RequestContext());
     }
 
     /**

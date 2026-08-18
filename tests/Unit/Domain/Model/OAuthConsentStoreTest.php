@@ -19,6 +19,8 @@ use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
 use League\OAuth2\Server\RequestTypes\AuthorizationRequestInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Sulu\Mcp\Domain\Model\OAuthConsentRequest;
 use Sulu\Mcp\Infrastructure\Symfony\Security\OAuthConsentStore;
 use Symfony\Component\HttpFoundation\Request;
@@ -30,6 +32,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[CoversClass(OAuthConsentStore::class)]
 final class OAuthConsentStoreTest extends TestCase
 {
+    use ProphecyTrait;
+
     public function testCreateStoresAuthorizationRequestMetadata(): void
     {
         $store = new OAuthConsentStore();
@@ -107,12 +111,12 @@ final class OAuthConsentStoreTest extends TestCase
      */
     private function event(array $scopes): AuthorizationRequestResolveEvent
     {
-        $authorizationRequest = $this->createMock(AuthorizationRequestInterface::class);
-        $authorizationRequest->method('getRedirectUri')->willReturn('https://client.example.com/callback');
-        $authorizationRequest->method('getState')->willReturn('state-1');
+        $authorizationRequest = $this->prophesize(AuthorizationRequestInterface::class);
+        $authorizationRequest->getRedirectUri(Argument::cetera())->willReturn('https://client.example.com/callback');
+        $authorizationRequest->getState(Argument::cetera())->willReturn('state-1');
 
         return new AuthorizationRequestResolveEvent(
-            $authorizationRequest,
+            $authorizationRequest->reveal(),
             \array_map(static fn (string $scope): Scope => new Scope($scope), $scopes),
             new Client('Claude Code', 'client-1', null),
             new class() implements UserInterface {

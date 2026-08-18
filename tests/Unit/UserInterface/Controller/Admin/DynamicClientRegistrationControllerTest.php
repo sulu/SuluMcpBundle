@@ -16,22 +16,27 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Controller\Admin;
 use League\Bundle\OAuth2ServerBundle\Manager\ClientManagerInterface;
 use League\Bundle\OAuth2ServerBundle\Model\ClientInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Mcp\UserInterface\Controller\Admin\DynamicClientRegistrationController;
 use Symfony\Component\HttpFoundation\Request;
 
 #[CoversClass(DynamicClientRegistrationController::class)]
 final class DynamicClientRegistrationControllerTest extends TestCase
 {
-    private ClientManagerInterface&MockObject $clientManager;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<ClientManagerInterface> */
+    private ObjectProphecy $clientManager;
     private DynamicClientRegistrationController $controller;
 
     protected function setUp(): void
     {
-        $this->clientManager = $this->createMock(ClientManagerInterface::class);
+        $this->clientManager = $this->prophesize(ClientManagerInterface::class);
         $this->controller = new DynamicClientRegistrationController(
-            $this->clientManager,
+            $this->clientManager->reveal(),
             ['mcp:tools'],
         );
     }
@@ -39,11 +44,11 @@ final class DynamicClientRegistrationControllerTest extends TestCase
     public function testRegisterPersistsClientWithValidatedMetadata(): void
     {
         $capturedClient = null;
-        $this->clientManager->expects($this->once())
-            ->method('save')
-            ->willReturnCallback(static function(ClientInterface $client) use (&$capturedClient): void {
-                $capturedClient = $client;
-            });
+        $this->clientManager->save(Argument::type(ClientInterface::class))
+            ->will(function(array $args) use (&$capturedClient): void {
+                $capturedClient = $args[0];
+            })
+            ->shouldBeCalledOnce();
 
         $response = $this->controller->register($this->jsonRequest([
             'client_name' => 'Claude Code',
@@ -67,7 +72,7 @@ final class DynamicClientRegistrationControllerTest extends TestCase
 
     public function testRegisterRejectsInvalidJson(): void
     {
-        $this->clientManager->expects($this->never())->method('save');
+        $this->clientManager->save(Argument::cetera())->shouldNotBeCalled();
 
         $response = $this->controller->register(Request::create('/admin/mcp/register', 'POST', [], [], [], [], '{'));
 
@@ -77,7 +82,7 @@ final class DynamicClientRegistrationControllerTest extends TestCase
 
     public function testRegisterRejectsUnsafeRedirectUri(): void
     {
-        $this->clientManager->expects($this->never())->method('save');
+        $this->clientManager->save(Argument::cetera())->shouldNotBeCalled();
 
         $response = $this->controller->register($this->jsonRequest([
             'redirect_uris' => ['http://example.com/callback'],
@@ -89,7 +94,7 @@ final class DynamicClientRegistrationControllerTest extends TestCase
 
     public function testRegisterRejectsUnsupportedGrantType(): void
     {
-        $this->clientManager->expects($this->never())->method('save');
+        $this->clientManager->save(Argument::cetera())->shouldNotBeCalled();
 
         $response = $this->controller->register($this->jsonRequest([
             'redirect_uris' => ['https://client.example.com/callback'],
@@ -103,11 +108,11 @@ final class DynamicClientRegistrationControllerTest extends TestCase
     public function testRegisterRegistersPublicClientWithoutSecret(): void
     {
         $capturedClient = null;
-        $this->clientManager->expects($this->once())
-            ->method('save')
-            ->willReturnCallback(static function(ClientInterface $client) use (&$capturedClient): void {
-                $capturedClient = $client;
-            });
+        $this->clientManager->save(Argument::type(ClientInterface::class))
+            ->will(function(array $args) use (&$capturedClient): void {
+                $capturedClient = $args[0];
+            })
+            ->shouldBeCalledOnce();
 
         $response = $this->controller->register($this->jsonRequest([
             'client_name' => 'Codex',
@@ -128,11 +133,11 @@ final class DynamicClientRegistrationControllerTest extends TestCase
     public function testRegisterAcceptsPrivateUseSchemeRedirectUri(): void
     {
         $capturedClient = null;
-        $this->clientManager->expects($this->once())
-            ->method('save')
-            ->willReturnCallback(static function(ClientInterface $client) use (&$capturedClient): void {
-                $capturedClient = $client;
-            });
+        $this->clientManager->save(Argument::type(ClientInterface::class))
+            ->will(function(array $args) use (&$capturedClient): void {
+                $capturedClient = $args[0];
+            })
+            ->shouldBeCalledOnce();
 
         $response = $this->controller->register($this->jsonRequest([
             'client_name' => 'Native App',
@@ -148,11 +153,11 @@ final class DynamicClientRegistrationControllerTest extends TestCase
     public function testRegisterGrantsIntersectionOfRequestedScopes(): void
     {
         $capturedClient = null;
-        $this->clientManager->expects($this->once())
-            ->method('save')
-            ->willReturnCallback(static function(ClientInterface $client) use (&$capturedClient): void {
-                $capturedClient = $client;
-            });
+        $this->clientManager->save(Argument::type(ClientInterface::class))
+            ->will(function(array $args) use (&$capturedClient): void {
+                $capturedClient = $args[0];
+            })
+            ->shouldBeCalledOnce();
 
         $response = $this->controller->register($this->jsonRequest([
             'redirect_uris' => ['https://client.example.com/callback'],
@@ -167,7 +172,7 @@ final class DynamicClientRegistrationControllerTest extends TestCase
 
     public function testRegisterRejectsScopesWhenNoneOverlap(): void
     {
-        $this->clientManager->expects($this->never())->method('save');
+        $this->clientManager->save(Argument::cetera())->shouldNotBeCalled();
 
         $response = $this->controller->register($this->jsonRequest([
             'redirect_uris' => ['https://client.example.com/callback'],
@@ -180,7 +185,7 @@ final class DynamicClientRegistrationControllerTest extends TestCase
 
     public function testRegisterRejectsDangerousPrivateSchemeRedirectUri(): void
     {
-        $this->clientManager->expects($this->never())->method('save');
+        $this->clientManager->save(Argument::cetera())->shouldNotBeCalled();
 
         $response = $this->controller->register($this->jsonRequest([
             'redirect_uris' => ['file:/tmp/callback'],
@@ -194,11 +199,11 @@ final class DynamicClientRegistrationControllerTest extends TestCase
     public function testRegisterAcceptsIpv6LoopbackRedirectUri(): void
     {
         $capturedClient = null;
-        $this->clientManager->expects($this->once())
-            ->method('save')
-            ->willReturnCallback(static function(ClientInterface $client) use (&$capturedClient): void {
-                $capturedClient = $client;
-            });
+        $this->clientManager->save(Argument::type(ClientInterface::class))
+            ->will(function(array $args) use (&$capturedClient): void {
+                $capturedClient = $args[0];
+            })
+            ->shouldBeCalledOnce();
 
         $response = $this->controller->register($this->jsonRequest([
             'redirect_uris' => ['http://[::1]:1455/auth/callback'],

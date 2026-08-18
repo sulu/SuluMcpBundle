@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\HttpKernel\EventListener;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\EventListener\McpRequestFormatListener;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpKernel\Event\RequestEvent;
@@ -23,6 +24,8 @@ use Symfony\Component\HttpKernel\HttpKernelInterface;
 #[CoversClass(McpRequestFormatListener::class)]
 final class McpRequestFormatListenerTest extends TestCase
 {
+    use ProphecyTrait;
+
     private McpRequestFormatListener $listener;
 
     protected function setUp(): void
@@ -32,9 +35,9 @@ final class McpRequestFormatListenerTest extends TestCase
 
     private function createRequestEvent(string $pathInfo, int $type = HttpKernelInterface::MAIN_REQUEST): RequestEvent
     {
-        $kernel = $this->createMock(HttpKernelInterface::class);
+        $kernel = $this->prophesize(HttpKernelInterface::class);
 
-        return new RequestEvent($kernel, Request::create($pathInfo), $type);
+        return new RequestEvent($kernel->reveal(), Request::create($pathInfo), $type);
     }
 
     public function testSetsJsonFormatOnMcpPath(): void

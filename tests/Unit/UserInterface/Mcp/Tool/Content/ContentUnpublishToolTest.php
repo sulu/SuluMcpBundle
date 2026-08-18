@@ -16,57 +16,66 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Content;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Article\Domain\Model\ArticleInterface;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
+use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
-use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
-use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
-use Sulu\Content\Domain\Model\DimensionContentInterface;
-use Sulu\Content\Domain\Model\TemplateInterface;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
-use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
-use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
-use Sulu\Page\Domain\Model\PageInterface;
+use Sulu\Page\Domain\Model\Page;
+use Sulu\Page\Domain\Model\PageDimensionContent;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Sulu\Snippet\Application\Message\ApplyWorkflowTransitionSnippetMessage;
-use Sulu\Snippet\Domain\Model\SnippetInterface;
+use Sulu\Snippet\Domain\Model\Snippet;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
-use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 #[CoversClass(ContentUnpublishTool::class)]
 final class ContentUnpublishToolTest extends TestCase
 {
-    private MessageBusInterface&MockObject $messageBus;
-    private PageRepositoryInterface&MockObject $pageRepository;
-    private ArticleRepositoryInterface&MockObject $articleRepository;
-    private SnippetRepositoryInterface&MockObject $snippetRepository;
-    private ContentManagerInterface&MockObject $contentManager;
-    private ToolPermissionCheckerInterface&MockObject $permissionChecker;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<MessageBusInterface> */
+    private ObjectProphecy $messageBus;
+
+    /** @var ObjectProphecy<PageRepositoryInterface> */
+    private ObjectProphecy $pageRepository;
+
+    /** @var ObjectProphecy<ArticleRepositoryInterface> */
+    private ObjectProphecy $articleRepository;
+
+    /** @var ObjectProphecy<SnippetRepositoryInterface> */
+    private ObjectProphecy $snippetRepository;
+
+    /** @var ObjectProphecy<ContentManagerInterface> */
+    private ObjectProphecy $contentManager;
+
+    private FakeToolPermissionChecker $permissionChecker;
     private ContentUnpublishTool $tool;
 
     protected function setUp(): void
     {
-        $this->messageBus = $this->createMock(MessageBusInterface::class);
-        $this->pageRepository = $this->createMock(PageRepositoryInterface::class);
-        $this->articleRepository = $this->createMock(ArticleRepositoryInterface::class);
-        $this->snippetRepository = $this->createMock(SnippetRepositoryInterface::class);
-        $this->contentManager = $this->createMock(ContentManagerInterface::class);
-        $this->permissionChecker = $this->createMock(ToolPermissionCheckerInterface::class);
-        $groupProvider = $this->createMock(GroupProviderInterface::class);
-        $groupProvider->method('getGroups')->willReturn([]);
+        $this->messageBus = $this->prophesize(MessageBusInterface::class);
+        $this->pageRepository = $this->prophesize(PageRepositoryInterface::class);
+        $this->articleRepository = $this->prophesize(ArticleRepositoryInterface::class);
+        $this->snippetRepository = $this->prophesize(SnippetRepositoryInterface::class);
+        $this->contentManager = $this->prophesize(ContentManagerInterface::class);
+        $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
+        $groupProvider = new TestGroupProvider([]);
 
         $this->tool = new ContentUnpublishTool(
-            $this->messageBus,
-            new ContentTypeResolver($this->pageRepository, $this->articleRepository, $this->snippetRepository),
-            $this->contentManager,
+            $this->messageBus->reveal(),
+            new ContentTypeResolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
+            $this->contentManager->reveal(),
             $this->permissionChecker,
             new ContentSecurityContextResolver(new ArticleSecurityContextResolver($groupProvider)),
         );
@@ -76,30 +85,32 @@ final class ContentUnpublishToolTest extends TestCase
     {
         $this->setupEntity('snippet');
 
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->willReturnCallback(function(Envelope $envelope) {
-                $this->assertInstanceOf(ApplyWorkflowTransitionSnippetMessage::class, $envelope->getMessage());
-                $this->assertArrayHasKey(EnableFlushStamp::class, $envelope->all());
+        $captured = new \stdClass();
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($captured) {
+                $captured->envelope = $args[0];
 
-                return $envelope->with(new HandledStamp(null, 'handler'));
+                return $args[0]->with(new HandledStamp(null, 'handler'));
             });
 
         $result = $this->tool->unpublishContent('snippet', 'uuid-1', 'en');
 
+        $this->assertInstanceOf(ApplyWorkflowTransitionSnippetMessage::class, $captured->envelope->getMessage());
+        $this->assertArrayHasKey(EnableFlushStamp::class, $captured->envelope->all());
         $this->assertSame('unpublished', $result['action']);
     }
 
     public function testUnsupportedTypeReturnsError(): void
     {
-        $this->messageBus->expects($this->never())->method('dispatch');
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
         $this->assertArrayHasKey('error', $this->tool->unpublishContent('media', 'uuid-1', 'en'));
     }
 
     public function testEntityNotFoundReturnsErrorWithoutDispatch(): void
     {
-        $this->snippetRepository->method('getOneBy')->willThrowException(new \RuntimeException('not found'));
-        $this->messageBus->expects($this->never())->method('dispatch');
+        $this->snippetRepository->getOneBy(Argument::cetera())->willThrow(new \RuntimeException('not found'));
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         $result = $this->tool->unpublishContent('snippet', 'missing-uuid', 'en');
 
@@ -116,11 +127,9 @@ final class ContentUnpublishToolTest extends TestCase
     {
         $this->setupEntity('snippet');
 
-        $this->permissionChecker
-            ->method('check')
-            ->willThrowException(new PermissionDeniedException('sulu.snippet.snippets', PermissionTypes::LIVE, 'en'));
+        $this->permissionChecker->denyAll();
 
-        $this->messageBus->expects($this->never())->method('dispatch');
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         $this->expectException(ToolCallException::class);
 
@@ -129,23 +138,27 @@ final class ContentUnpublishToolTest extends TestCase
 
     private function setupEntity(string $type): void
     {
-        $entity = $this->createMock(match ($type) {
-            'page' => PageInterface::class,
-            'article' => ArticleInterface::class,
-            'snippet' => SnippetInterface::class,
-            default => PageInterface::class,
-        });
+        $entity = match ($type) {
+            'article' => new Article('uuid-1'),
+            'snippet' => new Snippet('uuid-1'),
+            default => (static function(): Page {
+                $page = new Page('uuid-1');
+                $page->setWebspaceKey('example');
+
+                return $page;
+            })(),
+        };
 
         match ($type) {
-            'article' => $this->articleRepository->method('getOneBy')->willReturn($entity),
-            'snippet' => $this->snippetRepository->method('getOneBy')->willReturn($entity),
-            default => $this->pageRepository->method('getOneBy')->willReturn($entity),
+            'article' => $this->articleRepository->getOneBy(Argument::cetera())->willReturn($entity),
+            'snippet' => $this->snippetRepository->getOneBy(Argument::cetera())->willReturn($entity),
+            default => $this->pageRepository->getOneBy(Argument::cetera())->willReturn($entity),
         };
 
         if ('article' === $type) {
-            $dimensionContent = $this->createMockForIntersectionOfInterfaces([TemplateInterface::class, DimensionContentInterface::class]);
-            $dimensionContent->method('getTemplateKey')->willReturn('default');
-            $this->contentManager->method('resolve')->willReturn($dimensionContent);
+            $dimensionContent = new PageDimensionContent(new Page());
+            $dimensionContent->setTemplateKey('default');
+            $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         }
     }
 }

@@ -15,8 +15,10 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\CategoryBundle\Api\Category as ApiCategory;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryListTool;
@@ -24,35 +26,35 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryListTool;
 #[CoversClass(CategoryListTool::class)]
 final class CategoryListToolTest extends TestCase
 {
-    private CategoryManagerInterface&MockObject $categoryManager;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<CategoryManagerInterface> */
+    private ObjectProphecy $categoryManager;
     private CategoryListTool $tool;
 
     protected function setUp(): void
     {
-        $this->categoryManager = $this->createMock(CategoryManagerInterface::class);
-        $this->tool = new CategoryListTool($this->categoryManager);
+        $this->categoryManager = $this->prophesize(CategoryManagerInterface::class);
+        $this->tool = new CategoryListTool($this->categoryManager->reveal());
     }
 
     public function testListCategoriesReturnsTree(): void
     {
-        $child = $this->createMock(ApiCategory::class);
-        $child->method('getId')->willReturn(2);
-        $child->method('getName')->willReturn('PHP');
-        $child->method('getKey')->willReturn('php');
-        $child->method('getChildren')->willReturn([]);
+        $child = $this->prophesize(ApiCategory::class);
+        $child->getId(Argument::cetera())->willReturn(2);
+        $child->getName(Argument::cetera())->willReturn('PHP');
+        $child->getKey(Argument::cetera())->willReturn('php');
+        $child->getChildren(Argument::cetera())->willReturn([]);
 
-        $parent = $this->createMock(ApiCategory::class);
-        $parent->method('getId')->willReturn(1);
-        $parent->method('getName')->willReturn('Technology');
-        $parent->method('getKey')->willReturn('technology');
-        $parent->method('getChildren')->willReturn([$child]);
+        $parent = $this->prophesize(ApiCategory::class);
+        $parent->getId(Argument::cetera())->willReturn(1);
+        $parent->getName(Argument::cetera())->willReturn('Technology');
+        $parent->getKey(Argument::cetera())->willReturn('technology');
+        $parent->getChildren(Argument::cetera())->willReturn([$child->reveal()]);
 
-        $this->categoryManager->method('findChildrenByParentId')
-            ->with(null)
-            ->willReturn([$parent]);
+        $this->categoryManager->findChildrenByParentId(null)->willReturn([$parent->reveal()]);
 
-        $this->categoryManager->method('getApiObjects')
-            ->willReturn([$parent]);
+        $this->categoryManager->getApiObjects(Argument::cetera())->willReturn([$parent->reveal()]);
 
         $result = $this->tool->listCategories('en');
 
@@ -67,14 +69,14 @@ final class CategoryListToolTest extends TestCase
 
     public function testListCategoriesHasChildrenPresentOnAllNodes(): void
     {
-        $leaf = $this->createMock(ApiCategory::class);
-        $leaf->method('getId')->willReturn(3);
-        $leaf->method('getName')->willReturn('Leaf');
-        $leaf->method('getKey')->willReturn('leaf');
-        $leaf->method('getChildren')->willReturn([]);
+        $leaf = $this->prophesize(ApiCategory::class);
+        $leaf->getId(Argument::cetera())->willReturn(3);
+        $leaf->getName(Argument::cetera())->willReturn('Leaf');
+        $leaf->getKey(Argument::cetera())->willReturn('leaf');
+        $leaf->getChildren(Argument::cetera())->willReturn([]);
 
-        $this->categoryManager->method('findChildrenByParentId')->willReturn([$leaf]);
-        $this->categoryManager->method('getApiObjects')->willReturn([$leaf]);
+        $this->categoryManager->findChildrenByParentId(Argument::cetera())->willReturn([$leaf->reveal()]);
+        $this->categoryManager->getApiObjects(Argument::cetera())->willReturn([$leaf->reveal()]);
 
         $result = $this->tool->listCategories('en');
 
@@ -84,26 +86,26 @@ final class CategoryListToolTest extends TestCase
 
     public function testListCategoriesMaxDepthStopsRecursion(): void
     {
-        $grandchild = $this->createMock(ApiCategory::class);
-        $grandchild->method('getId')->willReturn(3);
-        $grandchild->method('getName')->willReturn('Grandchild');
-        $grandchild->method('getKey')->willReturn('grandchild');
-        $grandchild->method('getChildren')->willReturn([]);
+        $grandchild = $this->prophesize(ApiCategory::class);
+        $grandchild->getId(Argument::cetera())->willReturn(3);
+        $grandchild->getName(Argument::cetera())->willReturn('Grandchild');
+        $grandchild->getKey(Argument::cetera())->willReturn('grandchild');
+        $grandchild->getChildren(Argument::cetera())->willReturn([]);
 
-        $child = $this->createMock(ApiCategory::class);
-        $child->method('getId')->willReturn(2);
-        $child->method('getName')->willReturn('Child');
-        $child->method('getKey')->willReturn('child');
-        $child->method('getChildren')->willReturn([$grandchild]);
+        $child = $this->prophesize(ApiCategory::class);
+        $child->getId(Argument::cetera())->willReturn(2);
+        $child->getName(Argument::cetera())->willReturn('Child');
+        $child->getKey(Argument::cetera())->willReturn('child');
+        $child->getChildren(Argument::cetera())->willReturn([$grandchild->reveal()]);
 
-        $parent = $this->createMock(ApiCategory::class);
-        $parent->method('getId')->willReturn(1);
-        $parent->method('getName')->willReturn('Parent');
-        $parent->method('getKey')->willReturn('parent');
-        $parent->method('getChildren')->willReturn([$child]);
+        $parent = $this->prophesize(ApiCategory::class);
+        $parent->getId(Argument::cetera())->willReturn(1);
+        $parent->getName(Argument::cetera())->willReturn('Parent');
+        $parent->getKey(Argument::cetera())->willReturn('parent');
+        $parent->getChildren(Argument::cetera())->willReturn([$child->reveal()]);
 
-        $this->categoryManager->method('findChildrenByParentId')->willReturn([$parent]);
-        $this->categoryManager->method('getApiObjects')->willReturn([$parent]);
+        $this->categoryManager->findChildrenByParentId(Argument::cetera())->willReturn([$parent->reveal()]);
+        $this->categoryManager->getApiObjects(Argument::cetera())->willReturn([$parent->reveal()]);
 
         $result = $this->tool->listCategories('en', 1);
 
@@ -118,20 +120,20 @@ final class CategoryListToolTest extends TestCase
 
     public function testListCategoriesMaxDepthZeroReturnsOnlyTopLevel(): void
     {
-        $child = $this->createMock(ApiCategory::class);
-        $child->method('getId')->willReturn(2);
-        $child->method('getName')->willReturn('Child');
-        $child->method('getKey')->willReturn('child');
-        $child->method('getChildren')->willReturn([]);
+        $child = $this->prophesize(ApiCategory::class);
+        $child->getId(Argument::cetera())->willReturn(2);
+        $child->getName(Argument::cetera())->willReturn('Child');
+        $child->getKey(Argument::cetera())->willReturn('child');
+        $child->getChildren(Argument::cetera())->willReturn([]);
 
-        $root = $this->createMock(ApiCategory::class);
-        $root->method('getId')->willReturn(1);
-        $root->method('getName')->willReturn('Root');
-        $root->method('getKey')->willReturn('root');
-        $root->method('getChildren')->willReturn([$child]);
+        $root = $this->prophesize(ApiCategory::class);
+        $root->getId(Argument::cetera())->willReturn(1);
+        $root->getName(Argument::cetera())->willReturn('Root');
+        $root->getKey(Argument::cetera())->willReturn('root');
+        $root->getChildren(Argument::cetera())->willReturn([$child->reveal()]);
 
-        $this->categoryManager->method('findChildrenByParentId')->willReturn([$root]);
-        $this->categoryManager->method('getApiObjects')->willReturn([$root]);
+        $this->categoryManager->findChildrenByParentId(Argument::cetera())->willReturn([$root->reveal()]);
+        $this->categoryManager->getApiObjects(Argument::cetera())->willReturn([$root->reveal()]);
 
         $result = $this->tool->listCategories('en', 0);
 
@@ -142,26 +144,26 @@ final class CategoryListToolTest extends TestCase
 
     public function testListCategoriesWithoutMaxDepthReturnsFullTree(): void
     {
-        $grandchild = $this->createMock(ApiCategory::class);
-        $grandchild->method('getId')->willReturn(3);
-        $grandchild->method('getName')->willReturn('Grandchild');
-        $grandchild->method('getKey')->willReturn('grandchild');
-        $grandchild->method('getChildren')->willReturn([]);
+        $grandchild = $this->prophesize(ApiCategory::class);
+        $grandchild->getId(Argument::cetera())->willReturn(3);
+        $grandchild->getName(Argument::cetera())->willReturn('Grandchild');
+        $grandchild->getKey(Argument::cetera())->willReturn('grandchild');
+        $grandchild->getChildren(Argument::cetera())->willReturn([]);
 
-        $child = $this->createMock(ApiCategory::class);
-        $child->method('getId')->willReturn(2);
-        $child->method('getName')->willReturn('Child');
-        $child->method('getKey')->willReturn('child');
-        $child->method('getChildren')->willReturn([$grandchild]);
+        $child = $this->prophesize(ApiCategory::class);
+        $child->getId(Argument::cetera())->willReturn(2);
+        $child->getName(Argument::cetera())->willReturn('Child');
+        $child->getKey(Argument::cetera())->willReturn('child');
+        $child->getChildren(Argument::cetera())->willReturn([$grandchild->reveal()]);
 
-        $root = $this->createMock(ApiCategory::class);
-        $root->method('getId')->willReturn(1);
-        $root->method('getName')->willReturn('Root');
-        $root->method('getKey')->willReturn('root');
-        $root->method('getChildren')->willReturn([$child]);
+        $root = $this->prophesize(ApiCategory::class);
+        $root->getId(Argument::cetera())->willReturn(1);
+        $root->getName(Argument::cetera())->willReturn('Root');
+        $root->getKey(Argument::cetera())->willReturn('root');
+        $root->getChildren(Argument::cetera())->willReturn([$child->reveal()]);
 
-        $this->categoryManager->method('findChildrenByParentId')->willReturn([$root]);
-        $this->categoryManager->method('getApiObjects')->willReturn([$root]);
+        $this->categoryManager->findChildrenByParentId(Argument::cetera())->willReturn([$root->reveal()]);
+        $this->categoryManager->getApiObjects(Argument::cetera())->willReturn([$root->reveal()]);
 
         $result = $this->tool->listCategories('en');
 
@@ -171,8 +173,7 @@ final class CategoryListToolTest extends TestCase
 
     public function testListCategoriesReturnsHintOnFailure(): void
     {
-        $this->categoryManager->method('findChildrenByParentId')
-            ->willThrowException(new \RuntimeException('DB error'));
+        $this->categoryManager->findChildrenByParentId(Argument::cetera())->willThrow(new \RuntimeException('DB error'));
 
         $result = $this->tool->listCategories('en');
 

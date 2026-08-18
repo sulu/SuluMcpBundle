@@ -14,42 +14,34 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\Routing;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Bundle\AdminBundle\Admin\View\View;
-use Sulu\Bundle\AdminBundle\Admin\View\ViewRegistry;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
-use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
+use Symfony\Component\Routing\Loader\ClosureLoader;
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
+use Symfony\Component\Routing\Router;
 use Symfony\Component\Routing\RouterInterface;
 
 #[CoversClass(AdminLinkGenerator::class)]
 final class AdminLinkGeneratorTest extends TestCase
 {
-    private RouterInterface&MockObject $router;
+    use ProphecyTrait;
+
     private SnippetAdminLinkProvider $snippetProvider;
 
     protected function setUp(): void
     {
-        $this->router = $this->createMock(RouterInterface::class);
-
-        $viewRegistry = $this->createMock(ViewRegistry::class);
-        $viewRegistry->method('findViewByName')->willReturnCallback(
-            static fn (string $name): View => new View($name, '/snippets/:locale/:id', 'form'),
-        );
-
-        $this->snippetProvider = new SnippetAdminLinkProvider($viewRegistry);
+        $this->snippetProvider = new SnippetAdminLinkProvider(new TestViewRegistry());
     }
 
     public function testGenerateReturnsAbsoluteDeeplink(): void
     {
-        $this->router
-            ->expects($this->once())
-            ->method('generate')
-            ->with('sulu_admin', [], UrlGeneratorInterface::ABSOLUTE_URL)
-            ->willReturn('https://example.com/admin/');
-
-        $generator = new AdminLinkGenerator($this->router, [$this->snippetProvider]);
+        $generator = new AdminLinkGenerator($this->router(), [$this->snippetProvider]);
 
         $result = $generator->generate('snippet', ['locale' => 'en', 'uuid' => 'abc']);
 
@@ -58,11 +50,7 @@ final class AdminLinkGeneratorTest extends TestCase
 
     public function testGenerateStripsTrailingSlashFromBase(): void
     {
-        $this->router
-            ->method('generate')
-            ->willReturn('https://example.com/admin/');
-
-        $generator = new AdminLinkGenerator($this->router, [$this->snippetProvider]);
+        $generator = new AdminLinkGenerator($this->router(), [$this->snippetProvider]);
 
         $result = $generator->generate('snippet', ['locale' => 'en', 'uuid' => 'abc']);
 
@@ -72,9 +60,10 @@ final class AdminLinkGeneratorTest extends TestCase
 
     public function testGenerateReturnsNullForUnknownType(): void
     {
-        $this->router->expects($this->never())->method('generate');
+        $router = $this->prophesize(RouterInterface::class);
+        $router->generate(Argument::cetera())->shouldNotBeCalled();
 
-        $generator = new AdminLinkGenerator($this->router, [$this->snippetProvider]);
+        $generator = new AdminLinkGenerator($router->reveal(), [$this->snippetProvider]);
 
         $result = $generator->generate('unknown_type', ['locale' => 'en', 'uuid' => 'abc']);
 
@@ -83,9 +72,10 @@ final class AdminLinkGeneratorTest extends TestCase
 
     public function testGenerateReturnsNullWhenProviderBuildPathReturnsNull(): void
     {
-        $this->router->expects($this->never())->method('generate');
+        $router = $this->prophesize(RouterInterface::class);
+        $router->generate(Argument::cetera())->shouldNotBeCalled();
 
-        $generator = new AdminLinkGenerator($this->router, [$this->snippetProvider]);
+        $generator = new AdminLinkGenerator($router->reveal(), [$this->snippetProvider]);
 
         // Missing 'uuid' causes buildPath to return null
         $result = $generator->generate('snippet', ['locale' => 'en']);
@@ -95,11 +85,8 @@ final class AdminLinkGeneratorTest extends TestCase
 
     public function testGenerateReturnsNullWhenRouterThrows(): void
     {
-        $this->router
-            ->method('generate')
-            ->willThrowException(new \RuntimeException('Route not found'));
-
-        $generator = new AdminLinkGenerator($this->router, [$this->snippetProvider]);
+        // No 'sulu_admin' route registered, so the real router throws RouteNotFoundException
+        $generator = new AdminLinkGenerator($this->router(withAdminRoute: false), [$this->snippetProvider]);
 
         $result = $generator->generate('snippet', ['locale' => 'en', 'uuid' => 'abc']);
 
@@ -108,9 +95,10 @@ final class AdminLinkGeneratorTest extends TestCase
 
     public function testGenerateReturnsNullWhenProviderListIsEmpty(): void
     {
-        $this->router->expects($this->never())->method('generate');
+        $router = $this->prophesize(RouterInterface::class);
+        $router->generate(Argument::cetera())->shouldNotBeCalled();
 
-        $generator = new AdminLinkGenerator($this->router, []);
+        $generator = new AdminLinkGenerator($router->reveal(), []);
 
         $result = $generator->generate('snippet', ['locale' => 'en', 'uuid' => 'abc']);
 
@@ -119,15 +107,26 @@ final class AdminLinkGeneratorTest extends TestCase
 
     public function testGenerateSkipsNonMatchingProviders(): void
     {
-        $this->router
-            ->method('generate')
-            ->willReturn('https://example.com/admin');
-
-        $generator = new AdminLinkGenerator($this->router, [$this->snippetProvider]);
+        $generator = new AdminLinkGenerator($this->router(), [$this->snippetProvider]);
 
         // 'media' type is not served by SnippetAdminLinkProvider
         $result = $generator->generate('media', ['locale' => 'en', 'id' => 42]);
 
         $this->assertNull($result);
+    }
+
+    private function router(bool $withAdminRoute = true): RouterInterface
+    {
+        $routes = new RouteCollection();
+        if ($withAdminRoute) {
+            $routes->add('sulu_admin', new Route('/admin/'));
+        }
+
+        return new Router(
+            new ClosureLoader(),
+            static fn () => $routes,
+            [],
+            new RequestContext(host: 'example.com', scheme: 'https'),
+        );
     }
 }

@@ -17,12 +17,10 @@ use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
-use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
@@ -32,30 +30,35 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Security\AccessControlFilterFactory;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageListTool;
+use Sulu\Page\Domain\Model\Page;
+use Sulu\Page\Domain\Model\PageDimensionContent;
 use Sulu\Page\Domain\Model\PageInterface;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
 #[CoversClass(PageListTool::class)]
 final class PageListToolTest extends TestCase
 {
     use ProphecyTrait;
 
-    private PageRepositoryInterface&MockObject $pageRepository;
-    private ContentManagerInterface&MockObject $contentManager;
+    /** @var ObjectProphecy<PageRepositoryInterface> */
+    private ObjectProphecy $pageRepository;
+
+    /** @var ObjectProphecy<ContentManagerInterface> */
+    private ObjectProphecy $contentManager;
+
     private WebspacePermissionResolver $webspacePermissionResolver;
     private PageListTool $tool;
 
     protected function setUp(): void
     {
-        $this->pageRepository = $this->createMock(PageRepositoryInterface::class);
-        $this->contentManager = $this->createMock(ContentManagerInterface::class);
+        $this->pageRepository = $this->prophesize(PageRepositoryInterface::class);
+        $this->contentManager = $this->prophesize(ContentManagerInterface::class);
         // Default grants the '' key from unstubbed PageInterface mocks, so existing
         // happy-path tests are unaffected by the new filter.
         $this->webspacePermissionResolver = $this->webspaceResolver(['example']);
-        $this->tool = new PageListTool($this->pageRepository, $this->contentManager, $this->webspacePermissionResolver, new AccessControlFilterFactory(null, ['view' => 64, 'add' => 32, 'edit' => 16, 'delete' => 8, 'archive' => 4, 'live' => 2, 'security' => 1]));
+        $this->tool = new PageListTool($this->pageRepository->reveal(), $this->contentManager->reveal(), $this->webspacePermissionResolver, new AccessControlFilterFactory(null, ['view' => 64, 'add' => 32, 'edit' => 16, 'delete' => 8, 'archive' => 4, 'live' => 2, 'security' => 1]));
     }
 
     /**
@@ -73,34 +76,31 @@ final class PageListToolTest extends TestCase
             $webspaces[$key] = $webspace;
         }
 
-        $webspaceManager = $this->createMock(WebspaceManagerInterface::class);
-        $webspaceManager->method('getWebspaceCollection')->willReturn(new WebspaceCollection($webspaces));
+        $webspaceManager = $this->prophesize(WebspaceManagerInterface::class);
+        $webspaceManager->getWebspaceCollection()->willReturn(new WebspaceCollection($webspaces));
 
-        $securityChecker = $this->createMock(SecurityCheckerInterface::class);
-        $securityChecker->method('hasPermission')->willReturn(true);
+        $securityChecker = $this->prophesize(SecurityCheckerInterface::class);
+        $securityChecker->hasPermission(Argument::cetera())->willReturn(true);
 
-        $tokenStorage = $this->createMock(TokenStorageInterface::class);
-        $token = $this->createMock(TokenInterface::class);
-        $token->method('getUser')->willReturn($this->createMock(UserInterface::class));
-        $tokenStorage->method('getToken')->willReturn($token);
+        $tokenStorage = (new TestUser())->inTokenStorage();
 
-        return new WebspacePermissionResolver($webspaceManager, new ToolPermissionChecker($securityChecker, $tokenStorage));
+        return new WebspacePermissionResolver($webspaceManager->reveal(), new ToolPermissionChecker($securityChecker->reveal(), $tokenStorage));
     }
 
     public function testListPagesReturnsPaginatedResults(): void
     {
-        $page1 = $this->createMock(PageInterface::class);
-        $page1->method('getUuid')->willReturn('uuid-1');
-        $page2 = $this->createMock(PageInterface::class);
-        $page2->method('getUuid')->willReturn('uuid-2');
+        $page1 = new Page('uuid-1');
+        $page1->setWebspaceKey('example');
+        $page2 = new Page('uuid-2');
+        $page2->setWebspaceKey('example');
 
-        $this->pageRepository->method('findIdentifiersBy')->willReturn(['uuid-1', 'uuid-2']);
-        $this->pageRepository->method('findBy')->willReturn([$page1, $page2]);
-        $this->pageRepository->method('countBy')->willReturn(5);
+        $this->pageRepository->findIdentifiersBy(Argument::cetera())->willReturn(['uuid-1', 'uuid-2']);
+        $this->pageRepository->findBy(Argument::cetera())->willReturn([$page1, $page2]);
+        $this->pageRepository->countBy(Argument::cetera())->willReturn(5);
 
-        $dimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($dimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['title' => 'Test']);
+        $dimensionContent = new PageDimensionContent(new Page());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Test']);
 
         $result = $this->tool->listPages('example', 'en');
 
@@ -115,15 +115,14 @@ final class PageListToolTest extends TestCase
     public function testListPagesAppliesTemplateFilter(): void
     {
         $this->pageRepository
-            ->expects($this->once())
-            ->method('findIdentifiersBy')
-            ->with(
-                $this->callback(fn (array $filters): bool => isset($filters['templateKeys'])
+            ->findIdentifiersBy(
+                Argument::that(fn (array $filters): bool => isset($filters['templateKeys'])
                     && $filters['templateKeys'] === ['default']),
-                $this->anything(),
+                Argument::any(),
             )
+            ->shouldBeCalledOnce()
             ->willReturn([]);
-        $this->pageRepository->method('countBy')->willReturn(0);
+        $this->pageRepository->countBy(Argument::cetera())->willReturn(0);
 
         $this->tool->listPages('example', 'en', 'default');
     }
@@ -131,15 +130,14 @@ final class PageListToolTest extends TestCase
     public function testListPagesAppliesParentIdFilter(): void
     {
         $this->pageRepository
-            ->expects($this->once())
-            ->method('findIdentifiersBy')
-            ->with(
-                $this->callback(fn (array $filters): bool => isset($filters['parentId'])
+            ->findIdentifiersBy(
+                Argument::that(fn (array $filters): bool => isset($filters['parentId'])
                     && 'parent-uuid' === $filters['parentId']),
-                $this->anything(),
+                Argument::any(),
             )
+            ->shouldBeCalledOnce()
             ->willReturn([]);
-        $this->pageRepository->method('countBy')->willReturn(0);
+        $this->pageRepository->countBy(Argument::cetera())->willReturn(0);
 
         $this->tool->listPages('example', 'en', null, 'parent-uuid');
     }
@@ -147,39 +145,38 @@ final class PageListToolTest extends TestCase
     public function testListPagesDefaultsPaginationToPage1Limit20(): void
     {
         $this->pageRepository
-            ->expects($this->once())
-            ->method('findIdentifiersBy')
-            ->with(
-                $this->callback(fn (array $filters): bool => 1 === $filters['page'] && 20 === $filters['limit']),
-                $this->anything(),
+            ->findIdentifiersBy(
+                Argument::that(fn (array $filters): bool => 1 === $filters['page'] && 20 === $filters['limit']),
+                Argument::any(),
             )
+            ->shouldBeCalledOnce()
             ->willReturn([]);
-        $this->pageRepository->method('countBy')->willReturn(0);
+        $this->pageRepository->countBy(Argument::cetera())->willReturn(0);
 
         $this->tool->listPages('example', 'en');
     }
 
     public function testListPagesResolvesAndNormalizesEachPage(): void
     {
-        $page1 = $this->createMock(PageInterface::class);
-        $page1->method('getUuid')->willReturn('uuid-1');
-        $page2 = $this->createMock(PageInterface::class);
-        $page2->method('getUuid')->willReturn('uuid-2');
-        $page3 = $this->createMock(PageInterface::class);
-        $page3->method('getUuid')->willReturn('uuid-3');
+        $page1 = new Page('uuid-1');
+        $page1->setWebspaceKey('example');
+        $page2 = new Page('uuid-2');
+        $page2->setWebspaceKey('example');
+        $page3 = new Page('uuid-3');
+        $page3->setWebspaceKey('example');
 
-        $this->pageRepository->method('findIdentifiersBy')->willReturn(['uuid-1', 'uuid-2', 'uuid-3']);
-        $this->pageRepository->method('findBy')->willReturn([$page1, $page2, $page3]);
-        $this->pageRepository->method('countBy')->willReturn(3);
+        $this->pageRepository->findIdentifiersBy(Argument::cetera())->willReturn(['uuid-1', 'uuid-2', 'uuid-3']);
+        $this->pageRepository->findBy(Argument::cetera())->willReturn([$page1, $page2, $page3]);
+        $this->pageRepository->countBy(Argument::cetera())->willReturn(3);
 
-        $dimensionContent = $this->createMock(DimensionContentInterface::class);
+        $dimensionContent = new PageDimensionContent(new Page());
         $this->contentManager
-            ->expects($this->exactly(3))
-            ->method('resolve')
+            ->resolve(Argument::cetera())
+            ->shouldBeCalledTimes(3)
             ->willReturn($dimensionContent);
         $this->contentManager
-            ->expects($this->exactly(3))
-            ->method('normalize')
+            ->normalize(Argument::cetera())
+            ->shouldBeCalledTimes(3)
             ->willReturn(['title' => 'Test']);
 
         $this->tool->listPages('example', 'en');
@@ -211,9 +208,9 @@ final class PageListToolTest extends TestCase
 
     public function testListPagesReturnsEmptyListWhenNoWebspaceIsPermitted(): void
     {
-        $tool = new PageListTool($this->pageRepository, $this->contentManager, $this->webspaceResolver([]), new AccessControlFilterFactory(null, ['view' => 64, 'add' => 32, 'edit' => 16, 'delete' => 8, 'archive' => 4, 'live' => 2, 'security' => 1]));
+        $tool = new PageListTool($this->pageRepository->reveal(), $this->contentManager->reveal(), $this->webspaceResolver([]), new AccessControlFilterFactory(null, ['view' => 64, 'add' => 32, 'edit' => 16, 'delete' => 8, 'archive' => 4, 'live' => 2, 'security' => 1]));
 
-        $this->pageRepository->expects($this->never())->method('findBy');
+        $this->pageRepository->findBy(Argument::cetera())->shouldNotBeCalled();
 
         $result = $tool->listPages('example', 'en');
 
@@ -224,9 +221,9 @@ final class PageListToolTest extends TestCase
 
     public function testListPagesReturnsEmptyListWhenRequestedWebspaceIsNotPermitted(): void
     {
-        $tool = new PageListTool($this->pageRepository, $this->contentManager, $this->webspaceResolver(['other']), new AccessControlFilterFactory(null, ['view' => 64, 'add' => 32, 'edit' => 16, 'delete' => 8, 'archive' => 4, 'live' => 2, 'security' => 1]));
+        $tool = new PageListTool($this->pageRepository->reveal(), $this->contentManager->reveal(), $this->webspaceResolver(['other']), new AccessControlFilterFactory(null, ['view' => 64, 'add' => 32, 'edit' => 16, 'delete' => 8, 'archive' => 4, 'live' => 2, 'security' => 1]));
 
-        $this->pageRepository->expects($this->never())->method('findBy');
+        $this->pageRepository->findBy(Argument::cetera())->shouldNotBeCalled();
 
         $result = $tool->listPages('example', 'en');
 
@@ -244,15 +241,13 @@ final class PageListToolTest extends TestCase
         $isScoped = static fn (array $filters): bool => 'example' === ($filters['webspaceKey'] ?? null);
 
         $this->pageRepository
-            ->expects($this->once())
-            ->method('findIdentifiersBy')
-            ->with($this->callback($isScoped), $this->anything())
+            ->findIdentifiersBy(Argument::that($isScoped), Argument::any())
+            ->shouldBeCalledOnce()
             ->willReturn([]);
 
         $this->pageRepository
-            ->expects($this->once())
-            ->method('countBy')
-            ->with($this->callback($isScoped))
+            ->countBy(Argument::that($isScoped))
+            ->shouldBeCalledOnce()
             ->willReturn(0);
 
         $this->tool->listPages('example', 'en');

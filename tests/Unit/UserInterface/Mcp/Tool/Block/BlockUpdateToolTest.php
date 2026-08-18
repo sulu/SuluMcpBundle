@@ -17,31 +17,31 @@ use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Application\Message\ModifyArticleMessage;
-use Sulu\Article\Domain\Model\ArticleInterface;
+use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
-use Sulu\Bundle\AdminBundle\Application\BlockIdGenerator\BlockIdGeneratorInterface;
-use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
-use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
-use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
-use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
-use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
-use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
-use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
+use Sulu\Mcp\Tests\Unit\Fixture\FixedBlockIdGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockUpdateTool;
 use Sulu\Page\Application\Message\ModifyPageMessage;
-use Sulu\Page\Domain\Model\PageInterface;
+use Sulu\Page\Domain\Model\Page;
+use Sulu\Page\Domain\Model\PageDimensionContent;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Sulu\Snippet\Application\Message\ModifySnippetMessage;
-use Sulu\Snippet\Domain\Model\SnippetInterface;
+use Sulu\Snippet\Domain\Model\Snippet;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -52,36 +52,46 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 #[CoversClass(ContentTypeResolver::class)]
 final class BlockUpdateToolTest extends TestCase
 {
-    private PageRepositoryInterface&MockObject $pageRepository;
-    private ArticleRepositoryInterface&MockObject $articleRepository;
-    private SnippetRepositoryInterface&MockObject $snippetRepository;
-    private ContentManagerInterface&MockObject $contentManager;
-    private MessageBusInterface&MockObject $messageBus;
-    private BlockIdGeneratorInterface&MockObject $blockIdGenerator;
-    private MetadataProviderInterface&MockObject $formMetadataProvider;
-    private ToolPermissionCheckerInterface&MockObject $permissionChecker;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<PageRepositoryInterface> */
+    private ObjectProphecy $pageRepository;
+
+    /** @var ObjectProphecy<ArticleRepositoryInterface> */
+    private ObjectProphecy $articleRepository;
+
+    /** @var ObjectProphecy<SnippetRepositoryInterface> */
+    private ObjectProphecy $snippetRepository;
+
+    /** @var ObjectProphecy<ContentManagerInterface> */
+    private ObjectProphecy $contentManager;
+
+    /** @var ObjectProphecy<MessageBusInterface> */
+    private ObjectProphecy $messageBus;
+
+    private FixedBlockIdGenerator $blockIdGenerator;
+    private ArrayMetadataProvider $formMetadataProvider;
+    private FakeToolPermissionChecker $permissionChecker;
     private ContentSecurityContextResolver $contentSecurityContextResolver;
     private BlockUpdateTool $tool;
 
     protected function setUp(): void
     {
-        $this->pageRepository = $this->createMock(PageRepositoryInterface::class);
-        $this->articleRepository = $this->createMock(ArticleRepositoryInterface::class);
-        $this->snippetRepository = $this->createMock(SnippetRepositoryInterface::class);
-        $this->contentManager = $this->createMock(ContentManagerInterface::class);
-        $this->messageBus = $this->createMock(MessageBusInterface::class);
-        $this->blockIdGenerator = $this->createMock(BlockIdGeneratorInterface::class);
-        $this->blockIdGenerator->method('generateId')->willReturn('generated-id');
-        $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->formMetadataProvider->method('getMetadata')->willReturn($this->createMock(MetadataInterface::class));
-        $this->permissionChecker = $this->createMock(ToolPermissionCheckerInterface::class);
-        $groupProvider = $this->createMock(GroupProviderInterface::class);
-        $groupProvider->method('getGroups')->willReturn([]);
+        $this->pageRepository = $this->prophesize(PageRepositoryInterface::class);
+        $this->articleRepository = $this->prophesize(ArticleRepositoryInterface::class);
+        $this->snippetRepository = $this->prophesize(SnippetRepositoryInterface::class);
+        $this->contentManager = $this->prophesize(ContentManagerInterface::class);
+        $this->messageBus = $this->prophesize(MessageBusInterface::class);
+        $this->blockIdGenerator = new FixedBlockIdGenerator('generated-id');
+        $this->formMetadataProvider = new ArrayMetadataProvider();
+        $this->formMetadataProvider->setDefault(new FormMetadata());
+        $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
+        $groupProvider = new TestGroupProvider([]);
         $this->contentSecurityContextResolver = new ContentSecurityContextResolver(new ArticleSecurityContextResolver($groupProvider));
         $this->tool = new BlockUpdateTool(
-            $this->messageBus,
-            new ContentTypeResolver($this->pageRepository, $this->articleRepository, $this->snippetRepository),
-            $this->contentManager,
+            $this->messageBus->reveal(),
+            new ContentTypeResolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
+            $this->contentManager->reveal(),
             $this->blockIdGenerator,
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
@@ -91,12 +101,13 @@ final class BlockUpdateToolTest extends TestCase
 
     public function testUpdatePageBlockById(): void
     {
-        $page = $this->createMock(PageInterface::class);
-        $this->pageRepository->method('getOneBy')->willReturn($page);
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
 
-        $dimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($dimensionContent);
-        $this->contentManager->method('normalize')->willReturn([
+        $dimensionContent = new PageDimensionContent(new Page());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
             'template' => 'default',
             'title' => 'Test Page',
             'blocks' => [
@@ -105,24 +116,22 @@ final class BlockUpdateToolTest extends TestCase
             ],
         ]);
 
-        $updatedPage = $this->createMock(PageInterface::class);
-        $updatedPage->method('getUuid')->willReturn('page-uuid');
+        $updatedPage = new Page('page-uuid');
+        $updatedPage->setWebspaceKey('example');
 
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->with($this->callback(function(Envelope $envelope): bool {
-                $message = $envelope->getMessage();
-                $this->assertInstanceOf(ModifyPageMessage::class, $message);
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$capturedEnvelope): bool {
+            $capturedEnvelope = $envelope;
 
-                return true;
-            }))
-            ->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
+            return true;
+        }), Argument::type('array'))->shouldBeCalledOnce()->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
 
         $result = $this->tool->updateBlock('page', 'page-uuid', 'en', 'block-1', [
             'title' => 'New Title',
             'description' => '<p>New</p>',
         ]);
 
+        $this->assertInstanceOf(ModifyPageMessage::class, $capturedEnvelope->getMessage());
         $this->assertTrue($result['success']);
         $this->assertSame('page-uuid', $result['uuid']);
         $this->assertSame('block-1', $result['blockId']);
@@ -132,12 +141,12 @@ final class BlockUpdateToolTest extends TestCase
 
     public function testUpdateArticleBlockById(): void
     {
-        $article = $this->createMock(ArticleInterface::class);
-        $this->articleRepository->method('getOneBy')->willReturn($article);
+        $article = new Article();
+        $this->articleRepository->getOneBy(Argument::cetera())->willReturn($article);
 
-        $dimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($dimensionContent);
-        $this->contentManager->method('normalize')->willReturn([
+        $dimensionContent = new PageDimensionContent(new Page());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
             'template' => 'blog',
             'title' => 'Test Article',
             'content' => [
@@ -145,23 +154,20 @@ final class BlockUpdateToolTest extends TestCase
             ],
         ]);
 
-        $updatedArticle = $this->createMock(ArticleInterface::class);
-        $updatedArticle->method('getUuid')->willReturn('article-uuid');
+        $updatedArticle = new Article('article-uuid');
 
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->with($this->callback(function(Envelope $envelope): bool {
-                $message = $envelope->getMessage();
-                $this->assertInstanceOf(ModifyArticleMessage::class, $message);
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$capturedEnvelope): bool {
+            $capturedEnvelope = $envelope;
 
-                return true;
-            }))
-            ->willReturn(new Envelope($updatedArticle, [new HandledStamp($updatedArticle, 'handler')]));
+            return true;
+        }), Argument::type('array'))->shouldBeCalledOnce()->willReturn(new Envelope($updatedArticle, [new HandledStamp($updatedArticle, 'handler')]));
 
         $result = $this->tool->updateBlock('article', 'article-uuid', 'en', 'art-block-1', [
             'body' => '<p>Updated</p>',
         ]);
 
+        $this->assertInstanceOf(ModifyArticleMessage::class, $capturedEnvelope->getMessage());
         $this->assertTrue($result['success']);
         $this->assertSame('article-uuid', $result['uuid']);
         $this->assertSame('art-block-1', $result['blockId']);
@@ -170,12 +176,12 @@ final class BlockUpdateToolTest extends TestCase
 
     public function testUpdateSnippetBlockById(): void
     {
-        $snippet = $this->createMock(SnippetInterface::class);
-        $this->snippetRepository->method('getOneBy')->willReturn($snippet);
+        $snippet = new Snippet();
+        $this->snippetRepository->getOneBy(Argument::cetera())->willReturn($snippet);
 
-        $dimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($dimensionContent);
-        $this->contentManager->method('normalize')->willReturn([
+        $dimensionContent = new PageDimensionContent(new Page());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
             'template' => 'default',
             'title' => 'Test Snippet',
             'blocks' => [
@@ -183,22 +189,20 @@ final class BlockUpdateToolTest extends TestCase
             ],
         ]);
 
-        $updatedSnippet = $this->createMock(SnippetInterface::class);
+        $updatedSnippet = new Snippet();
 
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->with($this->callback(function(Envelope $envelope): bool {
-                $message = $envelope->getMessage();
-                $this->assertInstanceOf(ModifySnippetMessage::class, $message);
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$capturedEnvelope): bool {
+            $capturedEnvelope = $envelope;
 
-                return true;
-            }))
-            ->willReturn(new Envelope($updatedSnippet, [new HandledStamp($updatedSnippet, 'handler')]));
+            return true;
+        }), Argument::type('array'))->shouldBeCalledOnce()->willReturn(new Envelope($updatedSnippet, [new HandledStamp($updatedSnippet, 'handler')]));
 
         $result = $this->tool->updateBlock('snippet', 'snippet-uuid', 'en', 'snip-block-1', [
             'content' => '<p>Updated</p>',
         ]);
 
+        $this->assertInstanceOf(ModifySnippetMessage::class, $capturedEnvelope->getMessage());
         $this->assertTrue($result['success']);
         $this->assertSame('snippet-uuid', $result['uuid']);
         $this->assertSame('snip-block-1', $result['blockId']);
@@ -207,12 +211,13 @@ final class BlockUpdateToolTest extends TestCase
 
     public function testBlockNotFoundReturnsError(): void
     {
-        $page = $this->createMock(PageInterface::class);
-        $this->pageRepository->method('getOneBy')->willReturn($page);
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
 
-        $dimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($dimensionContent);
-        $this->contentManager->method('normalize')->willReturn([
+        $dimensionContent = new PageDimensionContent(new Page());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
             'template' => 'default',
             'title' => 'Test',
             'blocks' => [
@@ -229,8 +234,8 @@ final class BlockUpdateToolTest extends TestCase
 
     public function testEntityNotFoundReturnsError(): void
     {
-        $this->pageRepository->method('getOneBy')
-            ->willThrowException(new \RuntimeException('Not found'));
+        $this->pageRepository->getOneBy(Argument::cetera())
+            ->willThrow(new \RuntimeException('Not found'));
 
         $result = $this->tool->updateBlock('page', 'missing-uuid', 'en', 'block-1', ['title' => 'New']);
 
@@ -247,12 +252,13 @@ final class BlockUpdateToolTest extends TestCase
 
     public function testPartialMergePreservesExistingFields(): void
     {
-        $page = $this->createMock(PageInterface::class);
-        $this->pageRepository->method('getOneBy')->willReturn($page);
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
 
-        $dimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($dimensionContent);
-        $this->contentManager->method('normalize')->willReturn([
+        $dimensionContent = new PageDimensionContent(new Page());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
             'template' => 'default',
             'title' => 'Test Page',
             'blocks' => [
@@ -260,21 +266,18 @@ final class BlockUpdateToolTest extends TestCase
             ],
         ]);
 
-        $updatedPage = $this->createMock(PageInterface::class);
-        $updatedPage->method('getUuid')->willReturn('page-uuid');
+        $updatedPage = new Page('page-uuid');
+        $updatedPage->setWebspaceKey('example');
 
         $dispatchedBlocks = null;
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->with($this->callback(function(Envelope $envelope) use (&$dispatchedBlocks): bool {
-                /** @var ModifyPageMessage $message */
-                $message = $envelope->getMessage();
-                $data = (new \ReflectionProperty($message, 'data'))->getValue($message);
-                $dispatchedBlocks = $data['blocks'];
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$dispatchedBlocks): bool {
+            /** @var ModifyPageMessage $message */
+            $message = $envelope->getMessage();
+            $data = (new \ReflectionProperty($message, 'data'))->getValue($message);
+            $dispatchedBlocks = $data['blocks'];
 
-                return true;
-            }))
-            ->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
+            return true;
+        }), Argument::type('array'))->shouldBeCalledOnce()->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
 
         $this->tool->updateBlock('page', 'page-uuid', 'en', 'block-1', [
             'description' => '<p>New</p>',
@@ -313,17 +316,16 @@ final class BlockUpdateToolTest extends TestCase
 
     public function testUpdateBlockThrowsToolCallExceptionWhenPermissionDenied(): void
     {
-        $page = $this->createMock(PageInterface::class);
-        $this->pageRepository->method('getOneBy')->willReturn($page);
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
 
-        $dimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($dimensionContent);
+        $dimensionContent = new PageDimensionContent(new Page());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
 
-        $this->permissionChecker
-            ->method('check')
-            ->willThrowException(new PermissionDeniedException('sulu.webspaces.example', PermissionTypes::EDIT, 'en'));
+        $this->permissionChecker->denyAll();
 
-        $this->messageBus->expects($this->never())->method('dispatch');
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         $this->expectException(ToolCallException::class);
 

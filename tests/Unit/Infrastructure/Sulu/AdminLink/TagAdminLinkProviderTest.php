@@ -15,8 +15,10 @@ namespace Sulu\Mcp\Tests\Unit\Infrastructure\Sulu\AdminLink;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\AdminBundle\Admin\View\View;
 use Sulu\Bundle\AdminBundle\Admin\View\ViewRegistry;
 use Sulu\Bundle\AdminBundle\Exception\ViewNotFoundException;
@@ -26,13 +28,16 @@ use Sulu\Mcp\Infrastructure\Sulu\AdminLink\TagAdminLinkProvider;
 #[CoversClass(TagAdminLinkProvider::class)]
 final class TagAdminLinkProviderTest extends TestCase
 {
-    private ViewRegistry&MockObject $viewRegistry;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<ViewRegistry> */
+    private ObjectProphecy $viewRegistry;
     private TagAdminLinkProvider $provider;
 
     protected function setUp(): void
     {
-        $this->viewRegistry = $this->createMock(ViewRegistry::class);
-        $this->viewRegistry->method('findViewByName')->willReturnCallback(
+        $this->viewRegistry = $this->prophesize(ViewRegistry::class);
+        $this->viewRegistry->findViewByName(Argument::cetera())->will(fn (array $args) => (
             static function(string $name): View {
                 if (TagAdmin::EDIT_FORM_VIEW === $name) {
                     return new View($name, '/tags/:id', 'form');
@@ -40,9 +45,9 @@ final class TagAdminLinkProviderTest extends TestCase
 
                 throw new ViewNotFoundException($name);
             }
-        );
+        )(...$args));
 
-        $this->provider = new TagAdminLinkProvider($this->viewRegistry);
+        $this->provider = new TagAdminLinkProvider($this->viewRegistry->reveal());
     }
 
     public function testGetTypeReturnsTag(): void

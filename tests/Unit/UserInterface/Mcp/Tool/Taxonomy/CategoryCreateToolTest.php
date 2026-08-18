@@ -16,8 +16,10 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Taxonomy;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
 use Sulu\Bundle\CategoryBundle\Entity\CategoryInterface;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\CategoryAdminLinkProvider;
@@ -32,34 +34,36 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[CoversClass(CategoryCreateTool::class)]
 final class CategoryCreateToolTest extends TestCase
 {
-    private CategoryManagerInterface&MockObject $categoryManager;
-    private TokenStorageInterface&MockObject $tokenStorage;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<CategoryManagerInterface> */
+    private ObjectProphecy $categoryManager;
+    /** @var ObjectProphecy<TokenStorageInterface> */
+    private ObjectProphecy $tokenStorage;
     private CategoryCreateTool $tool;
 
     protected function setUp(): void
     {
-        $this->categoryManager = $this->createMock(CategoryManagerInterface::class);
-        $this->tokenStorage = $this->createMock(TokenStorageInterface::class);
+        $this->categoryManager = $this->prophesize(CategoryManagerInterface::class);
+        $this->tokenStorage = $this->prophesize(TokenStorageInterface::class);
 
-        $router = $this->createMock(RouterInterface::class);
-        $router->method('generate')->willReturn('https://example.com/admin/');
-        $adminLinkGenerator = new AdminLinkGenerator($router, [new CategoryAdminLinkProvider(new TestViewRegistry())]);
+        $router = $this->prophesize(RouterInterface::class);
+        $router->generate(Argument::cetera())->willReturn('https://example.com/admin/');
+        $adminLinkGenerator = new AdminLinkGenerator($router->reveal(), [new CategoryAdminLinkProvider(new TestViewRegistry())]);
 
-        $this->tool = new CategoryCreateTool($this->categoryManager, $this->tokenStorage, $adminLinkGenerator);
+        $this->tool = new CategoryCreateTool($this->categoryManager->reveal(), $this->tokenStorage->reveal(), $adminLinkGenerator);
     }
 
     public function testCreateCategoryReturnsSuccess(): void
     {
         $this->mockAuthenticatedUser(1);
 
-        $category = $this->createMock(CategoryInterface::class);
-        $category->method('getId')->willReturn(10);
-        $category->method('getKey')->willReturn('technology');
+        $category = $this->prophesize(CategoryInterface::class);
+        $category->getId(Argument::cetera())->willReturn(10);
+        $category->getKey(Argument::cetera())->willReturn('technology');
 
-        $this->categoryManager->expects($this->once())
-            ->method('save')
-            ->with(['name' => 'Technology', 'locale' => 'en', 'key' => 'technology'], 1, 'en')
-            ->willReturn($category);
+        $this->categoryManager->save(['name' => 'Technology', 'locale' => 'en', 'key' => 'technology'], 1, 'en')->shouldBeCalledOnce()
+            ->willReturn($category->reveal());
 
         $result = $this->tool->createCategory('en', 'Technology', 'technology');
 
@@ -74,14 +78,12 @@ final class CategoryCreateToolTest extends TestCase
     {
         $this->mockAuthenticatedUser(1);
 
-        $category = $this->createMock(CategoryInterface::class);
-        $category->method('getId')->willReturn(11);
-        $category->method('getKey')->willReturn('php');
+        $category = $this->prophesize(CategoryInterface::class);
+        $category->getId(Argument::cetera())->willReturn(11);
+        $category->getKey(Argument::cetera())->willReturn('php');
 
-        $this->categoryManager->expects($this->once())
-            ->method('save')
-            ->with(['name' => 'PHP', 'locale' => 'en', 'parent' => 10], 1, 'en')
-            ->willReturn($category);
+        $this->categoryManager->save(['name' => 'PHP', 'locale' => 'en', 'parent' => 10], 1, 'en')->shouldBeCalledOnce()
+            ->willReturn($category->reveal());
 
         $result = $this->tool->createCategory('en', 'PHP', null, 10);
 
@@ -90,8 +92,6 @@ final class CategoryCreateToolTest extends TestCase
 
     public function testCreateCategoryReturnsErrorWhenNoUser(): void
     {
-        $this->tokenStorage->method('getToken')->willReturn(null);
-
         $result = $this->tool->createCategory('en', 'Test');
 
         $this->assertArrayHasKey('error', $result);
@@ -105,7 +105,7 @@ final class CategoryCreateToolTest extends TestCase
     {
         $this->mockAuthenticatedUser(1);
 
-        $this->categoryManager->method('save')->willThrowException(new \RuntimeException('Duplicate key'));
+        $this->categoryManager->save(Argument::cetera())->willThrow(new \RuntimeException('Duplicate key'));
 
         $result = $this->tool->createCategory('en', 'Duplicate');
 
@@ -165,8 +165,8 @@ final class CategoryCreateToolTest extends TestCase
             }
         };
 
-        $token = $this->createMock(TokenInterface::class);
-        $token->method('getUser')->willReturn($user);
-        $this->tokenStorage->method('getToken')->willReturn($token);
+        $token = $this->prophesize(TokenInterface::class);
+        $token->getUser(Argument::cetera())->willReturn($user);
+        $this->tokenStorage->getToken(Argument::cetera())->willReturn($token->reveal());
     }
 }

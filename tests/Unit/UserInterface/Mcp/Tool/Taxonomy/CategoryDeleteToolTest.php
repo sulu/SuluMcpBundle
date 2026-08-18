@@ -15,28 +15,31 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryDeleteTool;
 
 #[CoversClass(CategoryDeleteTool::class)]
 final class CategoryDeleteToolTest extends TestCase
 {
-    private CategoryManagerInterface&MockObject $categoryManager;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<CategoryManagerInterface> */
+    private ObjectProphecy $categoryManager;
     private CategoryDeleteTool $tool;
 
     protected function setUp(): void
     {
-        $this->categoryManager = $this->createMock(CategoryManagerInterface::class);
-        $this->tool = new CategoryDeleteTool($this->categoryManager);
+        $this->categoryManager = $this->prophesize(CategoryManagerInterface::class);
+        $this->tool = new CategoryDeleteTool($this->categoryManager->reveal());
     }
 
     public function testDeleteCategoryReturnsSuccess(): void
     {
-        $this->categoryManager->expects($this->once())
-            ->method('delete')
-            ->with(42);
+        $this->categoryManager->delete(42)->shouldBeCalledOnce();
 
         $result = $this->tool->deleteCategory(42);
 
@@ -47,8 +50,7 @@ final class CategoryDeleteToolTest extends TestCase
 
     public function testDeleteCategoryReturnsErrorOnException(): void
     {
-        $this->categoryManager->method('delete')
-            ->willThrowException(new \RuntimeException('Not found'));
+        $this->categoryManager->delete(Argument::cetera())->willThrow(new \RuntimeException('Not found'));
 
         $result = $this->tool->deleteCategory(999);
 

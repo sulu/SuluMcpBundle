@@ -14,27 +14,26 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TagMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
-use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
 use Sulu\Mcp\UserInterface\Mcp\Resource\GlobalBlocksResource;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(GlobalBlocksResource::class)]
 final class GlobalBlocksResourceReferenceTest extends TestCase
 {
-    private MetadataProviderInterface&MockObject $formMetadataProvider;
+    private ArrayMetadataProvider $formMetadataProvider;
     private GlobalBlocksResource $resource;
 
     protected function setUp(): void
     {
-        $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
+        $this->formMetadataProvider = new ArrayMetadataProvider();
         $this->resource = new GlobalBlocksResource($this->formMetadataProvider, new FieldNormalizer(), new MetadataLocaleResolver(new TokenStorage(), 'en'));
     }
 
@@ -61,9 +60,7 @@ final class GlobalBlocksResourceReferenceTest extends TestCase
         $blockMetadata = new TypedFormMetadata();
         $blockMetadata->addForm('section', $sectionForm);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturn($blockMetadata);
+        $this->formMetadataProvider->setDefault($blockMetadata);
 
         $result = $this->resource->getGlobalBlocks();
 
@@ -100,9 +97,7 @@ final class GlobalBlocksResourceReferenceTest extends TestCase
         $blockMetadata = new TypedFormMetadata();
         $blockMetadata->addForm('section', $sectionForm);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturn($blockMetadata);
+        $this->formMetadataProvider->setDefault($blockMetadata);
 
         $result = $this->resource->getGlobalBlocks();
 

@@ -15,38 +15,43 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Snippet;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
-use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetGetTool;
 use Sulu\Snippet\Domain\Exception\SnippetNotFoundException;
-use Sulu\Snippet\Domain\Model\SnippetInterface;
+use Sulu\Snippet\Domain\Model\Snippet;
+use Sulu\Snippet\Domain\Model\SnippetDimensionContent;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
 
 #[CoversClass(SnippetGetTool::class)]
 final class SnippetGetToolTest extends TestCase
 {
-    private SnippetRepositoryInterface&MockObject $snippetRepository;
-    private ContentManagerInterface&MockObject $contentManager;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<SnippetRepositoryInterface> */
+    private ObjectProphecy $snippetRepository;
+    /** @var ObjectProphecy<ContentManagerInterface> */
+    private ObjectProphecy $contentManager;
     private SnippetGetTool $tool;
 
     protected function setUp(): void
     {
-        $this->snippetRepository = $this->createMock(SnippetRepositoryInterface::class);
-        $this->contentManager = $this->createMock(ContentManagerInterface::class);
-        $this->tool = new SnippetGetTool($this->snippetRepository, $this->contentManager);
+        $this->snippetRepository = $this->prophesize(SnippetRepositoryInterface::class);
+        $this->contentManager = $this->prophesize(ContentManagerInterface::class);
+        $this->tool = new SnippetGetTool($this->snippetRepository->reveal(), $this->contentManager->reveal());
     }
 
     public function testGetSnippetReturnsNormalizedContent(): void
     {
-        $snippet = $this->createMock(SnippetInterface::class);
-        $snippet->method('getUuid')->willReturn('snippet-uuid');
-        $dimensionContent = $this->createMock(DimensionContentInterface::class);
+        $snippet = new Snippet('snippet-uuid');
+        $dimensionContent = new SnippetDimensionContent(new Snippet());
 
-        $this->snippetRepository->method('getOneBy')->willReturn($snippet);
-        $this->contentManager->method('resolve')->willReturn($dimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['title' => 'Footer']);
+        $this->snippetRepository->getOneBy(Argument::cetera())->willReturn($snippet);
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Footer']);
 
         $result = $this->tool->getSnippet('en', 'snippet-uuid');
 
@@ -57,8 +62,7 @@ final class SnippetGetToolTest extends TestCase
 
     public function testGetSnippetReturnsErrorForNotFound(): void
     {
-        $this->snippetRepository->method('getOneBy')
-            ->willThrowException(new SnippetNotFoundException(['uuid' => 'bad']));
+        $this->snippetRepository->getOneBy(Argument::cetera())->willThrow(new SnippetNotFoundException(['uuid' => 'bad']));
 
         $result = $this->tool->getSnippet('en', 'bad');
 

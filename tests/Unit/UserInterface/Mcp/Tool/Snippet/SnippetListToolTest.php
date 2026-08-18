@@ -15,39 +15,44 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Snippet;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
-use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetListTool;
-use Sulu\Snippet\Domain\Model\SnippetInterface;
+use Sulu\Snippet\Domain\Model\Snippet;
+use Sulu\Snippet\Domain\Model\SnippetDimensionContent;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
 
 #[CoversClass(SnippetListTool::class)]
 final class SnippetListToolTest extends TestCase
 {
-    private SnippetRepositoryInterface&MockObject $snippetRepository;
-    private ContentManagerInterface&MockObject $contentManager;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<SnippetRepositoryInterface> */
+    private ObjectProphecy $snippetRepository;
+    /** @var ObjectProphecy<ContentManagerInterface> */
+    private ObjectProphecy $contentManager;
     private SnippetListTool $tool;
 
     protected function setUp(): void
     {
-        $this->snippetRepository = $this->createMock(SnippetRepositoryInterface::class);
-        $this->contentManager = $this->createMock(ContentManagerInterface::class);
-        $this->tool = new SnippetListTool($this->snippetRepository, $this->contentManager);
+        $this->snippetRepository = $this->prophesize(SnippetRepositoryInterface::class);
+        $this->contentManager = $this->prophesize(ContentManagerInterface::class);
+        $this->tool = new SnippetListTool($this->snippetRepository->reveal(), $this->contentManager->reveal());
     }
 
     public function testListSnippetsReturnsPaginatedResults(): void
     {
-        $snippet = $this->createMock(SnippetInterface::class);
-        $snippet->method('getUuid')->willReturn('s-uuid');
-        $dimensionContent = $this->createMock(DimensionContentInterface::class);
+        $snippet = new Snippet('s-uuid');
+        $dimensionContent = new SnippetDimensionContent(new Snippet());
 
-        $this->snippetRepository->method('findIdentifiersBy')->willReturn(['s-uuid']);
-        $this->snippetRepository->method('findBy')->willReturn([$snippet]);
-        $this->snippetRepository->method('countBy')->willReturn(1);
-        $this->contentManager->method('resolve')->willReturn($dimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['title' => 'Footer']);
+        $this->snippetRepository->findIdentifiersBy(Argument::cetera())->willReturn(['s-uuid']);
+        $this->snippetRepository->findBy(Argument::cetera())->willReturn([$snippet]);
+        $this->snippetRepository->countBy(Argument::cetera())->willReturn(1);
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Footer']);
 
         $result = $this->tool->listSnippets('en');
 
@@ -60,15 +65,14 @@ final class SnippetListToolTest extends TestCase
 
     public function testListSnippetsReturnsSummaryFieldsOnly(): void
     {
-        $snippet = $this->createMock(SnippetInterface::class);
-        $snippet->method('getUuid')->willReturn('s-uuid');
-        $dimensionContent = $this->createMock(DimensionContentInterface::class);
+        $snippet = new Snippet('s-uuid');
+        $dimensionContent = new SnippetDimensionContent(new Snippet());
 
-        $this->snippetRepository->method('findIdentifiersBy')->willReturn(['s-uuid']);
-        $this->snippetRepository->method('findBy')->willReturn([$snippet]);
-        $this->snippetRepository->method('countBy')->willReturn(1);
-        $this->contentManager->method('resolve')->willReturn($dimensionContent);
-        $this->contentManager->method('normalize')->willReturn([
+        $this->snippetRepository->findIdentifiersBy(Argument::cetera())->willReturn(['s-uuid']);
+        $this->snippetRepository->findBy(Argument::cetera())->willReturn([$snippet]);
+        $this->snippetRepository->countBy(Argument::cetera())->willReturn(1);
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
             'title' => 'Footer',
             'template' => 'footer',
             'blocks' => [['_id' => 'b1', 'type' => 'text', 'content' => '<p>HTML</p>']],

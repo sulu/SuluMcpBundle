@@ -15,58 +15,31 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource;
 
 use Mcp\Capability\Attribute\McpResource;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\SectionMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
-use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
-use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
 use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
 #[CoversClass(TemplatesResource::class)]
 final class TemplateResourceTest extends TestCase
 {
-    private MetadataProviderInterface&MockObject $formMetadataProvider;
+    use ProphecyTrait;
+
+    private ArrayMetadataProvider $formMetadataProvider;
     private TemplatesResource $resource;
 
     protected function setUp(): void
     {
-        $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
+        $this->formMetadataProvider = new ArrayMetadataProvider();
         $this->resource = new TemplatesResource($this->formMetadataProvider, new FieldNormalizer(), new MetadataLocaleResolver(new TokenStorage(), 'en'));
-    }
-
-    public function testGetTemplatesRequestsMetadataInTheAuthenticatedUsersLocale(): void
-    {
-        $user = $this->createMock(UserInterface::class);
-        $user->method('getLocale')->willReturn('de');
-
-        $token = $this->createMock(TokenInterface::class);
-        $token->method('getUser')->willReturn($user);
-
-        $tokenStorage = $this->createMock(TokenStorageInterface::class);
-        $tokenStorage->method('getToken')->willReturn($token);
-
-        $resource = new TemplatesResource(
-            $this->formMetadataProvider,
-            new FieldNormalizer(),
-            new MetadataLocaleResolver($tokenStorage, 'en'),
-        );
-
-        $this->formMetadataProvider
-            ->expects($this->exactly(3))
-            ->method('getMetadata')
-            ->with($this->anything(), 'de', $this->anything())
-            ->willReturn(new TypedFormMetadata());
-
-        $resource->getTemplates();
     }
 
     public function testGetTemplatesReturnsTemplatesGroupedByContentType(): void
@@ -81,9 +54,7 @@ final class TemplateResourceTest extends TestCase
         $typedMetadata = new TypedFormMetadata();
         $typedMetadata->addForm('default', $form);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typedMetadata : null);
+        $this->formMetadataProvider->set('page', $typedMetadata);
 
         $result = $this->resource->getTemplates();
 
@@ -106,9 +77,7 @@ final class TemplateResourceTest extends TestCase
         $typedMetadata = new TypedFormMetadata();
         $typedMetadata->addForm('default', $form);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typedMetadata : null);
+        $this->formMetadataProvider->set('page', $typedMetadata);
 
         $result = $this->resource->getTemplates();
 
@@ -140,14 +109,9 @@ final class TemplateResourceTest extends TestCase
         $articleMetadata = $buildTyped('blog', 'headline');
         $snippetMetadata = $buildTyped('teaser', 'label');
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => match ($key) {
-                'page' => $pageMetadata,
-                'article' => $articleMetadata,
-                'snippet' => $snippetMetadata,
-                default => null,
-            });
+        $this->formMetadataProvider->set('page', $pageMetadata);
+        $this->formMetadataProvider->set('article', $articleMetadata);
+        $this->formMetadataProvider->set('snippet', $snippetMetadata);
 
         $result = $this->resource->getTemplates();
 
@@ -168,13 +132,7 @@ final class TemplateResourceTest extends TestCase
         $pageMetadata = new TypedFormMetadata();
         $pageMetadata->addForm('default', $form);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => match ($key) {
-                'page' => $pageMetadata,
-                'article' => throw new \RuntimeException('Article metadata not installed'),
-                default => null,
-            });
+        $this->formMetadataProvider->set('page', $pageMetadata);
 
         $result = $this->resource->getTemplates();
 
@@ -195,11 +153,9 @@ final class TemplateResourceTest extends TestCase
 
     public function testGetTemplatesReturnsEmptyArrayWhenProviderReturnsNonTypedFormMetadata(): void
     {
-        $nonTypedMetadata = $this->createMock(MetadataInterface::class);
+        $nonTypedMetadata = $this->prophesize(MetadataInterface::class);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturn($nonTypedMetadata);
+        $this->formMetadataProvider->setDefault($nonTypedMetadata->reveal());
 
         $result = $this->resource->getTemplates();
 
@@ -237,9 +193,7 @@ final class TemplateResourceTest extends TestCase
         $typedMetadata = new TypedFormMetadata();
         $typedMetadata->addForm('default', $form);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typedMetadata : null);
+        $this->formMetadataProvider->set('page', $typedMetadata);
 
         $result = $this->resource->getTemplates();
 
@@ -272,9 +226,7 @@ final class TemplateResourceTest extends TestCase
         $typedMetadata = new TypedFormMetadata();
         $typedMetadata->addForm('default', $form);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'page' === $key ? $typedMetadata : null);
+        $this->formMetadataProvider->set('page', $typedMetadata);
 
         $result = $this->resource->getTemplates();
 

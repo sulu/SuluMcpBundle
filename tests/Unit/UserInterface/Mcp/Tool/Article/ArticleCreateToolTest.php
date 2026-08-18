@@ -16,18 +16,17 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Article;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Application\Message\CreateArticleMessage;
-use Sulu\Article\Domain\Model\ArticleInterface;
-use Sulu\Bundle\AdminBundle\Application\BlockIdGenerator\BlockIdGeneratorInterface;
+use Sulu\Article\Domain\Model\Article;
+use Sulu\Article\Domain\Model\ArticleDimensionContent;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
-use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
-use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
-use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
@@ -37,9 +36,11 @@ use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ArticleAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
+use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\FixedBlockIdGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleCreateTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
-use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\RouterInterface;
@@ -48,42 +49,42 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 #[CoversClass(ArticleCreateTool::class)]
 final class ArticleCreateToolTest extends TestCase
 {
-    private MessageBusInterface&MockObject $messageBus;
-    private ContentManagerInterface&MockObject $contentManager;
-    private BlockIdGeneratorInterface&MockObject $blockIdGenerator;
-    private MetadataProviderInterface&MockObject $formMetadataProvider;
-    private MetadataProviderInterface&MockObject $mapperMetadataProvider;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<MessageBusInterface> */
+    private ObjectProphecy $messageBus;
+
+    /** @var ObjectProphecy<ContentManagerInterface> */
+    private ObjectProphecy $contentManager;
+
+    private FixedBlockIdGenerator $blockIdGenerator;
+    private ArrayMetadataProvider $formMetadataProvider;
+    private ArrayMetadataProvider $mapperMetadataProvider;
     private ArticleGroupResolver $articleGroupResolver;
     private ArticleCreateTool $tool;
 
     protected function setUp(): void
     {
-        $this->messageBus = $this->createMock(MessageBusInterface::class);
-        $this->contentManager = $this->createMock(ContentManagerInterface::class);
-        $this->blockIdGenerator = $this->createMock(BlockIdGeneratorInterface::class);
-        $this->blockIdGenerator->method('generateId')->willReturn('gen-id');
-        $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
+        $this->messageBus = $this->prophesize(MessageBusInterface::class);
+        $this->contentManager = $this->prophesize(ContentManagerInterface::class);
+        $this->blockIdGenerator = new FixedBlockIdGenerator('gen-id');
+        $this->formMetadataProvider = new ArrayMetadataProvider();
         // Default: provider returns a non-typed metadata so the validator skips strict checks.
-        $this->formMetadataProvider->method('getMetadata')->willReturn($this->createMock(MetadataInterface::class));
-        $this->mapperMetadataProvider = $this->createMock(MetadataProviderInterface::class);
+        $this->formMetadataProvider->setDefault(new FormMetadata());
+        $this->mapperMetadataProvider = new ArrayMetadataProvider();
         // Provide Sulu's native SEO/excerpt field names so the mapper places them correctly.
-        $this->mapperMetadataProvider->method('getMetadata')->willReturnCallback(
-            fn (string $key) => match ($key) {
-                'content_seo_metadata' => $this->makeFormMeta(['seo/title', 'seo/description', 'seo/keywords', 'seo/canonicalUrl', 'seoNoIndex', 'seoNoFollow', 'seoHideInSitemap']),
-                'content_excerpt_metadata' => $this->makeFormMeta(['excerpt/title', 'excerpt/more', 'excerpt/description', 'excerpt/icon', 'excerpt/image']),
-                'content_excerpt_taxonomies' => $this->makeFormMeta(['excerptCategories', 'excerptTags']),
-                default => $this->makeFormMeta([]),
-            },
-        );
-        $router = $this->createMock(RouterInterface::class);
-        $router->method('generate')->willReturn('https://example.com/admin/');
-        $adminLinkGenerator = new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]);
-        $groupProvider = $this->createMock(GroupProviderInterface::class);
-        $groupProvider->method('getGroups')->willReturn([]);
-        $this->articleGroupResolver = new ArticleGroupResolver($groupProvider, $this->contentManager);
+        $this->mapperMetadataProvider->set('content_seo_metadata', $this->makeFormMeta(['seo/title', 'seo/description', 'seo/keywords', 'seo/canonicalUrl', 'seoNoIndex', 'seoNoFollow', 'seoHideInSitemap']));
+        $this->mapperMetadataProvider->set('content_excerpt_metadata', $this->makeFormMeta(['excerpt/title', 'excerpt/more', 'excerpt/description', 'excerpt/icon', 'excerpt/image']));
+        $this->mapperMetadataProvider->set('content_excerpt_taxonomies', $this->makeFormMeta(['excerptCategories', 'excerptTags']));
+        $this->mapperMetadataProvider->setDefault($this->makeFormMeta([]));
+        $router = $this->prophesize(RouterInterface::class);
+        $router->generate(Argument::cetera())->willReturn('https://example.com/admin/');
+        $adminLinkGenerator = new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]);
+        $groupProvider = new TestGroupProvider([]);
+        $this->articleGroupResolver = new ArticleGroupResolver($groupProvider, $this->contentManager->reveal());
         $this->tool = new ArticleCreateTool(
-            $this->messageBus,
-            $this->contentManager,
+            $this->messageBus->reveal(),
+            $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
@@ -95,14 +96,10 @@ final class ArticleCreateToolTest extends TestCase
     /** @param list<string> $names */
     private function makeFormMeta(array $names): FormMetadata
     {
-        $items = [];
+        $form = new FormMetadata();
         foreach ($names as $name) {
-            $field = $this->createMock(FieldMetadata::class);
-            $field->method('getName')->willReturn($name);
-            $items[$name] = $field;
+            $form->addItem(new FieldMetadata($name));
         }
-        $form = $this->createMock(FormMetadata::class);
-        $form->method('getFlatFieldMetadata')->willReturn($items);
 
         return $form;
     }
@@ -121,27 +118,25 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleDispatchesCreateArticleMessage(): void
     {
-        $mockArticle = $this->createMock(ArticleInterface::class);
-        $mockArticle->method('getUuid')->willReturn('article-uuid-123');
+        $mockArticle = new Article('article-uuid-123');
 
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle) {
-                $message = $envelope->getMessage();
-                $this->assertInstanceOf(CreateArticleMessage::class, $message);
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockArticle, &$capturedEnvelope) {
+                $capturedEnvelope = $args[0];
 
-                $stamps = $envelope->all();
-                $this->assertArrayHasKey(EnableFlushStamp::class, $stamps);
-
-                return $envelope->with(new HandledStamp($mockArticle, 'handler'));
+                return $args[0]->with(new HandledStamp($mockArticle, 'handler'));
             });
 
-        $mockDimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($mockDimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['title' => 'Test Article', 'url' => '/my-article']);
+        $mockDimensionContent = new ArticleDimensionContent(new Article());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($mockDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Test Article', 'url' => '/my-article']);
 
         $result = $this->tool->createArticle('en', 'blog', 'Test Article', null, ['url' => '/my-article']);
 
+        $this->assertInstanceOf(CreateArticleMessage::class, $capturedEnvelope->getMessage());
+        $this->assertArrayHasKey(EnableFlushStamp::class, $capturedEnvelope->all());
         $this->assertTrue($result['success']);
         $this->assertSame('article-uuid-123', $result['uuid']);
         $this->assertSame('https://example.com/admin/#/en/default/article-uuid-123', $result['admin_url']);
@@ -149,32 +144,30 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleUsesResolvedCustomGroupInAdminUrl(): void
     {
-        $mockArticle = $this->createMock(ArticleInterface::class);
-        $mockArticle->method('getUuid')->willReturn('custom-uuid');
+        $mockArticle = new Article('custom-uuid');
 
-        $this->messageBus->method('dispatch')
-            ->willReturnCallback(fn (Envelope $envelope) => $envelope->with(new HandledStamp($mockArticle, 'handler')));
+        $this->messageBus->dispatch(Argument::cetera())
+            ->will(fn (array $args) => $args[0]->with(new HandledStamp($mockArticle, 'handler')));
 
-        $mockDimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($mockDimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['title' => 'Custom', 'url' => '/custom']);
+        $mockDimensionContent = new ArticleDimensionContent(new Article());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($mockDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Custom', 'url' => '/custom']);
 
-        $groupProvider = $this->createMock(GroupProviderInterface::class);
-        $groupProvider->method('getGroups')->willReturn([
+        $groupProvider = new TestGroupProvider([
             'blog-group' => new FormGroup('blog-group', 'Blog', ['blog']),
         ]);
 
-        $router = $this->createMock(RouterInterface::class);
-        $router->method('generate')->willReturn('https://example.com/admin/');
+        $router = $this->prophesize(RouterInterface::class);
+        $router->generate(Argument::cetera())->willReturn('https://example.com/admin/');
 
         $tool = new ArticleCreateTool(
-            $this->messageBus,
-            $this->contentManager,
+            $this->messageBus->reveal(),
+            $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
-            new ArticleGroupResolver($groupProvider, $this->contentManager),
+            new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
+            new ArticleGroupResolver($groupProvider, $this->contentManager->reveal()),
         );
 
         $result = $tool->createArticle('en', 'blog', 'Custom', null, ['url' => '/custom']);
@@ -185,21 +178,20 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleIncludesTypeInData(): void
     {
-        $mockArticle = $this->createMock(ArticleInterface::class);
-        $mockArticle->method('getUuid')->willReturn('uuid-1');
+        $mockArticle = new Article('uuid-1');
 
         $capturedMessage = null;
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle, &$capturedMessage) {
-                $capturedMessage = $envelope->getMessage();
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockArticle, &$capturedMessage) {
+                $capturedMessage = $args[0]->getMessage();
 
-                return $envelope->with(new HandledStamp($mockArticle, 'handler'));
+                return $args[0]->with(new HandledStamp($mockArticle, 'handler'));
             });
 
-        $mockDimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($mockDimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['url' => '/my-article']);
+        $mockDimensionContent = new ArticleDimensionContent(new Article());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($mockDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['url' => '/my-article']);
 
         $this->tool->createArticle('en', 'blog', 'Test', 'default', ['url' => '/my-article']);
 
@@ -208,16 +200,15 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleMergesContentIntoData(): void
     {
-        $mockArticle = $this->createMock(ArticleInterface::class);
-        $mockArticle->method('getUuid')->willReturn('uuid-1');
+        $mockArticle = new Article('uuid-1');
 
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->willReturnCallback(fn (Envelope $envelope) => $envelope->with(new HandledStamp($mockArticle, 'handler')));
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(fn (array $args) => $args[0]->with(new HandledStamp($mockArticle, 'handler')));
 
-        $mockDimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($mockDimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['url' => '/my-article']);
+        $mockDimensionContent = new ArticleDimensionContent(new Article());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($mockDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['url' => '/my-article']);
 
         $result = $this->tool->createArticle(
             'en',
@@ -232,33 +223,20 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleAcceptsPageTreeRoute(): void
     {
-        $mockArticle = $this->createMock(ArticleInterface::class);
-        $mockArticle->method('getUuid')->willReturn('uuid-1');
+        $mockArticle = new Article('uuid-1');
 
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle) {
-                $message = $envelope->getMessage();
-                $this->assertInstanceOf(CreateArticleMessage::class, $message);
-                $this->assertSame([
-                    'url' => [
-                        'page' => [
-                            'path' => '/blog',
-                            'uuid' => 'parent-page-uuid',
-                        ],
-                        'suffix' => 'my-article',
-                    ],
-                    'locale' => 'en',
-                    'template' => 'blog',
-                    'title' => 'Test',
-                ], $message->getData());
+        $capturedMessage = null;
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockArticle, &$capturedMessage) {
+                $capturedMessage = $args[0]->getMessage();
 
-                return $envelope->with(new HandledStamp($mockArticle, 'handler'));
+                return $args[0]->with(new HandledStamp($mockArticle, 'handler'));
             });
 
-        $mockDimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($mockDimensionContent);
-        $this->contentManager->method('normalize')->willReturn([
+        $mockDimensionContent = new ArticleDimensionContent(new Article());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($mockDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
             'url' => [
                 'page' => [
                     'path' => '/blog',
@@ -270,13 +248,25 @@ final class ArticleCreateToolTest extends TestCase
 
         $result = $this->tool->createArticle('en', 'blog', 'Test', null, $this->pageContent());
 
+        $this->assertInstanceOf(CreateArticleMessage::class, $capturedMessage);
+        $this->assertSame([
+            'url' => [
+                'page' => [
+                    'path' => '/blog',
+                    'uuid' => 'parent-page-uuid',
+                ],
+                'suffix' => 'my-article',
+            ],
+            'locale' => 'en',
+            'template' => 'blog',
+            'title' => 'Test',
+        ], $capturedMessage->getData());
         $this->assertTrue($result['success']);
     }
 
     public function testCreateArticleAcceptsSuluNativePageTreeRoute(): void
     {
-        $mockArticle = $this->createMock(ArticleInterface::class);
-        $mockArticle->method('getUuid')->willReturn('uuid-1');
+        $mockArticle = new Article('uuid-1');
 
         $route = [
             'page' => [
@@ -286,47 +276,43 @@ final class ArticleCreateToolTest extends TestCase
             'suffix' => '/my-article',
         ];
 
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle, $route) {
-                $message = $envelope->getMessage();
-                $this->assertInstanceOf(CreateArticleMessage::class, $message);
-                $this->assertSame($route, $message->getData()['url']);
-                $this->assertArrayNotHasKey('page', $message->getData());
+        $capturedMessage = null;
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockArticle, &$capturedMessage) {
+                $capturedMessage = $args[0]->getMessage();
 
-                return $envelope->with(new HandledStamp($mockArticle, 'handler'));
+                return $args[0]->with(new HandledStamp($mockArticle, 'handler'));
             });
 
-        $mockDimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($mockDimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['url' => $route]);
+        $mockDimensionContent = new ArticleDimensionContent(new Article());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($mockDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['url' => $route]);
 
         $result = $this->tool->createArticle('en', 'blog', 'Test', null, ['url' => $route]);
 
+        $this->assertInstanceOf(CreateArticleMessage::class, $capturedMessage);
+        $this->assertSame($route, $capturedMessage->getData()['url']);
+        $this->assertArrayNotHasKey('page', $capturedMessage->getData());
         $this->assertTrue($result['success']);
     }
 
     public function testCreateArticleResolvesAndNormalizesResult(): void
     {
-        $mockArticle = $this->createMock(ArticleInterface::class);
-        $mockArticle->method('getUuid')->willReturn('uuid-1');
+        $mockArticle = new Article('uuid-1');
 
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->willReturnCallback(fn (Envelope $envelope) => $envelope->with(new HandledStamp($mockArticle, 'handler')));
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(fn (array $args) => $args[0]->with(new HandledStamp($mockArticle, 'handler')));
 
-        $mockDimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->expects($this->once())
-            ->method('resolve')
-            ->with($mockArticle, [
-                'locale' => 'en',
-                'stage' => DimensionContentInterface::STAGE_DRAFT,
-            ])
-            ->willReturn($mockDimensionContent);
+        $mockDimensionContent = new ArticleDimensionContent(new Article());
+        $this->contentManager->resolve($mockArticle, [
+            'locale' => 'en',
+            'stage' => DimensionContentInterface::STAGE_DRAFT,
+        ])->shouldBeCalledOnce()->willReturn($mockDimensionContent);
 
-        $this->contentManager->expects($this->once())
-            ->method('normalize')
-            ->with($mockDimensionContent)
+        $this->contentManager->normalize($mockDimensionContent)
+            ->shouldBeCalledOnce()
             ->willReturn(['title' => 'Resolved Title', 'url' => '/my-article']);
 
         $result = $this->tool->createArticle('en', 'blog', 'Test', null, ['url' => '/my-article']);
@@ -336,8 +322,8 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleReturnsErrorOnException(): void
     {
-        $this->messageBus->method('dispatch')
-            ->willThrowException(new \RuntimeException('Article creation failed'));
+        $this->messageBus->dispatch(Argument::cetera())
+            ->willThrow(new \RuntimeException('Article creation failed'));
 
         $result = $this->tool->createArticle('en', 'blog', 'Test', null, ['url' => '/my-article']);
 
@@ -349,7 +335,7 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleRejectsMissingRouting(): void
     {
-        $this->messageBus->expects($this->never())->method('dispatch');
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         $result = $this->tool->createArticle('en', 'blog', 'Test');
 
@@ -360,7 +346,7 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleRejectsBothRoutingForms(): void
     {
-        $this->messageBus->expects($this->never())->method('dispatch');
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         $result = $this->tool->createArticle('en', 'blog', 'Test', null, \array_merge(
             ['url' => '/my-article'],
@@ -373,7 +359,7 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleRejectsIncompletePageRouting(): void
     {
-        $this->messageBus->expects($this->never())->method('dispatch');
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         $result = $this->tool->createArticle('en', 'blog', 'Test', null, [
             'page' => ['path' => '/blog', 'uuid' => 'page-uuid'], // missing suffix
@@ -385,7 +371,7 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleRejectsRelativeUrl(): void
     {
-        $this->messageBus->expects($this->never())->method('dispatch');
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         $result = $this->tool->createArticle('en', 'blog', 'Test', null, ['url' => 'my-article']);
 
@@ -395,15 +381,14 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleReportsErrorWhenPostCreateUrlIsNull(): void
     {
-        $mockArticle = $this->createMock(ArticleInterface::class);
-        $mockArticle->method('getUuid')->willReturn('uuid-1');
+        $mockArticle = new Article('uuid-1');
 
-        $this->messageBus->method('dispatch')
-            ->willReturnCallback(fn (Envelope $envelope) => $envelope->with(new HandledStamp($mockArticle, 'handler')));
+        $this->messageBus->dispatch(Argument::cetera())
+            ->will(fn (array $args) => $args[0]->with(new HandledStamp($mockArticle, 'handler')));
 
-        $mockDimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($mockDimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['title' => 'X', 'url' => null]);
+        $mockDimensionContent = new ArticleDimensionContent(new Article());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($mockDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'X', 'url' => null]);
 
         $result = $this->tool->createArticle('en', 'blog', 'Test', null, ['url' => '/my-article']);
 
@@ -435,23 +420,22 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleAssignsBlockIdsToNestedBlocks(): void
     {
-        $mockArticle = $this->createMock(ArticleInterface::class);
-        $mockArticle->method('getUuid')->willReturn('uuid-1');
+        $mockArticle = new Article('uuid-1');
 
+        $capturedMessage = null;
         $capturedData = null;
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle, &$capturedData) {
-                $message = $envelope->getMessage();
-                $this->assertInstanceOf(CreateArticleMessage::class, $message);
-                $capturedData = $message->getData();
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockArticle, &$capturedMessage, &$capturedData) {
+                $capturedMessage = $args[0]->getMessage();
+                $capturedData = $capturedMessage->getData();
 
-                return $envelope->with(new HandledStamp($mockArticle, 'handler'));
+                return $args[0]->with(new HandledStamp($mockArticle, 'handler'));
             });
 
-        $mockDimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($mockDimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['url' => '/my-article']);
+        $mockDimensionContent = new ArticleDimensionContent(new Article());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($mockDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['url' => '/my-article']);
 
         $this->tool->createArticle('en', 'blog', 'Test', null, [
             'url' => '/my-article',
@@ -466,6 +450,7 @@ final class ArticleCreateToolTest extends TestCase
             ],
         ]);
 
+        $this->assertInstanceOf(CreateArticleMessage::class, $capturedMessage);
         $this->assertNotNull($capturedData);
         $blocks = $capturedData['blocks'];
         $this->assertNotEmpty($blocks[0]['_id'], 'top-level block must have a non-empty _id');
@@ -492,23 +477,22 @@ final class ArticleCreateToolTest extends TestCase
         $typed = new TypedFormMetadata();
         $typed->addForm('blog', $template);
 
-        $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $this->formMetadataProvider->method('getMetadata')
-            ->willReturnCallback(fn (string $key) => 'article' === $key ? $typed : null);
+        $this->formMetadataProvider = new ArrayMetadataProvider();
+        $this->formMetadataProvider->set('article', $typed);
 
-        $router = $this->createMock(RouterInterface::class);
-        $router->method('generate')->willReturn('https://example.com/admin/');
+        $router = $this->prophesize(RouterInterface::class);
+        $router->generate(Argument::cetera())->willReturn('https://example.com/admin/');
         $this->tool = new ArticleCreateTool(
-            $this->messageBus,
-            $this->contentManager,
+            $this->messageBus->reveal(),
+            $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($this->mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
+            new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
         );
 
-        $this->messageBus->expects($this->never())->method('dispatch');
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         $result = $this->tool->createArticle('en', 'blog', 'Test', null, [
             'url' => '/my-article',
@@ -523,21 +507,20 @@ final class ArticleCreateToolTest extends TestCase
 
     public function testCreateArticleSetsExcerptAndSeoInDispatchedData(): void
     {
-        $mockArticle = $this->createMock(ArticleInterface::class);
-        $mockArticle->method('getUuid')->willReturn('uuid-1');
+        $mockArticle = new Article('uuid-1');
 
         $capturedMessage = null;
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle, &$capturedMessage) {
-                $capturedMessage = $envelope->getMessage();
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockArticle, &$capturedMessage) {
+                $capturedMessage = $args[0]->getMessage();
 
-                return $envelope->with(new HandledStamp($mockArticle, 'handler'));
+                return $args[0]->with(new HandledStamp($mockArticle, 'handler'));
             });
 
-        $mockDimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($mockDimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['url' => '/my-article']);
+        $mockDimensionContent = new ArticleDimensionContent(new Article());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($mockDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['url' => '/my-article']);
 
         $this->tool->createArticle(
             'en',
@@ -562,41 +545,36 @@ final class ArticleCreateToolTest extends TestCase
         // Regression guard: a custom excerpt field literally named "template" makes
         // ContentMetadataMapper::place() write $data['template'] directly, clobbering the
         // trusted `template` arg that already passed the EDIT+ADD preflight.
-        $mockArticle = $this->createMock(ArticleInterface::class);
-        $mockArticle->method('getUuid')->willReturn('uuid-1');
+        $mockArticle = new Article('uuid-1');
 
-        $mapperMetadataProvider = $this->createMock(MetadataProviderInterface::class);
-        $mapperMetadataProvider->method('getMetadata')->willReturnCallback(
-            fn (string $key) => match ($key) {
-                'content_excerpt_metadata' => $this->makeFormMeta(['template']),
-                default => $this->makeFormMeta([]),
-            },
-        );
+        $mapperMetadataProvider = new ArrayMetadataProvider();
+        $mapperMetadataProvider->set('content_excerpt_metadata', $this->makeFormMeta(['template']));
+        $mapperMetadataProvider->setDefault($this->makeFormMeta([]));
 
-        $router = $this->createMock(RouterInterface::class);
-        $router->method('generate')->willReturn('https://example.com/admin/');
+        $router = $this->prophesize(RouterInterface::class);
+        $router->generate(Argument::cetera())->willReturn('https://example.com/admin/');
         $tool = new ArticleCreateTool(
-            $this->messageBus,
-            $this->contentManager,
+            $this->messageBus->reveal(),
+            $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new ContentMetadataMapper($mapperMetadataProvider),
-            new AdminLinkGenerator($router, [new ArticleAdminLinkProvider(new TestViewRegistry())]),
+            new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
         );
 
         $capturedData = null;
-        $this->messageBus->expects($this->once())
-            ->method('dispatch')
-            ->willReturnCallback(function(Envelope $envelope) use ($mockArticle, &$capturedData) {
-                $capturedData = $envelope->getMessage()->getData();
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockArticle, &$capturedData) {
+                $capturedData = $args[0]->getMessage()->getData();
 
-                return $envelope->with(new HandledStamp($mockArticle, 'handler'));
+                return $args[0]->with(new HandledStamp($mockArticle, 'handler'));
             });
 
-        $mockDimensionContent = $this->createMock(DimensionContentInterface::class);
-        $this->contentManager->method('resolve')->willReturn($mockDimensionContent);
-        $this->contentManager->method('normalize')->willReturn(['url' => '/my-article']);
+        $mockDimensionContent = new ArticleDimensionContent(new Article());
+        $this->contentManager->resolve(Argument::cetera())->willReturn($mockDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['url' => '/my-article']);
 
         $result = $tool->createArticle(
             'en',

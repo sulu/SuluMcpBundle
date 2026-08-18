@@ -14,42 +14,49 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\Application\Content;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Application\Message\ApplyWorkflowTransitionArticleMessage;
 use Sulu\Article\Application\Message\ModifyArticleMessage;
 use Sulu\Article\Application\Message\RemoveArticleMessage;
-use Sulu\Article\Domain\Model\ArticleInterface;
+use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Page\Application\Message\ApplyWorkflowTransitionPageMessage;
 use Sulu\Page\Application\Message\ModifyPageMessage;
 use Sulu\Page\Application\Message\RemovePageMessage;
-use Sulu\Page\Domain\Model\PageInterface;
+use Sulu\Page\Domain\Model\Page;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Sulu\Snippet\Application\Message\ApplyWorkflowTransitionSnippetMessage;
 use Sulu\Snippet\Application\Message\ModifySnippetMessage;
 use Sulu\Snippet\Application\Message\RemoveSnippetMessage;
-use Sulu\Snippet\Domain\Model\SnippetInterface;
+use Sulu\Snippet\Domain\Model\Snippet;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
 
 #[CoversClass(ContentTypeResolver::class)]
 final class ContentTypeResolverTest extends TestCase
 {
-    private PageRepositoryInterface&MockObject $pageRepository;
-    private ArticleRepositoryInterface&MockObject $articleRepository;
-    private SnippetRepositoryInterface&MockObject $snippetRepository;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<PageRepositoryInterface> */
+    private ObjectProphecy $pageRepository;
+    /** @var ObjectProphecy<ArticleRepositoryInterface> */
+    private ObjectProphecy $articleRepository;
+    /** @var ObjectProphecy<SnippetRepositoryInterface> */
+    private ObjectProphecy $snippetRepository;
     private ContentTypeResolver $resolver;
 
     protected function setUp(): void
     {
-        $this->pageRepository = $this->createMock(PageRepositoryInterface::class);
-        $this->articleRepository = $this->createMock(ArticleRepositoryInterface::class);
-        $this->snippetRepository = $this->createMock(SnippetRepositoryInterface::class);
+        $this->pageRepository = $this->prophesize(PageRepositoryInterface::class);
+        $this->articleRepository = $this->prophesize(ArticleRepositoryInterface::class);
+        $this->snippetRepository = $this->prophesize(SnippetRepositoryInterface::class);
         $this->resolver = new ContentTypeResolver(
-            $this->pageRepository,
-            $this->articleRepository,
-            $this->snippetRepository,
+            $this->pageRepository->reveal(),
+            $this->articleRepository->reveal(),
+            $this->snippetRepository->reveal(),
         );
     }
 
@@ -64,46 +71,47 @@ final class ContentTypeResolverTest extends TestCase
 
     public function testLoadDraftLoadsPageFromPageRepository(): void
     {
-        $page = $this->createMock(PageInterface::class);
-        $this->pageRepository->expects($this->once())->method('getOneBy')->willReturn($page);
-        $this->articleRepository->expects($this->never())->method('getOneBy');
-        $this->snippetRepository->expects($this->never())->method('getOneBy');
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->shouldBeCalledOnce()->willReturn($page);
+        $this->articleRepository->getOneBy(Argument::cetera())->shouldNotBeCalled();
+        $this->snippetRepository->getOneBy(Argument::cetera())->shouldNotBeCalled();
 
         $this->assertSame($page, $this->resolver->loadDraft('page', 'uuid-1', 'en'));
     }
 
     public function testLoadDraftLoadsArticleFromArticleRepository(): void
     {
-        $article = $this->createMock(ArticleInterface::class);
-        $this->articleRepository->expects($this->once())->method('getOneBy')->willReturn($article);
-        $this->pageRepository->expects($this->never())->method('getOneBy');
-        $this->snippetRepository->expects($this->never())->method('getOneBy');
+        $article = new Article();
+        $this->articleRepository->getOneBy(Argument::cetera())->shouldBeCalledOnce()->willReturn($article);
+        $this->pageRepository->getOneBy(Argument::cetera())->shouldNotBeCalled();
+        $this->snippetRepository->getOneBy(Argument::cetera())->shouldNotBeCalled();
 
         $this->assertSame($article, $this->resolver->loadDraft('article', 'uuid-1', 'en'));
     }
 
     public function testLoadDraftLoadsSnippetFromSnippetRepository(): void
     {
-        $snippet = $this->createMock(SnippetInterface::class);
-        $this->snippetRepository->expects($this->once())->method('getOneBy')->willReturn($snippet);
-        $this->pageRepository->expects($this->never())->method('getOneBy');
-        $this->articleRepository->expects($this->never())->method('getOneBy');
+        $snippet = new Snippet();
+        $this->snippetRepository->getOneBy(Argument::cetera())->shouldBeCalledOnce()->willReturn($snippet);
+        $this->pageRepository->getOneBy(Argument::cetera())->shouldNotBeCalled();
+        $this->articleRepository->getOneBy(Argument::cetera())->shouldNotBeCalled();
 
         $this->assertSame($snippet, $this->resolver->loadDraft('snippet', 'uuid-1', 'en'));
     }
 
     public function testLoadDraftReturnsNullForUnsupportedType(): void
     {
-        $this->pageRepository->expects($this->never())->method('getOneBy');
-        $this->articleRepository->expects($this->never())->method('getOneBy');
-        $this->snippetRepository->expects($this->never())->method('getOneBy');
+        $this->pageRepository->getOneBy(Argument::cetera())->shouldNotBeCalled();
+        $this->articleRepository->getOneBy(Argument::cetera())->shouldNotBeCalled();
+        $this->snippetRepository->getOneBy(Argument::cetera())->shouldNotBeCalled();
 
         $this->assertNull($this->resolver->loadDraft('media', 'uuid-1', 'en'));
     }
 
     public function testLoadDraftReturnsNullWhenRepositoryThrows(): void
     {
-        $this->pageRepository->method('getOneBy')->willThrowException(new \RuntimeException('not found'));
+        $this->pageRepository->getOneBy(Argument::cetera())->willThrow(new \RuntimeException('not found'));
 
         $this->assertNull($this->resolver->loadDraft('page', 'missing', 'en'));
     }

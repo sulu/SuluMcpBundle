@@ -19,28 +19,33 @@ use Mcp\Capability\RegistryInterface;
 use Mcp\Schema\Page;
 use Mcp\Schema\Tool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
-use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(FilteredRegistry::class)]
 final class FilteredRegistryTest extends TestCase
 {
-    private RegistryInterface&MockObject $inner;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<RegistryInterface> */
+    private ObjectProphecy $inner;
 
     protected function setUp(): void
     {
-        $this->inner = $this->createMock(RegistryInterface::class);
+        $this->inner = $this->prophesize(RegistryInterface::class);
     }
 
     private function tool(string $name): Tool
@@ -51,13 +56,15 @@ final class FilteredRegistryTest extends TestCase
     /**
      * @param array<string, array{name: string, requirements: list<array{context: string, permission: string}>, contextArgument: ?string, contextResolver: ?string, objectResolved: bool, discoveryContexts: list<string>}> $map
      */
-    private function visibilityResolver(array $map, ToolPermissionCheckerInterface&MockObject $checker): ToolVisibilityResolver
+    private function visibilityResolver(array $map, FakeToolPermissionChecker $checker): ToolVisibilityResolver
     {
-        $webspaceManager = $this->createMock(WebspaceManagerInterface::class);
-        $innerChecker = new ToolPermissionChecker(
-            $this->createMock(SecurityCheckerInterface::class),
-            $this->createMock(TokenStorageInterface::class),
-        );
+        // Never invoked: every requirement in these tests is a literal context, so
+        // ToolVisibilityResolver never asks the webspace resolver, which in turn
+        // never reaches the security checker (a real, tokenless TokenStorage makes
+        // ToolPermissionChecker::has() fail closed before it gets that far).
+        $webspaceManager = $this->prophesize(WebspaceManagerInterface::class)->reveal();
+        $securityChecker = $this->prophesize(SecurityCheckerInterface::class)->reveal();
+        $innerChecker = new ToolPermissionChecker($securityChecker, new TokenStorage());
 
         return new ToolVisibilityResolver(
             $map,
@@ -71,16 +78,14 @@ final class FilteredRegistryTest extends TestCase
 
     public function testGetToolsExcludesHiddenAndIncludesPermittedAndAllowlisted(): void
     {
-        $this->inner->method('getTools')->with(null, null)->willReturn(new Page([
+        $this->inner->getTools(null, null)->willReturn(new Page([
             'sulu_ping' => $this->tool('sulu_ping'),
             'sulu_tag_create' => $this->tool('sulu_tag_create'),
             'sulu_tag_list' => $this->tool('sulu_tag_list'),
         ], null));
 
-        $checker = $this->createMock(ToolPermissionCheckerInterface::class);
-        $checker->method('has')->willReturnCallback(
-            static fn (string $context, string $permission): bool => 'sulu.settings.tags' === $context && PermissionTypes::VIEW === $permission,
-        );
+        $checker = FakeToolPermissionChecker::grantingAll();
+        $checker->grantingNoneExcept()->grant('sulu.settings.tags', PermissionTypes::VIEW);
 
         $map = [
             'sulu_tag_create' => [
@@ -97,7 +102,7 @@ final class FilteredRegistryTest extends TestCase
             ],
         ];
 
-        $registry = new FilteredRegistry($this->inner, $this->visibilityResolver($map, $checker));
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver($map, $checker));
 
         $names = \array_keys((array) $registry->getTools(null, null)->getArrayCopy());
 
@@ -108,7 +113,7 @@ final class FilteredRegistryTest extends TestCase
 
     public function testGetToolsPaginatesFilteredResults(): void
     {
-        $this->inner->method('getTools')->with(null, null)->willReturn(new Page([
+        $this->inner->getTools(null, null)->willReturn(new Page([
             'sulu_ping' => $this->tool('sulu_ping'),
             'sulu_get_context' => $this->tool('sulu_get_context'),
             'sulu_tag_create' => $this->tool('sulu_tag_create'),
@@ -116,8 +121,8 @@ final class FilteredRegistryTest extends TestCase
 
         // No permission map entry for sulu_tag_create => hidden; only the two
         // allowlisted tools survive filtering.
-        $checker = $this->createMock(ToolPermissionCheckerInterface::class);
-        $registry = new FilteredRegistry($this->inner, $this->visibilityResolver([], $checker));
+        $checker = FakeToolPermissionChecker::grantingAll();
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker));
 
         $firstPage = $registry->getTools(1, null);
         self::assertCount(1, $firstPage->references);
@@ -136,10 +141,10 @@ final class FilteredRegistryTest extends TestCase
     public function testGetToolIsNotFilteredByVisibility(): void
     {
         $toolReference = new ToolReference($this->tool('sulu_tag_create'), static fn () => null);
-        $this->inner->method('getTool')->with('sulu_tag_create')->willReturn($toolReference);
+        $this->inner->getTool('sulu_tag_create')->willReturn($toolReference);
 
-        $checker = $this->createMock(ToolPermissionCheckerInterface::class);
-        $registry = new FilteredRegistry($this->inner, $this->visibilityResolver([], $checker));
+        $checker = FakeToolPermissionChecker::grantingAll();
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker));
 
         self::assertSame($toolReference, $registry->getTool('sulu_tag_create'));
     }
@@ -147,20 +152,20 @@ final class FilteredRegistryTest extends TestCase
     public function testGetToolIsNotFilteredByDisabledToolNames(): void
     {
         $toolReference = new ToolReference($this->tool('sulu_dangerous'), static fn () => null);
-        $this->inner->method('getTool')->with('sulu_dangerous')->willReturn($toolReference);
+        $this->inner->getTool('sulu_dangerous')->willReturn($toolReference);
 
-        $checker = $this->createMock(ToolPermissionCheckerInterface::class);
-        $registry = new FilteredRegistry($this->inner, $this->visibilityResolver([], $checker), ['sulu_dangerous']);
+        $checker = FakeToolPermissionChecker::grantingAll();
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), ['sulu_dangerous']);
 
         self::assertSame($toolReference, $registry->getTool('sulu_dangerous'));
     }
 
     public function testRegisterToolSkipsDisabledToolNames(): void
     {
-        $this->inner->expects(self::never())->method('registerTool');
+        $this->inner->registerTool(Argument::cetera())->shouldNotBeCalled();
 
-        $checker = $this->createMock(ToolPermissionCheckerInterface::class);
-        $registry = new FilteredRegistry($this->inner, $this->visibilityResolver([], $checker), ['sulu_dangerous']);
+        $checker = FakeToolPermissionChecker::grantingAll();
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), ['sulu_dangerous']);
 
         $registry->registerTool($this->tool('sulu_dangerous'), static fn () => null);
     }
@@ -168,10 +173,10 @@ final class FilteredRegistryTest extends TestCase
     public function testRegisterToolForwardsNonDisabledTool(): void
     {
         $tool = $this->tool('sulu_safe');
-        $this->inner->expects(self::once())->method('registerTool')->with($tool);
+        $this->inner->registerTool($tool, Argument::cetera())->shouldBeCalledOnce();
 
-        $checker = $this->createMock(ToolPermissionCheckerInterface::class);
-        $registry = new FilteredRegistry($this->inner, $this->visibilityResolver([], $checker), ['sulu_dangerous']);
+        $checker = FakeToolPermissionChecker::grantingAll();
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), ['sulu_dangerous']);
 
         $registry->registerTool($tool, static fn () => null);
     }
@@ -183,17 +188,21 @@ final class FilteredRegistryTest extends TestCase
 
         $state = new DiscoveryState(tools: ['sulu_dangerous' => $dangerousRef, 'sulu_safe' => $safeRef]);
 
-        $this->inner->expects(self::once())->method('setDiscoveryState')->with(
-            self::callback(static function(DiscoveryState $passed) {
-                $tools = $passed->getTools();
+        $passedState = null;
+        $this->inner->setDiscoveryState(Argument::type(DiscoveryState::class))
+            ->will(function(array $args) use (&$passedState) {
+                $passedState = $args[0];
+            })
+            ->shouldBeCalledOnce();
 
-                return !isset($tools['sulu_dangerous']) && isset($tools['sulu_safe']);
-            }),
-        );
-
-        $checker = $this->createMock(ToolPermissionCheckerInterface::class);
-        $registry = new FilteredRegistry($this->inner, $this->visibilityResolver([], $checker), ['sulu_dangerous']);
+        $checker = FakeToolPermissionChecker::grantingAll();
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), ['sulu_dangerous']);
 
         $registry->setDiscoveryState($state);
+
+        self::assertInstanceOf(DiscoveryState::class, $passedState);
+        $tools = $passedState->getTools();
+        self::assertArrayNotHasKey('sulu_dangerous', $tools);
+        self::assertArrayHasKey('sulu_safe', $tools);
     }
 }

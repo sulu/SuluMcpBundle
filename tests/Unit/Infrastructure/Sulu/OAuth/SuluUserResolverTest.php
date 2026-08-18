@@ -16,6 +16,8 @@ namespace Sulu\Mcp\Tests\Unit\Infrastructure\Sulu\OAuth;
 use League\OAuth2\Server\Entities\UserEntityInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Sulu\Bundle\SecurityBundle\Entity\User;
 use Sulu\Mcp\Infrastructure\Sulu\OAuth\SuluOAuthUser;
 use Sulu\Mcp\Infrastructure\Sulu\OAuth\SuluUserResolver;
@@ -25,6 +27,8 @@ use Symfony\Component\Security\Core\User\UserInterface;
 #[CoversClass(SuluUserResolver::class)]
 final class SuluUserResolverTest extends TestCase
 {
+    use ProphecyTrait;
+
     private SuluUserResolver $resolver;
 
     protected function setUp(): void
@@ -34,13 +38,13 @@ final class SuluUserResolverTest extends TestCase
 
     public function testResolveFromSecurityTokenReturnsSuluOAuthUserWithUsername(): void
     {
-        $suluUser = $this->createMock(User::class);
-        $suluUser->method('getUserIdentifier')->willReturn('admin');
+        $suluUser = $this->prophesize(User::class);
+        $suluUser->getUserIdentifier(Argument::cetera())->willReturn('admin');
 
-        $token = $this->createMock(TokenInterface::class);
-        $token->method('getUser')->willReturn($suluUser);
+        $token = $this->prophesize(TokenInterface::class);
+        $token->getUser(Argument::cetera())->willReturn($suluUser->reveal());
 
-        $oauthUser = $this->resolver->resolveFromSecurityToken($token);
+        $oauthUser = $this->resolver->resolveFromSecurityToken($token->reveal());
 
         $this->assertInstanceOf(UserEntityInterface::class, $oauthUser);
         $this->assertInstanceOf(SuluOAuthUser::class, $oauthUser);
@@ -49,14 +53,14 @@ final class SuluUserResolverTest extends TestCase
 
     public function testResolveFromSecurityTokenThrowsForNonSuluUser(): void
     {
-        $genericUser = $this->createMock(UserInterface::class);
+        $genericUser = $this->prophesize(UserInterface::class);
 
-        $token = $this->createMock(TokenInterface::class);
-        $token->method('getUser')->willReturn($genericUser);
+        $token = $this->prophesize(TokenInterface::class);
+        $token->getUser(Argument::cetera())->willReturn($genericUser->reveal());
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('Expected Sulu User entity');
 
-        $this->resolver->resolveFromSecurityToken($token);
+        $this->resolver->resolveFromSecurityToken($token->reveal());
     }
 }

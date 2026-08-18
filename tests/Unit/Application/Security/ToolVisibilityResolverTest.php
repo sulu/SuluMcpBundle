@@ -14,9 +14,10 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\Application\Security;
 
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Component\Security\Authentication\UserInterface;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
@@ -24,23 +25,24 @@ use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Component\Webspace\Webspace;
 use Sulu\Mcp\Application\Security\ToolContextResolverInterface;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
-use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ContactSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
+use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 
 #[CoversClass(ToolVisibilityResolver::class)]
 final class ToolVisibilityResolverTest extends TestCase
 {
-    private ToolPermissionCheckerInterface&MockObject $checker;
+    use ProphecyTrait;
+
+    private FakeToolPermissionChecker $checker;
 
     protected function setUp(): void
     {
-        $this->checker = $this->createMock(ToolPermissionCheckerInterface::class);
+        $this->checker = FakeToolPermissionChecker::grantingAll();
     }
 
     /**
@@ -77,32 +79,32 @@ final class ToolVisibilityResolverTest extends TestCase
             $webspaces[$key] = $webspace;
         }
 
-        $webspaceManager = $this->createMock(WebspaceManagerInterface::class);
-        $webspaceManager->method('getWebspaceCollection')->willReturn(new WebspaceCollection($webspaces));
+        /** @var ObjectProphecy<WebspaceManagerInterface> $webspaceManager */
+        $webspaceManager = $this->prophesize(WebspaceManagerInterface::class);
+        $webspaceManager->getWebspaceCollection()->willReturn(new WebspaceCollection($webspaces));
 
-        $securityChecker = $this->createMock(SecurityCheckerInterface::class);
-        $securityChecker->method('hasPermission')->willReturnCallback(
-            static fn ($condition, string $permission): bool => \in_array(
-                \str_replace('sulu.webspaces.', '', $condition->getSecurityContext()),
+        /** @var ObjectProphecy<SecurityCheckerInterface> $securityChecker */
+        $securityChecker = $this->prophesize(SecurityCheckerInterface::class);
+        $securityChecker->hasPermission(Argument::cetera())->will(
+            fn (array $args): bool => \in_array(
+                \str_replace('sulu.webspaces.', '', $args[0]->getSecurityContext()),
                 $grantedWebspaceKeys,
                 true,
             ),
         );
 
-        $tokenStorage = $this->createMock(TokenStorageInterface::class);
-        $token = $this->createMock(TokenInterface::class);
-        $token->method('getUser')->willReturn($this->createMock(UserInterface::class));
-        $tokenStorage->method('getToken')->willReturn($token);
+        $tokenStorage = (new TestUser())->inTokenStorage();
 
-        return new WebspacePermissionResolver($webspaceManager, new ToolPermissionChecker($securityChecker, $tokenStorage));
+        return new WebspacePermissionResolver($webspaceManager->reveal(), new ToolPermissionChecker($securityChecker->reveal(), $tokenStorage));
     }
 
     public function testAllowlistedToolIsAlwaysVisible(): void
     {
-        $this->checker->expects(self::never())->method('has');
         $resolver = $this->resolver([]);
 
         self::assertTrue($resolver->isVisible('sulu_ping'));
+
+        self::assertSame([], $this->checker->calls(), 'the permission checker must not be consulted');
     }
 
     public function testUndeclaredToolIsHidden(): void
@@ -114,7 +116,6 @@ final class ToolVisibilityResolverTest extends TestCase
 
     public function testEmptyRequirementsIsHidden(): void
     {
-        $this->checker->expects(self::never())->method('has');
         $resolver = $this->resolver([
             'sulu_no_requirements' => [
                 'name' => 'sulu_no_requirements',
@@ -125,11 +126,13 @@ final class ToolVisibilityResolverTest extends TestCase
         ]);
 
         self::assertFalse($resolver->isVisible('sulu_no_requirements'));
+
+        self::assertSame([], $this->checker->calls(), 'the permission checker must not be consulted');
     }
 
     public function testStaticContextToolIsHiddenWhenUserLacksPermission(): void
     {
-        $this->checker->method('has')->willReturn(false);
+        $this->checker->denyAll();
         $resolver = $this->resolver([
             'sulu_tag_create' => [
                 'name' => 'sulu_tag_create',
@@ -144,9 +147,7 @@ final class ToolVisibilityResolverTest extends TestCase
 
     public function testStaticContextToolIsVisibleWhenUserHasPermission(): void
     {
-        $this->checker->method('has')->willReturnCallback(
-            static fn (string $context, string $permission): bool => 'sulu.settings.tags' === $context && PermissionTypes::ADD === $permission,
-        );
+        $this->checker->grantingNoneExcept()->grant('sulu.settings.tags', PermissionTypes::ADD);
         $resolver = $this->resolver([
             'sulu_tag_create' => [
                 'name' => 'sulu_tag_create',
@@ -163,9 +164,7 @@ final class ToolVisibilityResolverTest extends TestCase
     {
         // ContactSecurityContextResolver::candidates() => ['sulu.contact.people', 'sulu.contact.organizations'];
         // only the second is granted.
-        $this->checker->method('has')->willReturnCallback(
-            static fn (string $context, string $permission): bool => 'sulu.contact.organizations' === $context && PermissionTypes::VIEW === $permission,
-        );
+        $this->checker->grantingNoneExcept()->grant('sulu.contact.organizations', PermissionTypes::VIEW);
         $resolver = $this->resolver(
             [
                 'sulu_contact_list' => [
@@ -183,7 +182,7 @@ final class ToolVisibilityResolverTest extends TestCase
 
     public function testNoCandidateGrantsIsHidden(): void
     {
-        $this->checker->method('has')->willReturn(false);
+        $this->checker->denyAll();
         $resolver = $this->resolver(
             [
                 'sulu_contact_list' => [
@@ -201,7 +200,6 @@ final class ToolVisibilityResolverTest extends TestCase
 
     public function testAnyWebspaceSentinelVisibleWhenAWebspaceIsGranted(): void
     {
-        $this->checker->expects(self::never())->method('has');
         $resolver = $this->resolver(
             [
                 'sulu_page_get' => [
@@ -215,6 +213,8 @@ final class ToolVisibilityResolverTest extends TestCase
         );
 
         self::assertTrue($resolver->isVisible('sulu_page_get'));
+
+        self::assertSame([], $this->checker->calls(), 'the permission checker must not be consulted');
     }
 
     public function testAnyWebspaceSentinelHiddenWhenNoWebspaceIsGranted(): void
@@ -236,7 +236,7 @@ final class ToolVisibilityResolverTest extends TestCase
 
     public function testDescribeReturnsReasonWhenUnavailable(): void
     {
-        $this->checker->method('has')->willReturn(false);
+        $this->checker->denyAll();
         $resolver = $this->resolver([
             'sulu_tag_create' => [
                 'name' => 'sulu_tag_create',
@@ -260,7 +260,7 @@ final class ToolVisibilityResolverTest extends TestCase
      */
     public function testDescribeReportsEveryRequirementNotJustTheFirst(): void
     {
-        $this->checker->method('has')->willReturn(false);
+        $this->checker->denyAll();
         $requirements = [
             ['context' => 'sulu.settings.categories', 'permission' => PermissionTypes::VIEW],
             ['context' => 'sulu.settings.categories', 'permission' => PermissionTypes::DELETE],
@@ -292,7 +292,7 @@ final class ToolVisibilityResolverTest extends TestCase
 
     public function testDescribeAllCoversPermissionMapAndAllowlist(): void
     {
-        $this->checker->method('has')->willReturn(false);
+        $this->checker->denyAll();
         $resolver = $this->resolver([
             'sulu_tag_create' => [
                 'name' => 'sulu_tag_create',

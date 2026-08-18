@@ -15,8 +15,10 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\TagBundle\Tag\TagInterface;
 use Sulu\Bundle\TagBundle\Tag\TagRepositoryInterface;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagListTool;
@@ -24,26 +26,29 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagListTool;
 #[CoversClass(TagListTool::class)]
 final class TagListToolTest extends TestCase
 {
-    private TagRepositoryInterface&MockObject $tagRepository;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<TagRepositoryInterface> */
+    private ObjectProphecy $tagRepository;
     private TagListTool $tool;
 
     protected function setUp(): void
     {
-        $this->tagRepository = $this->createMock(TagRepositoryInterface::class);
-        $this->tool = new TagListTool($this->tagRepository);
+        $this->tagRepository = $this->prophesize(TagRepositoryInterface::class);
+        $this->tool = new TagListTool($this->tagRepository->reveal());
     }
 
     public function testListTagsReturnsPaginatedTagsAndTotal(): void
     {
         $tags = [];
         for ($i = 1; $i <= 25; ++$i) {
-            $tag = $this->createMock(TagInterface::class);
-            $tag->method('getId')->willReturn($i);
-            $tag->method('getName')->willReturn("tag-{$i}");
-            $tags[] = $tag;
+            $tag = $this->prophesize(TagInterface::class);
+            $tag->getId(Argument::cetera())->willReturn($i);
+            $tag->getName(Argument::cetera())->willReturn("tag-{$i}");
+            $tags[] = $tag->reveal();
         }
 
-        $this->tagRepository->method('findAll')->willReturn($tags);
+        $this->tagRepository->findAll(Argument::cetera())->willReturn($tags);
 
         $result = $this->tool->listTags();
 
@@ -59,13 +64,13 @@ final class TagListToolTest extends TestCase
     {
         $tags = [];
         for ($i = 1; $i <= 25; ++$i) {
-            $tag = $this->createMock(TagInterface::class);
-            $tag->method('getId')->willReturn($i);
-            $tag->method('getName')->willReturn("tag-{$i}");
-            $tags[] = $tag;
+            $tag = $this->prophesize(TagInterface::class);
+            $tag->getId(Argument::cetera())->willReturn($i);
+            $tag->getName(Argument::cetera())->willReturn("tag-{$i}");
+            $tags[] = $tag->reveal();
         }
 
-        $this->tagRepository->method('findAll')->willReturn($tags);
+        $this->tagRepository->findAll(Argument::cetera())->willReturn($tags);
 
         $result = $this->tool->listTags(2, 20);
 
@@ -79,13 +84,13 @@ final class TagListToolTest extends TestCase
     {
         $tags = [];
         for ($i = 1; $i <= 10; ++$i) {
-            $tag = $this->createMock(TagInterface::class);
-            $tag->method('getId')->willReturn($i);
-            $tag->method('getName')->willReturn("tag-{$i}");
-            $tags[] = $tag;
+            $tag = $this->prophesize(TagInterface::class);
+            $tag->getId(Argument::cetera())->willReturn($i);
+            $tag->getName(Argument::cetera())->willReturn("tag-{$i}");
+            $tags[] = $tag->reveal();
         }
 
-        $this->tagRepository->method('findAll')->willReturn($tags);
+        $this->tagRepository->findAll(Argument::cetera())->willReturn($tags);
 
         $result = $this->tool->listTags(1, 3);
 
@@ -97,7 +102,7 @@ final class TagListToolTest extends TestCase
 
     public function testListTagsReturnsEmptyResultWhenNoTags(): void
     {
-        $this->tagRepository->method('findAll')->willReturn([]);
+        $this->tagRepository->findAll(Argument::cetera())->willReturn([]);
 
         $result = $this->tool->listTags();
 
@@ -107,8 +112,7 @@ final class TagListToolTest extends TestCase
 
     public function testListTagsReturnsErrorOnFailure(): void
     {
-        $this->tagRepository->method('findAll')
-            ->willThrowException(new \RuntimeException('DB error'));
+        $this->tagRepository->findAll(Argument::cetera())->willThrow(new \RuntimeException('DB error'));
 
         $result = $this->tool->listTags();
 

@@ -15,28 +15,31 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\TagBundle\Tag\TagManagerInterface;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
 
 #[CoversClass(TagDeleteTool::class)]
 final class TagDeleteToolTest extends TestCase
 {
-    private TagManagerInterface&MockObject $tagManager;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<TagManagerInterface> */
+    private ObjectProphecy $tagManager;
     private TagDeleteTool $tool;
 
     protected function setUp(): void
     {
-        $this->tagManager = $this->createMock(TagManagerInterface::class);
-        $this->tool = new TagDeleteTool($this->tagManager);
+        $this->tagManager = $this->prophesize(TagManagerInterface::class);
+        $this->tool = new TagDeleteTool($this->tagManager->reveal());
     }
 
     public function testDeleteTagReturnsSuccessResult(): void
     {
-        $this->tagManager->expects($this->once())
-            ->method('delete')
-            ->with(42);
+        $this->tagManager->delete(42)->shouldBeCalledOnce();
 
         $result = $this->tool->deleteTag(42);
 
@@ -47,8 +50,7 @@ final class TagDeleteToolTest extends TestCase
 
     public function testDeleteTagReturnsErrorOnException(): void
     {
-        $this->tagManager->method('delete')
-            ->willThrowException(new \RuntimeException('Tag not found'));
+        $this->tagManager->delete(Argument::cetera())->willThrow(new \RuntimeException('Tag not found'));
 
         $result = $this->tool->deleteTag(999);
 

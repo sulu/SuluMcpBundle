@@ -16,16 +16,25 @@ namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\Security\EventListener;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpLoginSuccessListener;
+use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Symfony\Component\Routing\Generator\UrlGenerator;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Http\Authenticator\AuthenticatorInterface;
+use Symfony\Component\Security\Http\Authenticator\Passport\Badge\UserBadge;
 use Symfony\Component\Security\Http\Authenticator\Passport\Passport;
+use Symfony\Component\Security\Http\Authenticator\Passport\SelfValidatingPassport;
 use Symfony\Component\Security\Http\Event\LoginSuccessEvent;
 
 #[CoversClass(McpLoginSuccessListener::class)]
@@ -150,13 +159,47 @@ final class McpLoginSuccessListenerTest extends TestCase
     private function event(string $firewallName, Request $request, ?Response $response): LoginSuccessEvent
     {
         return new LoginSuccessEvent(
-            $this->createMock(AuthenticatorInterface::class),
-            $this->createMock(Passport::class),
-            $this->createMock(TokenInterface::class),
+            $this->authenticator(),
+            new SelfValidatingPassport(new UserBadge('tester')),
+            new UsernamePasswordToken(new TestUser(), $firewallName),
             $request,
             $response,
             $firewallName,
         );
+    }
+
+    /**
+     * The listener never inspects the authenticator; a minimal real implementation
+     * stands in for it.
+     */
+    private function authenticator(): AuthenticatorInterface
+    {
+        return new class() implements AuthenticatorInterface {
+            public function supports(Request $request): ?bool
+            {
+                return true;
+            }
+
+            public function authenticate(Request $request): Passport
+            {
+                throw new \LogicException('Not used in tests.');
+            }
+
+            public function createToken(Passport $passport, string $firewallName): TokenInterface
+            {
+                throw new \LogicException('Not used in tests.');
+            }
+
+            public function onAuthenticationSuccess(Request $request, TokenInterface $token, string $firewallName): ?Response
+            {
+                return null;
+            }
+
+            public function onAuthenticationFailure(Request $request, AuthenticationException $exception): ?Response
+            {
+                return null;
+            }
+        };
     }
 
     /**
@@ -174,13 +217,9 @@ final class McpLoginSuccessListenerTest extends TestCase
 
     private function urlGenerator(): UrlGeneratorInterface
     {
-        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $urlGenerator->method('generate')->willReturnCallback(
-            static fn (string $name): string => 'sulu_mcp_oauth_authorize' === $name
-                ? '/admin/mcp/authorize'
-                : self::fail('Unexpected route "' . $name . '".'),
-        );
+        $routes = new RouteCollection();
+        $routes->add('sulu_mcp_oauth_authorize', new Route('/admin/mcp/authorize'));
 
-        return $urlGenerator;
+        return new UrlGenerator($routes, new RequestContext());
     }
 }

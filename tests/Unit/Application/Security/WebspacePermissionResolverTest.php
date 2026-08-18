@@ -15,7 +15,9 @@ namespace Sulu\Mcp\Tests\Unit\Application\Security;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
-use Sulu\Component\Security\Authentication\UserInterface;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
@@ -23,34 +25,42 @@ use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Component\Webspace\Webspace;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
+use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 
 #[CoversClass(WebspacePermissionResolver::class)]
 final class WebspacePermissionResolverTest extends TestCase
 {
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<WebspaceManagerInterface> */
+    private ObjectProphecy $webspaceManager;
+
+    /** @var ObjectProphecy<SecurityCheckerInterface> */
+    private ObjectProphecy $securityChecker;
+
+    protected function setUp(): void
+    {
+        $this->webspaceManager = $this->prophesize(WebspaceManagerInterface::class);
+        $this->securityChecker = $this->prophesize(SecurityCheckerInterface::class);
+    }
+
     public function testReturnsOnlyPermittedWebspaceKeys(): void
     {
-        $webspaceManager = $this->createMock(WebspaceManagerInterface::class);
-        $webspaceManager->method('getWebspaceCollection')->willReturn(
+        $this->webspaceManager->getWebspaceCollection()->willReturn(
             new WebspaceCollection([
                 'example' => $this->webspace('example'),
                 'blog' => $this->webspace('blog'),
             ])
         );
 
-        $securityChecker = $this->createMock(SecurityCheckerInterface::class);
-        $securityChecker->method('hasPermission')->willReturnCallback(
-            static fn ($condition, string $permission): bool => 'sulu.webspaces.example' === $condition->getSecurityContext(),
+        $this->securityChecker->hasPermission(Argument::cetera())->will(
+            fn (array $args): bool => 'sulu.webspaces.example' === $args[0]->getSecurityContext(),
         );
 
-        $tokenStorage = $this->createMock(TokenStorageInterface::class);
-        $token = $this->createMock(TokenInterface::class);
-        $token->method('getUser')->willReturn($this->createMock(UserInterface::class));
-        $tokenStorage->method('getToken')->willReturn($token);
+        $tokenStorage = (new TestUser())->inTokenStorage();
 
-        $checker = new ToolPermissionChecker($securityChecker, $tokenStorage);
-        $resolver = new WebspacePermissionResolver($webspaceManager, $checker);
+        $checker = new ToolPermissionChecker($this->securityChecker->reveal(), $tokenStorage);
+        $resolver = new WebspacePermissionResolver($this->webspaceManager->reveal(), $checker);
 
         self::assertSame(['example'], $resolver->permittedWebspaceKeys(PermissionTypes::EDIT));
     }

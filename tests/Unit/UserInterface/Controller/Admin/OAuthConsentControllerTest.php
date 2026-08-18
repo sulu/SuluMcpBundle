@@ -19,6 +19,8 @@ use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
 use League\OAuth2\Server\RequestTypes\AuthorizationRequestInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Sulu\Mcp\Domain\Model\OAuthConsentRequest;
 use Sulu\Mcp\Infrastructure\Symfony\Security\OAuthConsentStore;
 use Sulu\Mcp\UserInterface\Controller\Admin\OAuthConsentController;
@@ -35,6 +37,8 @@ use Symfony\Contracts\Translation\TranslatorInterface;
 #[CoversClass(OAuthConsentStore::class)]
 final class OAuthConsentControllerTest extends TestCase
 {
+    use ProphecyTrait;
+
     private OAuthConsentStore $store;
     private OAuthConsentController $controller;
 
@@ -42,18 +46,18 @@ final class OAuthConsentControllerTest extends TestCase
     {
         $this->store = new OAuthConsentStore();
 
-        $translator = $this->createMock(TranslatorInterface::class);
-        $translator->method('trans')->willReturnCallback(
+        $translator = $this->prophesize(TranslatorInterface::class);
+        $translator->trans(Argument::cetera())->will(fn (array $args) => (
             static fn (string $id): string => match ($id) {
                 'mcp:tools' => 'Use MCP tools',
                 'mcp:resources' => 'Read MCP resources',
                 default => $id,
             }
-        );
+        )(...$args));
 
-        $security = $this->createMock(Security::class);
+        $security = $this->prophesize(Security::class);
 
-        $this->controller = new OAuthConsentController($this->store, $translator, $security);
+        $this->controller = new OAuthConsentController($this->store, $translator->reveal(), $security->reveal());
     }
 
     public function testDetailsReturnsConsentMetadata(): void
@@ -145,12 +149,12 @@ final class OAuthConsentControllerTest extends TestCase
 
     private function event(array $scopes): AuthorizationRequestResolveEvent
     {
-        $authorizationRequest = $this->createMock(AuthorizationRequestInterface::class);
-        $authorizationRequest->method('getRedirectUri')->willReturn('https://chatgpt.com/oauth/callback');
-        $authorizationRequest->method('getState')->willReturn('state-1');
+        $authorizationRequest = $this->prophesize(AuthorizationRequestInterface::class);
+        $authorizationRequest->getRedirectUri(Argument::cetera())->willReturn('https://chatgpt.com/oauth/callback');
+        $authorizationRequest->getState(Argument::cetera())->willReturn('state-1');
 
         return new AuthorizationRequestResolveEvent(
-            $authorizationRequest,
+            $authorizationRequest->reveal(),
             \array_map(static fn (string $scope): Scope => new Scope($scope), $scopes),
             new Client('ChatGPT', 'client-1', 'secret'),
             new class() implements UserInterface {

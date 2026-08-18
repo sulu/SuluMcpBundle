@@ -16,16 +16,15 @@ namespace Sulu\Mcp\Tests\Unit\Infrastructure\Sulu\Security;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
-use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 
 #[CoversClass(ArticleSecurityContextResolver::class)]
 final class ArticleSecurityContextResolverTest extends TestCase
 {
     public function testDefaultGroupYieldsBaseContext(): void
     {
-        $groupProvider = $this->createMock(GroupProviderInterface::class);
-        $groupProvider->method('getGroups')->willReturn([
+        $groupProvider = new TestGroupProvider([
             (new FormGroup('default', 'Default'))->withTemplate('default'),
         ]);
         $resolver = new ArticleSecurityContextResolver($groupProvider);
@@ -35,8 +34,7 @@ final class ArticleSecurityContextResolverTest extends TestCase
 
     public function testNamedGroupYieldsSuffixedContext(): void
     {
-        $groupProvider = $this->createMock(GroupProviderInterface::class);
-        $groupProvider->method('getGroups')->willReturn([
+        $groupProvider = new TestGroupProvider([
             (new FormGroup('default', 'Default'))->withTemplate('default'),
             (new FormGroup('blog', 'Blog'))->withTemplate('blog_article'),
         ]);
@@ -47,8 +45,7 @@ final class ArticleSecurityContextResolverTest extends TestCase
 
     public function testUnmatchedTemplateInMultiGroupInstallYieldsUnresolvableContext(): void
     {
-        $groupProvider = $this->createMock(GroupProviderInterface::class);
-        $groupProvider->method('getGroups')->willReturn([
+        $groupProvider = new TestGroupProvider([
             (new FormGroup('default', 'Default'))->withTemplate('default'),
             (new FormGroup('blog', 'Blog'))->withTemplate('blog_article'),
         ]);
@@ -59,8 +56,7 @@ final class ArticleSecurityContextResolverTest extends TestCase
 
     public function testCandidatesYieldsOnlyBaseContextForSingleGroup(): void
     {
-        $groupProvider = $this->createMock(GroupProviderInterface::class);
-        $groupProvider->method('getGroups')->willReturn([
+        $groupProvider = new TestGroupProvider([
             (new FormGroup('default', 'Default'))->withTemplate('default'),
         ]);
         $resolver = new ArticleSecurityContextResolver($groupProvider);
@@ -70,8 +66,7 @@ final class ArticleSecurityContextResolverTest extends TestCase
 
     public function testCandidatesYieldsBaseAndPerGroupContexts(): void
     {
-        $groupProvider = $this->createMock(GroupProviderInterface::class);
-        $groupProvider->method('getGroups')->willReturn([
+        $groupProvider = new TestGroupProvider([
             (new FormGroup('default', 'Default'))->withTemplate('default'),
             (new FormGroup('blog', 'Blog'))->withTemplate('blog_article'),
         ]);

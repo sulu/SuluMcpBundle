@@ -16,7 +16,7 @@ namespace Sulu\Mcp\Tests\Unit\Infrastructure\League\EventListener;
 use League\Bundle\OAuth2ServerBundle\Event\AuthorizationRequestResolveEvent;
 use League\Bundle\OAuth2ServerBundle\Model\Client;
 use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
-use League\OAuth2\Server\RequestTypes\AuthorizationRequestInterface;
+use League\OAuth2\Server\RequestTypes\AuthorizationRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Domain\Model\OAuthConsentRequest;
@@ -27,7 +27,11 @@ use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\HttpFoundation\Session\Session;
 use Symfony\Component\HttpFoundation\Session\Storage\MockArraySessionStorage;
+use Symfony\Component\Routing\Generator\UrlGenerator;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
 use Symfony\Component\Security\Core\User\UserInterface;
 
 #[CoversClass(OAuthAuthorizationListener::class)]
@@ -110,14 +114,10 @@ final class OAuthAuthorizationListenerTest extends TestCase
 
     private function urlGenerator(): UrlGeneratorInterface
     {
-        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $urlGenerator->method('generate')->willReturnCallback(
-            static fn (string $name): string => 'sulu_admin' === $name
-                ? '/admin/'
-                : self::fail('Unexpected route "' . $name . '".'),
-        );
+        $routes = new RouteCollection();
+        $routes->add('sulu_admin', new Route('/admin/'));
 
-        return $urlGenerator;
+        return new UrlGenerator($routes, new RequestContext());
     }
 
     private function request(string $uri, ?Session $session = null): Request
@@ -130,9 +130,9 @@ final class OAuthAuthorizationListenerTest extends TestCase
 
     private function event(): AuthorizationRequestResolveEvent
     {
-        $authorizationRequest = $this->createMock(AuthorizationRequestInterface::class);
-        $authorizationRequest->method('getRedirectUri')->willReturn('https://chatgpt.com/oauth/callback');
-        $authorizationRequest->method('getState')->willReturn('state-1');
+        $authorizationRequest = new AuthorizationRequest();
+        $authorizationRequest->setRedirectUri('https://chatgpt.com/oauth/callback');
+        $authorizationRequest->setState('state-1');
 
         return new AuthorizationRequestResolveEvent(
             $authorizationRequest,

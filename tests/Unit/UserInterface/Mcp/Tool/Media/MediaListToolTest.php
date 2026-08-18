@@ -17,54 +17,65 @@ use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\MediaBundle\Api\Media;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
-use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
-use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaListTool;
 
 #[CoversClass(MediaListTool::class)]
 final class MediaListToolTest extends TestCase
 {
-    private MediaManagerInterface&MockObject $mediaManager;
-    private ToolPermissionCheckerInterface&MockObject $permissionChecker;
-    private SystemCollectionManagerInterface&MockObject $systemCollectionManager;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<MediaManagerInterface> */
+    private ObjectProphecy $mediaManager;
+
+    private FakeToolPermissionChecker $permissionChecker;
+
+    /** @var ObjectProphecy<SystemCollectionManagerInterface> */
+    private ObjectProphecy $systemCollectionManager;
+
     private MediaListTool $tool;
 
     protected function setUp(): void
     {
-        $this->mediaManager = $this->createMock(MediaManagerInterface::class);
-        $this->permissionChecker = $this->createMock(ToolPermissionCheckerInterface::class);
-        $this->systemCollectionManager = $this->createMock(SystemCollectionManagerInterface::class);
-        $this->tool = new MediaListTool($this->mediaManager, $this->permissionChecker, $this->systemCollectionManager);
+        $this->mediaManager = $this->prophesize(MediaManagerInterface::class);
+        $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
+        $this->systemCollectionManager = $this->prophesize(SystemCollectionManagerInterface::class);
+        $this->tool = new MediaListTool(
+            $this->mediaManager->reveal(),
+            $this->permissionChecker,
+            $this->systemCollectionManager->reveal(),
+        );
     }
 
     public function testListMediaReturnsFormattedResults(): void
     {
-        $media1 = $this->createMock(Media::class);
-        $media1->method('getId')->willReturn(1);
-        $media1->method('getTitle')->willReturn('Photo 1');
-        $media1->method('getMimeType')->willReturn('image/jpeg');
-        $media1->method('getSize')->willReturn(12345);
-        $media1->method('getUrl')->willReturn('/media/1/photo1.jpg');
-        $media1->method('getCollection')->willReturn(3);
+        $media1 = $this->prophesize(Media::class);
+        $media1->getId()->willReturn(1);
+        $media1->getTitle()->willReturn('Photo 1');
+        $media1->getMimeType()->willReturn('image/jpeg');
+        $media1->getSize()->willReturn(12345);
+        $media1->getUrl()->willReturn('/media/1/photo1.jpg');
+        $media1->getCollection()->willReturn(3);
 
-        $media2 = $this->createMock(Media::class);
-        $media2->method('getId')->willReturn(2);
-        $media2->method('getTitle')->willReturn('Document');
-        $media2->method('getMimeType')->willReturn('application/pdf');
-        $media2->method('getSize')->willReturn(67890);
-        $media2->method('getUrl')->willReturn('/media/2/document.pdf');
-        $media2->method('getCollection')->willReturn(3);
+        $media2 = $this->prophesize(Media::class);
+        $media2->getId()->willReturn(2);
+        $media2->getTitle()->willReturn('Document');
+        $media2->getMimeType()->willReturn('application/pdf');
+        $media2->getSize()->willReturn(67890);
+        $media2->getUrl()->willReturn('/media/2/document.pdf');
+        $media2->getCollection()->willReturn(3);
 
-        $this->mediaManager->method('get')->willReturn([$media1, $media2]);
-        $this->mediaManager->method('getCount')->willReturn(10);
-        $this->permissionChecker->method('has')->willReturn(true);
+        $this->mediaManager->get(Argument::cetera())->willReturn([$media1->reveal(), $media2->reveal()]);
+        $this->mediaManager->getCount()->willReturn(10);
 
         $result = $this->tool->listMedia('en');
 
@@ -80,18 +91,17 @@ final class MediaListToolTest extends TestCase
     public function testListMediaPassesFilters(): void
     {
         $this->mediaManager
-            ->expects($this->once())
-            ->method('get')
-            ->with(
+            ->get(
                 'de',
-                $this->callback(fn (array $filter): bool => 5 === $filter['collection']
+                Argument::that(fn (array $filter): bool => 5 === $filter['collection']
                     && 'test' === $filter['search']
                     && ['image'] === $filter['types']),
                 10,
                 20,
             )
+            ->shouldBeCalledOnce()
             ->willReturn([]);
-        $this->mediaManager->method('getCount')->willReturn(0);
+        $this->mediaManager->getCount()->willReturn(0);
 
         $this->tool->listMedia('de', 5, 'test', ['image'], 3, 10);
     }
@@ -102,17 +112,18 @@ final class MediaListToolTest extends TestCase
      */
     public function testListMediaExcludesSystemCollectionsInTheQueryWhenNotPermitted(): void
     {
+        $this->permissionChecker->denyContext('sulu.media.system_collections');
+
         $this->mediaManager
-            ->expects($this->once())
-            ->method('get')
-            ->with(
+            ->get(
                 'en',
                 ['systemCollections' => false],
                 20,
                 0,
             )
+            ->shouldBeCalledOnce()
             ->willReturn([]);
-        $this->mediaManager->method('getCount')->willReturn(0);
+        $this->mediaManager->getCount()->willReturn(0);
 
         $this->tool->listMedia('en');
 
@@ -121,18 +132,16 @@ final class MediaListToolTest extends TestCase
 
     public function testListMediaDoesNotExcludeSystemCollectionsWhenPermitted(): void
     {
-        $permissionChecker = $this->createMock(ToolPermissionCheckerInterface::class);
-        $permissionChecker->method('has')->willReturn(true);
+        $permissionChecker = FakeToolPermissionChecker::grantingAll();
 
-        $mediaManager = $this->createMock(MediaManagerInterface::class);
+        $mediaManager = $this->prophesize(MediaManagerInterface::class);
         $mediaManager
-            ->expects($this->once())
-            ->method('get')
-            ->with('en', [], 20, 0)
+            ->get('en', [], 20, 0)
+            ->shouldBeCalledOnce()
             ->willReturn([]);
-        $mediaManager->method('getCount')->willReturn(0);
+        $mediaManager->getCount()->willReturn(0);
 
-        $tool = new MediaListTool($mediaManager, $permissionChecker, $this->systemCollectionManager);
+        $tool = new MediaListTool($mediaManager->reveal(), $permissionChecker, $this->systemCollectionManager->reveal());
 
         $tool->listMedia('en');
 
@@ -141,59 +150,64 @@ final class MediaListToolTest extends TestCase
 
     public function testListMediaWithCollectionIdChecksObjectPermission(): void
     {
-        $this->mediaManager->method('get')->willReturn([]);
-        $this->mediaManager->method('getCount')->willReturn(0);
-
-        $this->permissionChecker
-            ->expects($this->once())
-            ->method('check')
-            ->with('sulu.media.collections', PermissionTypes::VIEW, 'en', Collection::class, 5);
+        $this->mediaManager->get(Argument::cetera())->willReturn([]);
+        $this->mediaManager->getCount()->willReturn(0);
 
         $this->tool->listMedia('en', 5);
+
+        self::assertSame([[
+            'context' => 'sulu.media.collections',
+            'permissions' => [PermissionTypes::VIEW],
+            'locale' => 'en',
+            'objectType' => Collection::class,
+            'objectId' => 5,
+        ]], $this->permissionChecker->calls());
     }
 
     public function testListMediaWithoutCollectionIdSkipsObjectPermissionCheck(): void
     {
-        $this->mediaManager->method('get')->willReturn([]);
-        $this->mediaManager->method('getCount')->willReturn(0);
-
-        $this->permissionChecker->expects($this->never())->method('check');
+        $this->mediaManager->get(Argument::cetera())->willReturn([]);
+        $this->mediaManager->getCount()->willReturn(0);
 
         $this->tool->listMedia('en');
+
+        $this->assertSame([], $this->permissionChecker->calls());
     }
 
     public function testListMediaWithoutCollectionIdFiltersRowsByCollectionPermission(): void
     {
-        $mediaInAllowedCollection = $this->createMock(Media::class);
-        $mediaInAllowedCollection->method('getId')->willReturn(1);
-        $mediaInAllowedCollection->method('getTitle')->willReturn('Allowed');
-        $mediaInAllowedCollection->method('getMimeType')->willReturn('image/jpeg');
-        $mediaInAllowedCollection->method('getSize')->willReturn(111);
-        $mediaInAllowedCollection->method('getUrl')->willReturn('/media/1/allowed.jpg');
-        $mediaInAllowedCollection->method('getCollection')->willReturn(3);
+        $mediaInAllowedCollection = $this->prophesize(Media::class);
+        $mediaInAllowedCollection->getId()->willReturn(1);
+        $mediaInAllowedCollection->getTitle()->willReturn('Allowed');
+        $mediaInAllowedCollection->getMimeType()->willReturn('image/jpeg');
+        $mediaInAllowedCollection->getSize()->willReturn(111);
+        $mediaInAllowedCollection->getUrl()->willReturn('/media/1/allowed.jpg');
+        $mediaInAllowedCollection->getCollection()->willReturn(3);
 
-        $mediaInDeniedCollection = $this->createMock(Media::class);
-        $mediaInDeniedCollection->method('getId')->willReturn(2);
-        $mediaInDeniedCollection->method('getTitle')->willReturn('Denied');
-        $mediaInDeniedCollection->method('getMimeType')->willReturn('application/pdf');
-        $mediaInDeniedCollection->method('getSize')->willReturn(222);
-        $mediaInDeniedCollection->method('getUrl')->willReturn('/media/2/denied.pdf');
-        $mediaInDeniedCollection->method('getCollection')->willReturn(7);
+        $mediaInDeniedCollection = $this->prophesize(Media::class);
+        $mediaInDeniedCollection->getId()->willReturn(2);
+        $mediaInDeniedCollection->getTitle()->willReturn('Denied');
+        $mediaInDeniedCollection->getMimeType()->willReturn('application/pdf');
+        $mediaInDeniedCollection->getSize()->willReturn(222);
+        $mediaInDeniedCollection->getUrl()->willReturn('/media/2/denied.pdf');
+        $mediaInDeniedCollection->getCollection()->willReturn(7);
 
-        $this->mediaManager->method('get')->willReturn([$mediaInAllowedCollection, $mediaInDeniedCollection]);
-        $this->mediaManager->method('getCount')->willReturn(2);
+        $this->mediaManager->get(Argument::cetera())->willReturn([
+            $mediaInAllowedCollection->reveal(),
+            $mediaInDeniedCollection->reveal(),
+        ]);
+        $this->mediaManager->getCount()->willReturn(2);
 
         // Caller has system_collections VIEW here, so this test isolates the
         // per-collection EDIT filtering from the system-collection gate below.
         $this->permissionChecker
-            ->method('has')
-            ->willReturnCallback(static function(string $context, string $permission, ?string $locale = null, ?string $objectType = null, mixed $objectId = null): bool {
-                if ('sulu.media.system_collections' === $context) {
-                    return true;
-                }
-
-                return 3 === $objectId;
-            });
+            ->grantWhen(static fn (
+                string $context,
+                string $permission,
+                ?string $locale,
+                ?string $objectType,
+                mixed $objectId,
+            ): bool => 'sulu.media.system_collections' === $context || 3 === $objectId);
 
         $result = $this->tool->listMedia('en');
 
@@ -204,33 +218,33 @@ final class MediaListToolTest extends TestCase
 
     public function testListMediaWithoutCollectionIdExcludesSystemCollectionMediaWhenSystemViewDenied(): void
     {
-        $mediaInNormalCollection = $this->createMock(Media::class);
-        $mediaInNormalCollection->method('getId')->willReturn(1);
-        $mediaInNormalCollection->method('getTitle')->willReturn('Normal');
-        $mediaInNormalCollection->method('getMimeType')->willReturn('image/jpeg');
-        $mediaInNormalCollection->method('getSize')->willReturn(111);
-        $mediaInNormalCollection->method('getUrl')->willReturn('/media/1/normal.jpg');
-        $mediaInNormalCollection->method('getCollection')->willReturn(3);
+        $mediaInNormalCollection = $this->prophesize(Media::class);
+        $mediaInNormalCollection->getId()->willReturn(1);
+        $mediaInNormalCollection->getTitle()->willReturn('Normal');
+        $mediaInNormalCollection->getMimeType()->willReturn('image/jpeg');
+        $mediaInNormalCollection->getSize()->willReturn(111);
+        $mediaInNormalCollection->getUrl()->willReturn('/media/1/normal.jpg');
+        $mediaInNormalCollection->getCollection()->willReturn(3);
 
-        $mediaInSystemCollection = $this->createMock(Media::class);
-        $mediaInSystemCollection->method('getId')->willReturn(2);
-        $mediaInSystemCollection->method('getTitle')->willReturn('System');
-        $mediaInSystemCollection->method('getMimeType')->willReturn('image/png');
-        $mediaInSystemCollection->method('getSize')->willReturn(222);
-        $mediaInSystemCollection->method('getUrl')->willReturn('/media/2/system.png');
-        $mediaInSystemCollection->method('getCollection')->willReturn(99);
+        $mediaInSystemCollection = $this->prophesize(Media::class);
+        $mediaInSystemCollection->getId()->willReturn(2);
+        $mediaInSystemCollection->getTitle()->willReturn('System');
+        $mediaInSystemCollection->getMimeType()->willReturn('image/png');
+        $mediaInSystemCollection->getSize()->willReturn(222);
+        $mediaInSystemCollection->getUrl()->willReturn('/media/2/system.png');
+        $mediaInSystemCollection->getCollection()->willReturn(99);
 
-        $this->mediaManager->method('get')->willReturn([$mediaInNormalCollection, $mediaInSystemCollection]);
-        $this->mediaManager->method('getCount')->willReturn(2);
+        $this->mediaManager->get(Argument::cetera())->willReturn([
+            $mediaInNormalCollection->reveal(),
+            $mediaInSystemCollection->reveal(),
+        ]);
+        $this->mediaManager->getCount()->willReturn(2);
 
         // Caller has collection EDIT on both collections, but NOT system_collections VIEW.
-        $this->permissionChecker
-            ->method('has')
-            ->willReturnCallback(static fn (string $context): bool => 'sulu.media.system_collections' !== $context);
+        $this->permissionChecker->denyContext('sulu.media.system_collections');
 
-        $this->systemCollectionManager
-            ->method('isSystemCollection')
-            ->willReturnCallback(static fn (int $id): bool => 99 === $id);
+        $this->systemCollectionManager->isSystemCollection(3)->willReturn(false);
+        $this->systemCollectionManager->isSystemCollection(99)->willReturn(true);
 
         $result = $this->tool->listMedia('en');
 
@@ -241,10 +255,10 @@ final class MediaListToolTest extends TestCase
 
     public function testListMediaWithSystemCollectionIdThrowsToolCallExceptionWhenSystemViewDenied(): void
     {
-        $this->mediaManager->expects($this->never())->method('get');
+        $this->mediaManager->get(Argument::cetera())->shouldNotBeCalled();
 
-        $this->permissionChecker->method('has')->willReturn(false);
-        $this->systemCollectionManager->method('isSystemCollection')->with(1)->willReturn(true);
+        $this->permissionChecker->denyAll();
+        $this->systemCollectionManager->isSystemCollection(1)->willReturn(true);
 
         $this->expectException(ToolCallException::class);
 
@@ -253,11 +267,13 @@ final class MediaListToolTest extends TestCase
 
     public function testListMediaThrowsToolCallExceptionWhenPermissionDenied(): void
     {
-        $this->permissionChecker
-            ->method('check')
-            ->willThrowException(new PermissionDeniedException('sulu.media.collections', PermissionTypes::VIEW, 'en'));
+        $this->permissionChecker->denyAll();
 
-        $this->mediaManager->expects($this->never())->method('get');
+        $this->mediaManager->get(Argument::cetera())->shouldNotBeCalled();
+
+        // Not exercised by this test (the collection ACL check throws first), but the
+        // subject calls it unconditionally once system_collections VIEW is denied.
+        $this->systemCollectionManager->isSystemCollection(5)->willReturn(false);
 
         $this->expectException(ToolCallException::class);
 

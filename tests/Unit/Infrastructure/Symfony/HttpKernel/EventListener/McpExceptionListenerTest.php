@@ -15,12 +15,16 @@ namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\HttpKernel\EventListener;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Psr\Log\LoggerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\EventListener\McpExceptionListener;
 use Sulu\Mcp\Infrastructure\Symfony\Security\EntryPoint\McpAuthenticationEntryPoint;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
@@ -30,6 +34,8 @@ use Symfony\Component\Security\Core\Exception\AuthenticationException;
 #[CoversClass(McpAuthenticationEntryPoint::class)]
 final class McpExceptionListenerTest extends TestCase
 {
+    use ProphecyTrait;
+
     private McpExceptionListener $listener;
     private McpAuthenticationEntryPoint $authListener;
 
@@ -41,7 +47,12 @@ final class McpExceptionListenerTest extends TestCase
 
     private function createExceptionEvent(\Throwable $exception, string $pathInfo = '/_mcp'): ExceptionEvent
     {
-        $kernel = $this->createMock(HttpKernelInterface::class);
+        $kernel = new class() implements HttpKernelInterface {
+            public function handle(Request $request, int $type = self::MAIN_REQUEST, bool $catch = true): Response
+            {
+                return new Response();
+            }
+        };
         $request = Request::create($pathInfo);
 
         return new ExceptionEvent($kernel, $request, HttpKernelInterface::MAIN_REQUEST, $exception);
@@ -133,12 +144,11 @@ final class McpExceptionListenerTest extends TestCase
         $exception = new \RuntimeException('Something went wrong');
         $event = $this->createExceptionEvent($exception);
 
-        $logger = $this->createMock(LoggerInterface::class);
-        $logger->expects(self::once())
-            ->method('error')
-            ->with(self::isType('string'), self::equalTo(['exception' => $exception]));
+        /** @var ObjectProphecy<LoggerInterface> $logger */
+        $logger = $this->prophesize(LoggerInterface::class);
+        $logger->error(Argument::type('string'), ['exception' => $exception])->shouldBeCalledOnce();
 
-        $listener = new McpExceptionListener('/_mcp', false, $logger);
+        $listener = new McpExceptionListener('/_mcp', false, $logger->reveal());
 
         $listener->onKernelException($event);
     }

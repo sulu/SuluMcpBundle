@@ -19,7 +19,12 @@ use Sulu\Mcp\Infrastructure\Sulu\Security\EntryPoint\OAuthAuthorizeEntryPoint;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Generator\UrlGenerator;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
+use Symfony\Component\Routing\RequestContext;
+use Symfony\Component\Routing\Route;
+use Symfony\Component\Routing\RouteCollection;
+use Symfony\Component\Security\Core\Exception\AuthenticationException;
 use Symfony\Component\Security\Http\EntryPoint\AuthenticationEntryPointInterface;
 
 #[CoversClass(OAuthAuthorizeEntryPoint::class)]
@@ -27,64 +32,74 @@ final class OAuthAuthorizeEntryPointTest extends TestCase
 {
     public function testRedirectsToAdminLoginOnAuthorizePath(): void
     {
-        $inner = $this->createMock(AuthenticationEntryPointInterface::class);
-        $inner->expects(self::never())->method('start');
+        $inner = new RecordingAuthenticationEntryPoint();
 
         $entryPoint = new OAuthAuthorizeEntryPoint($inner, $this->urlGenerator());
         $response = $entryPoint->start(Request::create('/admin/mcp/authorize'));
 
         $this->assertInstanceOf(RedirectResponse::class, $response);
         $this->assertSame('/admin/', $response->getTargetUrl());
+        $this->assertSame(0, $inner->startCallCount);
     }
 
     public function testDelegatesToInnerEntryPointForOtherAdminPaths(): void
     {
         $innerResponse = new Response('inner');
-        $inner = $this->createMock(AuthenticationEntryPointInterface::class);
-        $inner->expects(self::once())->method('start')->willReturn($innerResponse);
+        $inner = new RecordingAuthenticationEntryPoint($innerResponse);
 
         $entryPoint = new OAuthAuthorizeEntryPoint($inner, $this->urlGenerator());
         $response = $entryPoint->start(Request::create('/admin'));
 
         $this->assertSame($innerResponse, $response);
+        $this->assertSame(1, $inner->startCallCount);
     }
 
     public function testDelegatesToInnerEntryPointForPathMerelyContainingAuthorizeFragment(): void
     {
         $innerResponse = new Response('inner');
-        $inner = $this->createMock(AuthenticationEntryPointInterface::class);
-        $inner->expects(self::once())->method('start')->willReturn($innerResponse);
+        $inner = new RecordingAuthenticationEntryPoint($innerResponse);
 
         $entryPoint = new OAuthAuthorizeEntryPoint($inner, $this->urlGenerator());
         $response = $entryPoint->start(Request::create('/evil/mcp/authorize'));
 
         $this->assertSame($innerResponse, $response);
+        $this->assertSame(1, $inner->startCallCount);
     }
 
     public function testDelegatesToInnerEntryPointForAdjacentPathSharingPrefix(): void
     {
         $innerResponse = new Response('inner');
-        $inner = $this->createMock(AuthenticationEntryPointInterface::class);
-        $inner->expects(self::once())->method('start')->willReturn($innerResponse);
+        $inner = new RecordingAuthenticationEntryPoint($innerResponse);
 
         $entryPoint = new OAuthAuthorizeEntryPoint($inner, $this->urlGenerator());
         $response = $entryPoint->start(Request::create('/admin/mcp/authorize-not-really'));
 
         $this->assertSame($innerResponse, $response);
+        $this->assertSame(1, $inner->startCallCount);
     }
 
     private function urlGenerator(): UrlGeneratorInterface
     {
-        $paths = [
-            'sulu_mcp_oauth_authorize' => '/admin/mcp/authorize',
-            'sulu_admin' => '/admin/',
-        ];
+        $routes = new RouteCollection();
+        $routes->add('sulu_mcp_oauth_authorize', new Route('/admin/mcp/authorize'));
+        $routes->add('sulu_admin', new Route('/admin/'));
 
-        $urlGenerator = $this->createMock(UrlGeneratorInterface::class);
-        $urlGenerator->method('generate')->willReturnCallback(
-            static fn (string $name): string => $paths[$name] ?? self::fail('Unexpected route "' . $name . '".'),
-        );
+        return new UrlGenerator($routes, new RequestContext());
+    }
+}
 
-        return $urlGenerator;
+final class RecordingAuthenticationEntryPoint implements AuthenticationEntryPointInterface
+{
+    public int $startCallCount = 0;
+
+    public function __construct(private readonly Response $response = new Response())
+    {
+    }
+
+    public function start(Request $request, ?AuthenticationException $authException = null): Response
+    {
+        ++$this->startCallCount;
+
+        return $this->response;
     }
 }

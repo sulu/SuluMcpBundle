@@ -15,11 +15,11 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource;
 
 use Mcp\Capability\Attribute\McpResource;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Component\Localization\Localization;
 use Sulu\Component\Webspace\Environment;
-use Sulu\Component\Webspace\Exception\EnvironmentNotFoundException;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Component\Webspace\Portal;
@@ -30,13 +30,17 @@ use Sulu\Mcp\UserInterface\Mcp\Resource\WebspacesResource;
 #[CoversClass(WebspacesResource::class)]
 final class WebspaceResourceTest extends TestCase
 {
-    private WebspaceManagerInterface&MockObject $webspaceManager;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<WebspaceManagerInterface> */
+    private ObjectProphecy $webspaceManager;
+
     private WebspacesResource $resource;
 
     protected function setUp(): void
     {
-        $this->webspaceManager = $this->createMock(WebspaceManagerInterface::class);
-        $this->resource = new WebspacesResource($this->webspaceManager);
+        $this->webspaceManager = $this->prophesize(WebspaceManagerInterface::class);
+        $this->resource = new WebspacesResource($this->webspaceManager->reveal());
     }
 
     public function testGetWebspacesReturnsAllWebspacesWithLocalesAndUrl(): void
@@ -44,9 +48,8 @@ final class WebspaceResourceTest extends TestCase
         $ws1 = $this->createWebspaceWithPortal('example', 'Example', ['en', 'de'], 'example.com');
         $ws2 = $this->createWebspaceWithPortal('shop', 'Shop', ['en'], null);
 
-        $collection = $this->createMock(WebspaceCollection::class);
-        $collection->method('getWebspaces')->willReturn([$ws1, $ws2]);
-        $this->webspaceManager->method('getWebspaceCollection')->willReturn($collection);
+        $collection = new WebspaceCollection([$ws1, $ws2]);
+        $this->webspaceManager->getWebspaceCollection()->willReturn($collection);
 
         $result = $this->resource->getWebspaces();
 
@@ -82,9 +85,8 @@ final class WebspaceResourceTest extends TestCase
             'prod' => 'example.com',
         ]);
 
-        $collection = $this->createMock(WebspaceCollection::class);
-        $collection->method('getWebspaces')->willReturn([$ws]);
-        $this->webspaceManager->method('getWebspaceCollection')->willReturn($collection);
+        $collection = new WebspaceCollection([$ws]);
+        $this->webspaceManager->getWebspaceCollection()->willReturn($collection);
 
         $result = $this->resource->getWebspaces();
 
@@ -92,87 +94,68 @@ final class WebspaceResourceTest extends TestCase
     }
 
     /**
-     * Helper: create a webspace mock with a single prod-env portal.
+     * Helper: create a webspace with a single prod-env portal.
      *
      * @param list<string> $locales
      */
-    private function createWebspaceWithPortal(string $key, string $name, array $locales, ?string $prodUrl): Webspace&MockObject
+    private function createWebspaceWithPortal(string $key, string $name, array $locales, ?string $prodUrl): Webspace
     {
-        $localizations = \array_map(function(string $locale) {
-            $loc = $this->createMock(Localization::class);
-            $loc->method('getLocale')->willReturn($locale);
+        $localizations = \array_map(
+            static fn (string $locale): Localization => new Localization($locale),
+            $locales,
+        );
 
-            return $loc;
-        }, $locales);
-
+        $portal = new Portal();
         if (null !== $prodUrl) {
-            $url = $this->createMock(Url::class);
-            $url->method('getUrl')->willReturn($prodUrl);
-
-            $prodEnv = $this->createMock(Environment::class);
-            $prodEnv->method('getUrls')->willReturn([$url]);
-
-            $portal = $this->createMock(Portal::class);
-            $portal->method('getEnvironment')->with('prod')->willReturn($prodEnv);
-            $portal->method('getEnvironments')->willReturn([$prodEnv]);
-            $portals = [$portal];
+            $env = new Environment();
+            $env->setType('prod');
+            $env->addUrl(new Url($prodUrl));
+            $portal->setEnvironments([$env]);
         } else {
-            $portal = $this->createMock(Portal::class);
-            $portal->method('getKey')->willReturn('portal');
-            $portal->method('getEnvironments')->willReturn([]);
-            /** @var Portal $portal */
-            $portalForException = $portal;
-            $portal->method('getEnvironment')->with('prod')->willReturnCallback(
-                static function() use ($portalForException) {
-                    throw new EnvironmentNotFoundException($portalForException, 'prod');
-                }
-            );
-            $portals = [$portal];
+            // No environments at all: getEnvironment('prod') throws
+            // EnvironmentNotFoundException, mirroring the "no prod url" case.
+            $portal->setKey('portal');
+            $portal->setEnvironments([]);
         }
 
-        $ws = $this->createMock(Webspace::class);
-        $ws->method('getKey')->willReturn($key);
-        $ws->method('getName')->willReturn($name);
-        $ws->method('getAllLocalizations')->willReturn($localizations);
-        $ws->method('getPortals')->willReturn($portals);
+        $ws = new Webspace();
+        $ws->setKey($key);
+        $ws->setName($name);
+        $ws->setLocalizations($localizations);
+        $ws->setPortals([$portal]);
 
         return $ws;
     }
 
     /**
-     * Helper: create webspace mock with portal having multiple environments.
+     * Helper: create a webspace with a portal having multiple environments.
      *
      * @param list<string> $locales
      * @param array<string, string> $envUrls keyed by environment type
      */
-    private function createWebspaceWithMultipleEnvPortal(string $key, string $name, array $locales, array $envUrls): Webspace&MockObject
+    private function createWebspaceWithMultipleEnvPortal(string $key, string $name, array $locales, array $envUrls): Webspace
     {
-        $localizations = \array_map(function(string $locale) {
-            $loc = $this->createMock(Localization::class);
-            $loc->method('getLocale')->willReturn($locale);
+        $localizations = \array_map(
+            static fn (string $locale): Localization => new Localization($locale),
+            $locales,
+        );
 
-            return $loc;
-        }, $locales);
+        $environments = [];
+        foreach ($envUrls as $envType => $url) {
+            $env = new Environment();
+            $env->setType($envType);
+            $env->addUrl(new Url($url));
+            $environments[] = $env;
+        }
 
-        $portal = $this->createMock(Portal::class);
-        $portal->method('getEnvironment')->willReturnCallback(function(string $envType) use ($envUrls, $portal) {
-            if (isset($envUrls[$envType])) {
-                $url = $this->createMock(Url::class);
-                $url->method('getUrl')->willReturn($envUrls[$envType]);
+        $portal = new Portal();
+        $portal->setEnvironments($environments);
 
-                $env = $this->createMock(Environment::class);
-                $env->method('getUrls')->willReturn([$url]);
-
-                return $env;
-            }
-            throw new EnvironmentNotFoundException($portal, $envType);
-        });
-
-        $ws = $this->createMock(Webspace::class);
-        $ws->method('getKey')->willReturn($key);
-        $ws->method('getName')->willReturn($name);
-        $ws->method('getAllLocalizations')->willReturn($localizations);
-        $ws->method('getPortals')->willReturn([$portal]);
+        $ws = new Webspace();
+        $ws->setKey($key);
+        $ws->setName($name);
+        $ws->setLocalizations($localizations);
+        $ws->setPortals([$portal]);
 
         return $ws;
     }

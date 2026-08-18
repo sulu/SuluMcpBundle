@@ -15,28 +15,30 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Resource;
 
 use Mcp\Capability\Attribute\McpResource;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\SectionMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
-use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
 use Sulu\Mcp\UserInterface\Mcp\Resource\GlobalBlocksResource;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(GlobalBlocksResource::class)]
 final class GlobalBlocksResourceTest extends TestCase
 {
-    private MetadataProviderInterface&MockObject $formMetadataProvider;
+    use ProphecyTrait;
+
+    private ArrayMetadataProvider $formMetadataProvider;
     private GlobalBlocksResource $resource;
 
     protected function setUp(): void
     {
-        $this->formMetadataProvider = $this->createMock(MetadataProviderInterface::class);
+        $this->formMetadataProvider = new ArrayMetadataProvider();
         $this->resource = new GlobalBlocksResource($this->formMetadataProvider, new FieldNormalizer(), new MetadataLocaleResolver(new TokenStorage(), 'en'));
     }
 
@@ -53,11 +55,7 @@ final class GlobalBlocksResourceTest extends TestCase
         $blockMetadata = new TypedFormMetadata();
         $blockMetadata->addForm('text_block', $textBlockForm);
 
-        $this->formMetadataProvider
-            ->expects($this->once())
-            ->method('getMetadata')
-            ->with('block', 'en', ['ignore_global_blocks' => true])
-            ->willReturn($blockMetadata);
+        $this->formMetadataProvider->set('block', $blockMetadata);
 
         $result = $this->resource->getGlobalBlocks();
 
@@ -88,9 +86,7 @@ final class GlobalBlocksResourceTest extends TestCase
         $blockMetadata = new TypedFormMetadata();
         $blockMetadata->addForm('text_block', $blockForm);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturn($blockMetadata);
+        $this->formMetadataProvider->setDefault($blockMetadata);
 
         $result = $this->resource->getGlobalBlocks();
 
@@ -102,17 +98,11 @@ final class GlobalBlocksResourceTest extends TestCase
     {
         $blockMetadata = new TypedFormMetadata();
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturnCallback(function(string $key, string $locale, array $options) use ($blockMetadata) {
-                $this->assertNotSame('page', $key);
-                $this->assertNotSame('article', $key);
-                $this->assertNotSame('snippet', $key);
-
-                return $blockMetadata;
-            });
+        $this->formMetadataProvider->set('block', $blockMetadata);
 
         $this->resource->getGlobalBlocks();
+
+        $this->assertSame(['block'], $this->formMetadataProvider->requestedKeys());
     }
 
     public function testGetBlocksMethodHasMcpResourceAttribute(): void
@@ -129,11 +119,9 @@ final class GlobalBlocksResourceTest extends TestCase
 
     public function testGetBlocksReturnsEmptyArrayWhenNotTypedFormMetadata(): void
     {
-        $nonTypedMetadata = $this->createMock(MetadataInterface::class);
+        $nonTypedMetadata = $this->prophesize(MetadataInterface::class);
 
-        $this->formMetadataProvider
-            ->method('getMetadata')
-            ->willReturn($nonTypedMetadata);
+        $this->formMetadataProvider->setDefault($nonTypedMetadata->reveal());
 
         $result = $this->resource->getGlobalBlocks();
 

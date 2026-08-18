@@ -15,14 +15,19 @@ namespace Sulu\Mcp\Tests\Unit\Application\Content;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
+use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
 
 #[CoversClass(ContentMetadataMapper::class)]
 final class ContentMetadataMapperTest extends TestCase
 {
+    use ProphecyTrait;
+
     private function provider(): MetadataProviderInterface
     {
         $seo = $this->form([
@@ -46,15 +51,11 @@ final class ContentMetadataMapperTest extends TestCase
             'excerptTags' => 'tag_selection',
         ]);
 
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')->willReturnCallback(
-            fn (string $key) => match ($key) {
-                'content_seo_metadata' => $seo,
-                'content_excerpt_metadata' => $excerpt,
-                'content_excerpt_taxonomies' => $tax,
-                default => $this->form([]),
-            },
-        );
+        $provider = new ArrayMetadataProvider();
+        $provider->set('content_seo_metadata', $seo);
+        $provider->set('content_excerpt_metadata', $excerpt);
+        $provider->set('content_excerpt_taxonomies', $tax);
+        $provider->setDefault($this->form([]));
 
         return $provider;
     }
@@ -64,15 +65,15 @@ final class ContentMetadataMapperTest extends TestCase
     {
         $items = [];
         foreach ($fields as $name => $type) {
-            $field = $this->createMock(FieldMetadata::class);
-            $field->method('getName')->willReturn($name);
-            $field->method('getType')->willReturn($type);
-            $items[$name] = $field;
+            $field = $this->prophesize(FieldMetadata::class);
+            $field->getName(Argument::cetera())->willReturn($name);
+            $field->getType(Argument::cetera())->willReturn($type);
+            $items[$name] = $field->reveal();
         }
-        $form = $this->createMock(FormMetadata::class);
-        $form->method('getFlatFieldMetadata')->willReturn($items);
+        $form = $this->prophesize(FormMetadata::class);
+        $form->getFlatFieldMetadata(Argument::cetera())->willReturn($items);
 
-        return $form;
+        return $form->reveal();
     }
 
     public function testApplySeoNestsAndLiftsKnownFields(): void
@@ -88,12 +89,9 @@ final class ContentMetadataMapperTest extends TestCase
     public function testApplySeoPassesCustomFieldThrough(): void
     {
         // Project added `seo/ogTitle` to its SEO form — must flow through with no code change.
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')->willReturnCallback(
-            fn (string $key) => 'content_seo_metadata' === $key
-                ? $this->form(['seo/title' => 'text_line', 'seo/ogTitle' => 'text_line'])
-                : $this->form([]),
-        );
+        $provider = new ArrayMetadataProvider();
+        $provider->set('content_seo_metadata', $this->form(['seo/title' => 'text_line', 'seo/ogTitle' => 'text_line']));
+        $provider->setDefault($this->form([]));
         $mapper = new ContentMetadataMapper($provider);
 
         $data = $mapper->applySeo([], ['ogTitle' => 'Hello'], 'en');
@@ -136,17 +134,16 @@ final class ContentMetadataMapperTest extends TestCase
     {
         // The section itself is flattened away by Sulu's own
         // FormMetadata::getFlatFieldMetadata(); it never reaches this class.
-        $ogTitleField = $this->createMock(FieldMetadata::class);
-        $ogTitleField->method('getName')->willReturn('seo/ogTitle');
-        $ogTitleField->method('getType')->willReturn('text_line');
+        $ogTitleField = $this->prophesize(FieldMetadata::class);
+        $ogTitleField->getName(Argument::cetera())->willReturn('seo/ogTitle');
+        $ogTitleField->getType(Argument::cetera())->willReturn('text_line');
 
-        $seoForm = $this->createMock(FormMetadata::class);
-        $seoForm->method('getFlatFieldMetadata')->willReturn(['seo/ogTitle' => $ogTitleField]);
+        $seoForm = $this->prophesize(FormMetadata::class);
+        $seoForm->getFlatFieldMetadata(Argument::cetera())->willReturn(['seo/ogTitle' => $ogTitleField->reveal()]);
 
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')->willReturnCallback(
-            fn (string $key) => 'content_seo_metadata' === $key ? $seoForm : $this->form([]),
-        );
+        $provider = new ArrayMetadataProvider();
+        $provider->set('content_seo_metadata', $seoForm->reveal());
+        $provider->setDefault($this->form([]));
 
         $mapper = new ContentMetadataMapper($provider);
 
@@ -158,8 +155,7 @@ final class ContentMetadataMapperTest extends TestCase
 
     public function testApplySeoPlacesTopLevelColumnWhenMetadataUnavailable(): void
     {
-        $provider = $this->createMock(MetadataProviderInterface::class);
-        $provider->method('getMetadata')->willThrowException(new \RuntimeException('no metadata'));
+        $provider = new ArrayMetadataProvider();
         $mapper = new ContentMetadataMapper($provider);
 
         $data = $mapper->applySeo([], ['title' => 'T', 'seoNoIndex' => true], 'en');

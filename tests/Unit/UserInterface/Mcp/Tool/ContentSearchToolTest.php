@@ -25,32 +25,38 @@ use CmsIg\Seal\Search\Search;
 use CmsIg\Seal\Search\SearchBuilder;
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
-use Sulu\Component\Security\Authentication\UserInterface;
+use Prophecy\Argument;
+use Prophecy\PhpUnit\ProphecyTrait;
+use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Component\Webspace\Webspace;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 use Sulu\Mcp\UserInterface\Mcp\Tool\ContentSearchTool;
-use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
-use Symfony\Component\Security\Core\Authentication\Token\TokenInterface;
 
 #[CoversClass(ContentSearchTool::class)]
 final class ContentSearchToolTest extends TestCase
 {
-    private EngineInterface&MockObject $engine;
-    private SearcherInterface&MockObject $searcher;
+    use ProphecyTrait;
+
+    /** @var ObjectProphecy<EngineInterface> */
+    private ObjectProphecy $engine;
+
+    /** @var ObjectProphecy<SearcherInterface> */
+    private ObjectProphecy $searcher;
+
     private ContentSearchTool $tool;
 
     protected function setUp(): void
     {
-        $this->engine = $this->createMock(EngineInterface::class);
-        $this->searcher = $this->createMock(SearcherInterface::class);
+        $this->engine = $this->prophesize(EngineInterface::class);
+        $this->searcher = $this->prophesize(SearcherInterface::class);
         // Grants EDIT on 'example' so existing happy-path tests are unaffected by the webspace filter.
-        $this->tool = new ContentSearchTool($this->engine, $this->webspaceResolver(['example']));
+        $this->tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']));
     }
 
     /**
@@ -68,18 +74,15 @@ final class ContentSearchToolTest extends TestCase
             $webspaces[$key] = $webspace;
         }
 
-        $webspaceManager = $this->createMock(WebspaceManagerInterface::class);
-        $webspaceManager->method('getWebspaceCollection')->willReturn(new WebspaceCollection($webspaces));
+        $webspaceManager = $this->prophesize(WebspaceManagerInterface::class);
+        $webspaceManager->getWebspaceCollection()->willReturn(new WebspaceCollection($webspaces));
 
-        $securityChecker = $this->createMock(SecurityCheckerInterface::class);
-        $securityChecker->method('hasPermission')->willReturn(true);
+        $securityChecker = $this->prophesize(SecurityCheckerInterface::class);
+        $securityChecker->hasPermission(Argument::cetera())->willReturn(true);
 
-        $tokenStorage = $this->createMock(TokenStorageInterface::class);
-        $token = $this->createMock(TokenInterface::class);
-        $token->method('getUser')->willReturn($this->createMock(UserInterface::class));
-        $tokenStorage->method('getToken')->willReturn($token);
+        $tokenStorage = (new TestUser())->inTokenStorage();
 
-        return new WebspacePermissionResolver($webspaceManager, new ToolPermissionChecker($securityChecker, $tokenStorage));
+        return new WebspacePermissionResolver($webspaceManager->reveal(), new ToolPermissionChecker($securityChecker->reveal(), $tokenStorage));
     }
 
     private function createSearchBuilder(): SearchBuilder
@@ -88,7 +91,7 @@ final class ContentSearchToolTest extends TestCase
         $index = new Index('website', ['id' => $identifierField]);
         $schema = new Schema(['website' => $index]);
 
-        return (new SearchBuilder($schema, $this->searcher))->index('website');
+        return (new SearchBuilder($schema, $this->searcher->reveal()))->index('website');
     }
 
     private function createEmptyResult(): Result
@@ -100,15 +103,10 @@ final class ContentSearchToolTest extends TestCase
     {
         $builder = $this->createSearchBuilder();
 
-        $this->engine
-            ->method('createSearchBuilder')
-            ->with('website')
-            ->willReturn($builder);
+        $this->engine->createSearchBuilder('website')->willReturn($builder);
 
         $this->searcher
-            ->expects($this->once())
-            ->method('search')
-            ->with($this->callback(function(Search $search): bool {
+            ->search(Argument::that(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof EqualCondition
                         && 'resourceKey' === $filter->field
@@ -120,6 +118,7 @@ final class ContentSearchToolTest extends TestCase
 
                 return false;
             }))
+            ->shouldBeCalledOnce()
             ->willReturn($this->createEmptyResult());
 
         $result = $this->tool->search('hello', 'en', null, 'article');
@@ -132,15 +131,10 @@ final class ContentSearchToolTest extends TestCase
     {
         $builder = $this->createSearchBuilder();
 
-        $this->engine
-            ->method('createSearchBuilder')
-            ->with('website')
-            ->willReturn($builder);
+        $this->engine->createSearchBuilder('website')->willReturn($builder);
 
         $this->searcher
-            ->expects($this->once())
-            ->method('search')
-            ->with($this->callback(function(Search $search): bool {
+            ->search(Argument::that(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof EqualCondition
                         && 'resourceKey' === $filter->field
@@ -152,6 +146,7 @@ final class ContentSearchToolTest extends TestCase
 
                 return false;
             }))
+            ->shouldBeCalledOnce()
             ->willReturn($this->createEmptyResult());
 
         $this->tool->search('hello', 'en', null, 'page');
@@ -161,15 +156,10 @@ final class ContentSearchToolTest extends TestCase
     {
         $builder = $this->createSearchBuilder();
 
-        $this->engine
-            ->method('createSearchBuilder')
-            ->with('website')
-            ->willReturn($builder);
+        $this->engine->createSearchBuilder('website')->willReturn($builder);
 
         $this->searcher
-            ->expects($this->once())
-            ->method('search')
-            ->with($this->callback(function(Search $search): bool {
+            ->search(Argument::that(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof EqualCondition
                         && 'resourceKey' === $filter->field
@@ -181,6 +171,7 @@ final class ContentSearchToolTest extends TestCase
 
                 return false;
             }))
+            ->shouldBeCalledOnce()
             ->willReturn($this->createEmptyResult());
 
         $this->tool->search('hello', 'en', null, 'custom_type');
@@ -189,8 +180,8 @@ final class ContentSearchToolTest extends TestCase
     public function testSearchEngineExceptionReturnsStructuredError(): void
     {
         $this->engine
-            ->method('createSearchBuilder')
-            ->willThrowException(new \RuntimeException('Search engine unavailable'));
+            ->createSearchBuilder(Argument::cetera())
+            ->willThrow(new \RuntimeException('Search engine unavailable'));
 
         $result = $this->tool->search('hello', 'en');
 
@@ -216,14 +207,10 @@ final class ContentSearchToolTest extends TestCase
     {
         $builder = $this->createSearchBuilder();
 
-        $this->engine
-            ->method('createSearchBuilder')
-            ->willReturn($builder);
+        $this->engine->createSearchBuilder(Argument::cetera())->willReturn($builder);
 
         $this->searcher
-            ->expects($this->once())
-            ->method('search')
-            ->with($this->callback(function(Search $search): bool {
+            ->search(Argument::that(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof EqualCondition && 'resourceKey' === $filter->field) {
                         return false;
@@ -232,6 +219,7 @@ final class ContentSearchToolTest extends TestCase
 
                 return true;
             }))
+            ->shouldBeCalledOnce()
             ->willReturn($this->createEmptyResult());
 
         $this->tool->search('hello', 'en');
@@ -239,9 +227,9 @@ final class ContentSearchToolTest extends TestCase
 
     public function testSearchReturnsEmptyResultsWhenNoWebspaceIsPermitted(): void
     {
-        $tool = new ContentSearchTool($this->engine, $this->webspaceResolver([]));
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver([]));
 
-        $this->engine->expects($this->never())->method('createSearchBuilder');
+        $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
 
         $result = $tool->search('hello', 'en');
 
@@ -253,9 +241,9 @@ final class ContentSearchToolTest extends TestCase
 
     public function testSearchReturnsEmptyResultsWhenRequestedWebspaceIsNotPermitted(): void
     {
-        $tool = new ContentSearchTool($this->engine, $this->webspaceResolver(['example']));
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']));
 
-        $this->engine->expects($this->never())->method('createSearchBuilder');
+        $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
 
         $result = $tool->search('hello', 'en', 'other');
 
@@ -269,17 +257,12 @@ final class ContentSearchToolTest extends TestCase
     {
         $builder = $this->createSearchBuilder();
 
-        $tool = new ContentSearchTool($this->engine, $this->webspaceResolver(['example', 'blog']));
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example', 'blog']));
 
-        $this->engine
-            ->method('createSearchBuilder')
-            ->with('website')
-            ->willReturn($builder);
+        $this->engine->createSearchBuilder('website')->willReturn($builder);
 
         $this->searcher
-            ->expects($this->once())
-            ->method('search')
-            ->with($this->callback(function(Search $search): bool {
+            ->search(Argument::that(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof InCondition
                         && 'webspaces' === $filter->field
@@ -291,6 +274,7 @@ final class ContentSearchToolTest extends TestCase
 
                 return false;
             }))
+            ->shouldBeCalledOnce()
             ->willReturn($this->createEmptyResult());
 
         $tool->search('hello', 'en');
@@ -300,17 +284,12 @@ final class ContentSearchToolTest extends TestCase
     {
         $builder = $this->createSearchBuilder();
 
-        $tool = new ContentSearchTool($this->engine, $this->webspaceResolver(['example', 'blog']));
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example', 'blog']));
 
-        $this->engine
-            ->method('createSearchBuilder')
-            ->with('website')
-            ->willReturn($builder);
+        $this->engine->createSearchBuilder('website')->willReturn($builder);
 
         $this->searcher
-            ->expects($this->once())
-            ->method('search')
-            ->with($this->callback(function(Search $search): bool {
+            ->search(Argument::that(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
                     if ($filter instanceof InCondition
                         && 'webspaces' === $filter->field
@@ -322,6 +301,7 @@ final class ContentSearchToolTest extends TestCase
 
                 return false;
             }))
+            ->shouldBeCalledOnce()
             ->willReturn($this->createEmptyResult());
 
         $tool->search('hello', 'en', 'example');
