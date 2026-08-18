@@ -124,7 +124,7 @@ final class BlockUpdateToolTest extends TestCase
             $capturedEnvelope = $envelope;
 
             return true;
-        }), Argument::type('array'))->shouldBeCalledOnce()->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
+        }), Argument::cetera())->shouldBeCalledOnce()->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
 
         $result = $this->tool->updateBlock('page', 'page-uuid', 'en', 'block-1', [
             'title' => 'New Title',
@@ -161,7 +161,7 @@ final class BlockUpdateToolTest extends TestCase
             $capturedEnvelope = $envelope;
 
             return true;
-        }), Argument::type('array'))->shouldBeCalledOnce()->willReturn(new Envelope($updatedArticle, [new HandledStamp($updatedArticle, 'handler')]));
+        }), Argument::cetera())->shouldBeCalledOnce()->willReturn(new Envelope($updatedArticle, [new HandledStamp($updatedArticle, 'handler')]));
 
         $result = $this->tool->updateBlock('article', 'article-uuid', 'en', 'art-block-1', [
             'body' => '<p>Updated</p>',
@@ -196,7 +196,7 @@ final class BlockUpdateToolTest extends TestCase
             $capturedEnvelope = $envelope;
 
             return true;
-        }), Argument::type('array'))->shouldBeCalledOnce()->willReturn(new Envelope($updatedSnippet, [new HandledStamp($updatedSnippet, 'handler')]));
+        }), Argument::cetera())->shouldBeCalledOnce()->willReturn(new Envelope($updatedSnippet, [new HandledStamp($updatedSnippet, 'handler')]));
 
         $result = $this->tool->updateBlock('snippet', 'snippet-uuid', 'en', 'snip-block-1', [
             'content' => '<p>Updated</p>',
@@ -277,7 +277,7 @@ final class BlockUpdateToolTest extends TestCase
             $dispatchedBlocks = $data['blocks'];
 
             return true;
-        }), Argument::type('array'))->shouldBeCalledOnce()->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
+        }), Argument::cetera())->shouldBeCalledOnce()->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
 
         $this->tool->updateBlock('page', 'page-uuid', 'en', 'block-1', [
             'description' => '<p>New</p>',

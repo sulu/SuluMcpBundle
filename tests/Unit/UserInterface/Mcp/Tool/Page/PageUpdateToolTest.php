@@ -163,7 +163,7 @@ final class PageUpdateToolTest extends TestCase
             $capturedEnvelope = $envelope;
 
             return true;
-        }), Argument::type('array'))->shouldBeCalledOnce()
+        }), Argument::cetera())->shouldBeCalledOnce()
             ->willReturn(new Envelope($mockUpdatedPage, [new HandledStamp($mockUpdatedPage, 'handler')]));
 
         $result = $this->tool->updatePage('uuid-1', 'en', 'New Title');
@@ -191,7 +191,7 @@ final class PageUpdateToolTest extends TestCase
             $capturedEnvelope = $envelope;
 
             return true;
-        }), Argument::type('array'))->shouldBeCalledOnce()
+        }), Argument::cetera())->shouldBeCalledOnce()
             ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
 
         $this->tool->updatePage('uuid-1', 'en', null, null, null, ['article' => '<p>Updated</p>']);
@@ -365,7 +365,7 @@ final class PageUpdateToolTest extends TestCase
             $capturedEnvelope = $envelope;
 
             return true;
-        }), Argument::type('array'))->shouldBeCalledOnce()
+        }), Argument::cetera())->shouldBeCalledOnce()
             ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
 
         $this->tool->updatePage(
@@ -487,7 +487,7 @@ final class PageUpdateToolTest extends TestCase
             $capturedEnvelope = $envelope;
 
             return true;
-        }), Argument::type('array'))->shouldBeCalledOnce()
+        }), Argument::cetera())->shouldBeCalledOnce()
             ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
 
         // Caller is authorized for locale 'en' only; content.locale attempts to smuggle 'de'.
@@ -517,7 +517,7 @@ final class PageUpdateToolTest extends TestCase
             $capturedEnvelope = $envelope;
 
             return true;
-        }), Argument::type('array'))->shouldBeCalledOnce()
+        }), Argument::cetera())->shouldBeCalledOnce()
             ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
 
         $this->tool->updatePage(

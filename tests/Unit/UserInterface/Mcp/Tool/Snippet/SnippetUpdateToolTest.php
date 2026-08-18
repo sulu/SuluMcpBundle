@@ -123,7 +123,7 @@ final class SnippetUpdateToolTest extends TestCase
         $mockUpdatedSnippet = new Snippet('uuid-1');
 
         $capturedEnvelope = null;
-        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::type('array'))
+        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::cetera())
             ->shouldBeCalledOnce()
             ->will(function(array $args) use (&$capturedEnvelope, $mockUpdatedSnippet) {
                 $capturedEnvelope = $args[0];
@@ -147,7 +147,7 @@ final class SnippetUpdateToolTest extends TestCase
         $mockSnippet = new Snippet('uuid-1');
 
         $capturedMessage = null;
-        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::type('array'))
+        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::cetera())
             ->shouldBeCalledOnce()
             ->will(function(array $args) use (&$capturedMessage, $mockSnippet) {
                 $capturedMessage = $args[0]->getMessage();
@@ -172,7 +172,7 @@ final class SnippetUpdateToolTest extends TestCase
         $mockSnippet = new Snippet('uuid-1');
 
         $capturedData = null;
-        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::type('array'))
+        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::cetera())
             ->shouldBeCalledOnce()
             ->will(function(array $args) use (&$capturedData, $mockSnippet) {
                 $message = $args[0]->getMessage();
@@ -197,7 +197,7 @@ final class SnippetUpdateToolTest extends TestCase
 
         $mockSnippet = new Snippet('uuid-1');
 
-        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::type('array'))
+        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::cetera())
             ->shouldBeCalledOnce()
             ->will(fn (array $args) => $args[0]->with(new HandledStamp($mockSnippet, 'handler')));
 
@@ -268,7 +268,7 @@ final class SnippetUpdateToolTest extends TestCase
         $mockSnippet = new Snippet('uuid-1');
 
         $capturedData = null;
-        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::type('array'))
+        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::cetera())
             ->shouldBeCalledOnce()
             ->will(function(array $args) use (&$capturedData, $mockSnippet) {
                 $message = $args[0]->getMessage();
@@ -382,7 +382,7 @@ final class SnippetUpdateToolTest extends TestCase
         $mockSnippet = new Snippet('uuid-1');
 
         $capturedData = null;
-        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::type('array'))
+        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::cetera())
             ->shouldBeCalledOnce()
             ->will(function(array $args) use (&$capturedData, $mockSnippet) {
                 $capturedData = $args[0]->getMessage()->getData();

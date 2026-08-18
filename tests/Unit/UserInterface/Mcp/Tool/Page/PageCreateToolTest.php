@@ -141,7 +141,7 @@ final class PageCreateToolTest extends TestCase
         $mockPage->setWebspaceKey('example');
 
         $capturedEnvelope = null;
-        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::type('array'))
+        $this->messageBus->dispatch(Argument::type(Envelope::class), Argument::cetera())
             ->shouldBeCalledOnce()
             ->will(function(array $args) use ($mockPage, &$capturedEnvelope) {
                 $capturedEnvelope = $args[0];
