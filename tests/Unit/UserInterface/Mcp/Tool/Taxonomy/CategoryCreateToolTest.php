@@ -92,6 +92,8 @@ final class CategoryCreateToolTest extends TestCase
 
     public function testCreateCategoryReturnsErrorWhenNoUser(): void
     {
+        $this->tokenStorage->getToken()->willReturn(null);
+
         $result = $this->tool->createCategory('en', 'Test');
 
         $this->assertArrayHasKey('error', $result);
