@@ -17,8 +17,8 @@ use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 
 /**
- * Grants everything by default; `deny()` marks individual context/permission pairs
- * as denied. Records every call so tests can assert what was checked.
+ * Grants everything unless a context or permission is denied. Records every call
+ * so tests can assert what a subject checked.
  *
  * @internal
  */
@@ -26,9 +26,6 @@ final class FakeToolPermissionChecker implements ToolPermissionCheckerInterface
 {
     /** @var list<array{method: string, context: string, permissions: list<string>, locale: string|null, objectType: string|null, objectId: mixed}> */
     private array $calls = [];
-
-    /** @var list<string> */
-    private array $denied = [];
 
     /** @var list<string> */
     private array $deniedContexts = [];
@@ -58,14 +55,6 @@ final class FakeToolPermissionChecker implements ToolPermissionCheckerInterface
     }
 
     /**
-     * Denies everything except the pairs added with grant(); the inverse of deny().
-     */
-    public static function grantingNone(): self
-    {
-        return (new self())->denyAll();
-    }
-
-    /**
      * Switches to allowlist mode: nothing passes unless added with grant().
      */
     public function grantingNoneExcept(): self
@@ -83,9 +72,6 @@ final class FakeToolPermissionChecker implements ToolPermissionCheckerInterface
         return $this;
     }
 
-    /**
-     * Grants a whole security context, whatever permission is asked for.
-     */
     /**
      * Decides every call with a predicate, for policies the allow/deny lists cannot express
      * (per-object grants and the like).
@@ -113,24 +99,6 @@ final class FakeToolPermissionChecker implements ToolPermissionCheckerInterface
         return $this;
     }
 
-    public static function denying(string $context, string $permission): self
-    {
-        $checker = new self();
-        $checker->deny($context, $permission);
-
-        return $checker;
-    }
-
-    public function deny(string $context, string $permission): self
-    {
-        $this->denied[] = $context . ':' . $permission;
-
-        return $this;
-    }
-
-    /**
-     * Denies everything, whatever context or permission is asked for.
-     */
     public function denyAll(): self
     {
         $this->denyEverything = true;
@@ -138,9 +106,6 @@ final class FakeToolPermissionChecker implements ToolPermissionCheckerInterface
         return $this;
     }
 
-    /**
-     * Denies a whole security context, whatever permission is asked for.
-     */
     public function denyContext(string $context): self
     {
         $this->deniedContexts[] = $context;
@@ -213,17 +178,6 @@ final class FakeToolPermissionChecker implements ToolPermissionCheckerInterface
         return $this->calls;
     }
 
-    public function wasChecked(string $context, string $permission): bool
-    {
-        foreach ($this->calls as $call) {
-            if ($call['context'] === $context && \in_array($permission, $call['permissions'], true)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
     private function isDenied(string $context, string $permission): bool
     {
         if (null !== $this->policy) {
@@ -236,8 +190,7 @@ final class FakeToolPermissionChecker implements ToolPermissionCheckerInterface
         }
 
         return $this->denyEverything
-            || \in_array($context, $this->deniedContexts, true)
-            || \in_array($context . ':' . $permission, $this->denied, true);
+            || \in_array($context, $this->deniedContexts, true);
     }
 
     /**

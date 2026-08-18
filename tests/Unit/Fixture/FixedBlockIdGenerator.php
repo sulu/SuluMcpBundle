@@ -30,16 +30,7 @@ final class FixedBlockIdGenerator implements BlockIdGeneratorInterface
 
     public function __construct(
         private readonly string $id = 'gen-id',
-        private readonly bool $sequential = false,
     ) {
-    }
-
-    /**
-     * Yields `gen-id-1`, `gen-id-2`, … for tests that need every block to differ.
-     */
-    public static function sequential(string $prefix = 'gen-id'): self
-    {
-        return new self($prefix, true);
     }
 
     /**
@@ -61,7 +52,7 @@ final class FixedBlockIdGenerator implements BlockIdGeneratorInterface
             return \array_shift($this->queue);
         }
 
-        return $this->sequential ? $this->id . '-' . $this->calls : $this->id;
+        return $this->id;
     }
 
     public function calls(): int

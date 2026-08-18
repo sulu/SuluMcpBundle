@@ -94,7 +94,7 @@ final class WebspaceResourceTest extends TestCase
     }
 
     /**
-     * Helper: create a webspace with a single prod-env portal.
+     * Creates a webspace with a single prod-env portal.
      *
      * @param list<string> $locales
      */
@@ -128,7 +128,7 @@ final class WebspaceResourceTest extends TestCase
     }
 
     /**
-     * Helper: create a webspace with a portal having multiple environments.
+     * Creates a webspace with a portal having multiple environments.
      *
      * @param list<string> $locales
      * @param array<string, string> $envUrls keyed by environment type

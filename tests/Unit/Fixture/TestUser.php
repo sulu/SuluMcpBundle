@@ -46,9 +46,6 @@ final class TestUser extends User
         return $this->testId;
     }
 
-    /**
-     * A real token storage holding a real token for this user.
-     */
     public function inTokenStorage(string $firewall = 'admin'): TokenStorageInterface
     {
         $tokenStorage = new TokenStorage();
