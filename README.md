@@ -50,8 +50,8 @@ return [
 
 Import the routes in `config/routes.yaml`. The `mcp` entry registers the MCP transport endpoint provided by
 `symfony/mcp-bundle`. This bundle ships its OAuth endpoints in two files: the admin ones take the same prefix your
-project already uses for the rest of the Sulu admin, and the RFC 8414/9728 discovery documents stay unprefixed on the
-host root:
+project already uses for the rest of the Sulu admin, and the RFC 8414/9728 discovery documents stay unprefixed in the
+host's `/.well-known/` namespace:
 
 ```yaml
 mcp:
@@ -88,6 +88,33 @@ OAUTH_PRIVATE_KEY=%kernel.project_dir%/config/jwt/private.pem
 OAUTH_PUBLIC_KEY=%kernel.project_dir%/config/jwt/public.pem
 OAUTH_PASSPHRASE=<passphrase>
 OAUTH_ENCRYPTION_KEY=<random-string>
+```
+
+Configure `league/oauth2-server-bundle` in `config/packages/league_oauth2_server.yaml`. Its Flex recipe generates most
+of the file; make sure the authorization-code and refresh-token grants MCP uses are enabled, the password and
+implicit grants are explicitly off, and `scopes.default` is set, because league requires it and this bundle
+deliberately leaves it to your project:
+
+```yaml
+league_oauth2_server:
+    authorization_server:
+        private_key: '%env(resolve:OAUTH_PRIVATE_KEY)%'
+        private_key_passphrase: '%env(OAUTH_PASSPHRASE)%'
+        encryption_key: '%env(OAUTH_ENCRYPTION_KEY)%'
+        enable_auth_code_grant: true
+        enable_refresh_token_grant: true
+        enable_password_grant: false
+        enable_implicit_grant: false
+
+    resource_server:
+        public_key: '%env(resolve:OAUTH_PUBLIC_KEY)%'
+
+    scopes:
+        # `available` is contributed by SuluMcpBundle
+        default: ['mcp:tools', 'mcp:resources']
+
+    persistence:
+        doctrine: ~
 ```
 
 Create the database tables. `league/oauth2-server-bundle` persists clients, authorization codes, access tokens and

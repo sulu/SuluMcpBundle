@@ -33,6 +33,7 @@ final class WellKnownControllerTest extends TestCase
         $body = $this->json($response->getContent());
 
         self::assertSame('https://sulu.example.com/admin/custom-mcp', $body['resource']);
+        self::assertSame(['https://sulu.example.com/admin/custom-mcp'], $body['authorization_servers']);
         self::assertSame(['mcp:tools'], $body['scopes_supported']);
     }
 
@@ -43,6 +44,7 @@ final class WellKnownControllerTest extends TestCase
         $response = $controller->authorizationServerMetadata();
         $body = $this->json($response->getContent());
 
+        self::assertSame('https://sulu.example.com/admin/mcp', $body['issuer']);
         self::assertSame('https://sulu.example.com/admin/mcp/authorize', $body['authorization_endpoint']);
         self::assertSame('https://sulu.example.com/admin/mcp/token', $body['token_endpoint']);
         self::assertSame('https://sulu.example.com/admin/mcp/register', $body['registration_endpoint']);

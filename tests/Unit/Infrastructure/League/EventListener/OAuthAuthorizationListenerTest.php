@@ -104,6 +104,20 @@ final class OAuthAuthorizationListenerTest extends TestCase
         self::assertNotNull($store->get($request, $consentRequest->getId()));
     }
 
+    public function testIgnoresAuthorizationRequestOfAnotherRoute(): void
+    {
+        $store = new OAuthConsentStore();
+        $request = $this->request('/authorize?response_type=code&client_id=client-1&state=state-1', null, 'oauth2_authorize');
+
+        $event = $this->event();
+        $this->listener($store, $request)($event);
+
+        self::assertNull($event->getResponse());
+        self::assertFalse($event->isPropagationStopped());
+        self::assertFalse($event->getAuthorizationResolution());
+        self::assertSame([], $request->getSession()->all());
+    }
+
     private function listener(OAuthConsentStore $store, Request $request): OAuthAuthorizationListener
     {
         $requestStack = new RequestStack();
@@ -120,10 +134,11 @@ final class OAuthAuthorizationListenerTest extends TestCase
         return new UrlGenerator($routes, new RequestContext());
     }
 
-    private function request(string $uri, ?Session $session = null): Request
+    private function request(string $uri, ?Session $session = null, string $route = 'sulu_mcp_oauth_authorize'): Request
     {
         $request = Request::create($uri);
         $request->setSession($session ?? new Session(new MockArraySessionStorage()));
+        $request->attributes->set('_route', $route);
 
         return $request;
     }

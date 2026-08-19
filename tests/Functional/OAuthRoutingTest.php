@@ -30,8 +30,8 @@ final class OAuthRoutingTest extends FunctionalTestCase
     public static function routeProvider(): iterable
     {
         // Loaded by attribute discovery over the controller directory.
-        yield 'protected resource metadata' => ['sulu_mcp_prm', '/.well-known/oauth-protected-resource', 'GET'];
-        yield 'authorization server metadata' => ['sulu_mcp_as_metadata', '/.well-known/oauth-authorization-server', 'GET'];
+        yield 'protected resource metadata' => ['sulu_mcp_prm', '/.well-known/oauth-protected-resource/admin/mcp', 'GET'];
+        yield 'authorization server metadata' => ['sulu_mcp_as_metadata', '/.well-known/oauth-authorization-server/admin/mcp', 'GET'];
         yield 'dynamic client registration' => ['sulu_mcp_client_registration', '/admin/mcp/register', 'POST'];
         yield 'consent details' => ['sulu_mcp_oauth_consent_details', '/admin/mcp/consent/{requestId}', 'GET'];
         yield 'consent decision' => ['sulu_mcp_oauth_consent_decision', '/admin/mcp/consent/{requestId}', 'POST'];

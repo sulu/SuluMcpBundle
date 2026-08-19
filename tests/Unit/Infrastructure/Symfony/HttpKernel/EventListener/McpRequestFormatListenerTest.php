@@ -49,6 +49,15 @@ final class McpRequestFormatListenerTest extends TestCase
         $this->assertSame('json', $event->getRequest()->getRequestFormat());
     }
 
+    public function testSetsJsonFormatOnPercentEncodedMcpPath(): void
+    {
+        $event = $this->createRequestEvent('/admin/mc%70');
+
+        $this->listener->onKernelRequest($event);
+
+        $this->assertSame('json', $event->getRequest()->getRequestFormat());
+    }
+
     public function testLeavesNonMcpPathUntouched(): void
     {
         $event = $this->createRequestEvent('/admin');

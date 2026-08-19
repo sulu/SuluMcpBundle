@@ -14,8 +14,10 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\HttpKernel;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\SuluMcpBundle;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Extension\Extension;
 use Symfony\Component\DependencyInjection\Extension\PrependExtensionInterface;
@@ -44,11 +46,6 @@ final class SuluMcpBundleTest extends TestCase
         $container->loadFromExtension('sulu_mcp', [
             'server_url' => 'https://sulu.example.com',
             'mcp_path' => '/admin/custom-mcp',
-            'oauth' => [
-                'access_token_ttl' => 120,
-                'refresh_token_ttl' => 240,
-                'scopes' => ['mcp:tools'],
-            ],
         ]);
 
         $extension->prepend($container);
@@ -66,14 +63,8 @@ final class SuluMcpBundleTest extends TestCase
         self::assertSame(
             [
                 [
-                    'authorization_server' => [
-                        'access_token_ttl' => 'PT120S',
-                        'refresh_token_ttl' => 'PT240S',
-                        'require_code_challenge_for_public_clients' => true,
-                    ],
                     'scopes' => [
-                        'available' => ['mcp:tools'],
-                        'default' => ['mcp:tools'],
+                        'available' => ['mcp:tools', 'mcp:resources'],
                     ],
                 ],
             ],
@@ -117,6 +108,32 @@ final class SuluMcpBundleTest extends TestCase
         self::assertSame('/admin/mcp', $container->getParameter('sulu_mcp.mcp_path'));
         self::assertSame(['mcp:tools', 'mcp:resources'], $container->getParameter('sulu_mcp.oauth.scopes'));
         self::assertFalse($container->getParameter('sulu_mcp.dangerous_tools.delete'));
+    }
+
+    #[DataProvider('provideInvalidMcpPaths')]
+    public function testRejectsMcpPathTheRouterCanNeverProduce(string $mcpPath): void
+    {
+        $container = $this->container();
+
+        $extension = (new SuluMcpBundle())->getContainerExtension();
+        self::assertNotNull($extension);
+
+        $this->expectException(InvalidConfigurationException::class);
+        $this->expectExceptionMessageMatches('/must be a literal path/');
+
+        $extension->load([['server_url' => 'https://sulu.example.com', 'mcp_path' => $mcpPath]], $container);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideInvalidMcpPaths(): iterable
+    {
+        yield 'no leading slash' => ['admin/mcp'];
+        yield 'trailing slash' => ['/admin/mcp/'];
+        yield 'empty' => [''];
+        yield 'route placeholder' => ['/admin/{transport}'];
+        yield 'query string' => ['/admin/mcp?x'];
     }
 
     /**

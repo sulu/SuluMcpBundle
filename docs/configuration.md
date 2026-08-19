@@ -6,22 +6,12 @@ All bundle configuration lives under the `sulu_mcp` key in `config/packages/sulu
 
 ```yaml
 sulu_mcp:
-    # REQUIRED. Public base URL of the Sulu installation. Used for OAuth issuer
-    # metadata and generating absolute callback URLs.
+    # REQUIRED. Public base URL of the Sulu installation. With mcp_path it forms
+    # the OAuth issuer and resource identifier and prefixes the discovery URLs.
     server_url: '%env(SULU_MCP_SERVER_URL)%'
 
     # MCP endpoint path. Default: /admin/mcp
     mcp_path: '/admin/mcp'
-
-    oauth:
-        # Access token lifetime in seconds. Default: 3600 (1 hour).
-        access_token_ttl: 3600
-        # Refresh token lifetime in seconds. Default: 2592000 (30 days).
-        refresh_token_ttl: 2592000
-        # OAuth scopes advertised by the server.
-        scopes:
-            - 'mcp:tools'
-            - 'mcp:resources'
 
     # Opt-in flags for tools with hard-to-reverse side effects.
     # All categories default to false.
@@ -35,7 +25,7 @@ sulu_mcp:
 
 ### `server_url` (required)
 
-The publicly reachable base URL of your Sulu installation, e.g. `https://sulu.example.com`. The bundle uses it to advertise OAuth endpoints and to compose the MCP server URL printed by `sulu:mcp:create-client`.
+The publicly reachable base URL of your Sulu installation, e.g. `https://sulu.example.com`. The bundle appends `mcp_path` to it to form the OAuth issuer and the resource identifier the discovery documents advertise, prefixes the advertised OAuth endpoints with it, and composes the MCP server URL printed by `sulu:mcp:create-client` from it. A trailing slash is trimmed.
 
 Use an env var so it differs per environment:
 
@@ -48,11 +38,13 @@ SULU_MCP_SERVER_URL=https://sulu.example.com
 
 The HTTP path serving MCP requests. Default `/admin/mcp`. The `/admin/...` prefix routes the request into Sulu's admin kernel via the standard front-controller mapping, so admin-context services (article preview provider, etc.) are available to the tools. Unlike the routes below, this one is registered by `symfony/mcp-bundle` and so cannot pick up a route import prefix -- it is a full path and has to be kept in sync with the prefix you mount `routing_admin.yaml` under.
 
+The value has to be a literal path: it starts with a `/`, does not end with one, and contains none of `{`, `}`, `%`, `?` or `#`. The container refuses anything else, because the endpoint's listeners match the request path against it for equality -- a route placeholder or a URI delimiter would let the MCP route match one path while the listeners compare another.
+
 If you change `mcp_path`, also update the `pattern` of the `mcp` firewall in your `security.yaml` (see "Required security setup" below) and the URL registered with each MCP client.
 
 ## Routes
 
-The bundle ships its routes in two files, because the two halves are mounted differently. `routing_admin.yaml` carries the OAuth endpoints and takes whichever prefix your project already uses for the rest of the Sulu admin, exactly like every other Sulu bundle. `routing_website.yaml` carries the discovery documents, which RFC 8414 and RFC 9728 pin to the host root and which must therefore never be prefixed.
+The bundle ships its routes in two files, because the two halves are mounted differently. `routing_admin.yaml` carries the OAuth endpoints and takes whichever prefix your project already uses for the rest of the Sulu admin, exactly like every other Sulu bundle. `routing_website.yaml` carries the discovery documents, whose paths RFC 8414 and RFC 9728 anchor in the host's `/.well-known/` namespace and which must therefore never take a route prefix.
 
 ```yaml
 # config/routes.yaml
@@ -66,7 +58,7 @@ sulu_mcp_website:
 
 No path inside the bundle hardcodes the prefix, and the code that needs to know a route's URL generates it from the router. The table below assumes the conventional `/admin` prefix.
 
-Keep both imports in a file that is loaded in **every** Sulu context, as above. The discovery documents are served from the host root and therefore run in the website kernel, but they advertise the OAuth endpoints from `routing_admin.yaml` and generate those URLs from the router. Splitting the two imports into context-specific route files leaves the website kernel without the admin route definitions, and the discovery document fails with a `RouteNotFoundException`.
+Keep both imports in a file that is loaded in **every** Sulu context, as above. The discovery documents are served unprefixed and therefore run in the website kernel, but they advertise the OAuth endpoints from `routing_admin.yaml` and generate those URLs from the router. Splitting the two imports into context-specific route files leaves the website kernel without the admin route definitions, and the discovery document fails with a `RouteNotFoundException`.
 
 | Path | Purpose | Authentication |
 |---|---|---|
@@ -75,10 +67,12 @@ Keep both imports in a file that is loaded in **every** Sulu context, as above. 
 | `/admin/mcp/consent/{requestId}` | Consent screen backend (`GET` details, `POST` decision) | Sulu admin session |
 | `/admin/mcp/token` | OAuth token endpoint | client credentials / PKCE |
 | `/admin/mcp/register` | RFC 7591 dynamic client registration | public |
-| `/.well-known/oauth-protected-resource` | RFC 9728 discovery | public |
-| `/.well-known/oauth-authorization-server` | RFC 8414 discovery | public |
+| `/.well-known/oauth-protected-resource/admin/mcp` | RFC 9728 discovery | public |
+| `/.well-known/oauth-authorization-server/admin/mcp` | RFC 8414 discovery | public |
 
 Clients discover `authorize`, `token` and `register` from the authorization-server document, so they need no manual configuration beyond the server URL.
+
+Both discovery documents carry `mcp_path` in their own URL. RFC 9728 section 3 and RFC 8414 section 3.1 locate them by inserting the well-known URI between the host and the path component of the resource identifier and of the issuer, respectively -- here both are the MCP endpoint URL, `server_url` plus `mcp_path` -- and the MCP authorization specification requires clients to try exactly that location first for an issuer that has a path. Changing `mcp_path` moves both routes with it. The insertion rule exists so that one host can serve several protected resources and authorization servers; it keeps the bundle off the bare host-level well-known paths, which belong to the host project.
 
 ## Required security setup
 
@@ -113,20 +107,29 @@ The `mcp` pattern is anchored to the transport path alone. `/admin/mcp/authorize
 
 This setup keeps the MCP traffic stateless (no PHP session cookies), isolated from your form-login / two-factor / HTTP-basic flows on `/admin/...`, and works alongside any extra middleware your host project layers onto the admin firewall.
 
-### `oauth.access_token_ttl` / `oauth.refresh_token_ttl`
+### OAuth scopes
 
-Token lifetimes in seconds. The defaults (1 hour / 30 days) match common hosted-client expectations. Shorter access tokens reduce blast radius on leak; longer refresh tokens reduce re-login friction.
-
-### `oauth.scopes`
-
-The scopes the server advertises and accepts. The two defaults map to MCP semantics:
+The server advertises and accepts two fixed scopes:
 
 - `mcp:tools` — call tools (`tools/list`, `tools/call`).
 - `mcp:resources` — read resources.
 
-You don't normally change this. Add scopes only if you've extended the bundle with custom OAuth grants.
+They are contributed to `league_oauth2_server.scopes.available` so they can be granted. The bundle deliberately contributes nothing else to `league_oauth2_server`:
 
-During OAuth authorization, users authenticate with the normal Sulu admin login and then approve or deny the client on a Sulu admin consent screen. The consent screen uses the scopes configured here and the authenticated user's existing Sulu permissions; there is no separate MCP user or permission layer.
+- **`scopes.default` is yours.** league applies it in exactly one place: `AddClientDefaultScopesListener` puts it on a client that is *saved without scopes* (`PRE_SAVE_CLIENT`). At authorize time an empty `scope` parameter falls back to the client's own scopes, not to `default`. Every client this bundle creates -- through the registration endpoint or `sulu:mcp:create-client` -- carries the MCP scopes, so `default` never affects an MCP client and belongs to the project. league still requires you to set it.
+- **Token lifetimes and PKCE enforcement are yours.** Configure `access_token_ttl`, `refresh_token_ttl` and `require_code_challenge_for_public_clients` under `league_oauth2_server.authorization_server`. league's own defaults (1 hour, 1 month, PKCE required) apply if you don't.
+
+During OAuth authorization, users authenticate with the normal Sulu admin login and then approve or deny the client on a Sulu admin consent screen. The consent screen shows these scopes and applies the authenticated user's existing Sulu permissions; there is no separate MCP user or permission layer.
+
+#### Scope enforcement
+
+On the MCP endpoint the bundle inspects every access token league issued: `tools/*` methods require `mcp:tools`, `resources/*` methods require `mcp:resources`, and anything else -- the handshake methods, the `GET` stream, the session `DELETE`, an unreadable body -- requires any one of the two scopes. A JSON-RPC batch requires every scope its members require. A token the firewall authenticated by other means carries no OAuth scopes and is not inspected.
+
+A token that falls short is answered with `403`, the JSON-RPC error `-32003 Insufficient scope`, and a `WWW-Authenticate: Bearer error="insufficient_scope"` header whose `scope=` names the scopes the request needed -- both scopes in the any-scope case.
+
+#### Coexisting with your own OAuth clients
+
+league runs a single authorization server per application, so token lifetimes, grants and the client table are shared with everything else the project does with OAuth -- which is why the bundle configures none of them. The consent listener only handles the bundle's `sulu_mcp_oauth_authorize` route; if your project has its own `AUTHORIZATION_REQUEST_RESOLVE` listener, guard it by route the same way so neither resolves the other's authorization requests. The registration endpoint writes into that shared client table, only ever with the MCP scopes.
 
 ### `dangerous_tools.*`
 

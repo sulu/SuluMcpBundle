@@ -40,7 +40,7 @@ class OAuthSystemStoreListener
             return;
         }
 
-        $path = $event->getRequest()->getPathInfo();
+        $path = \rawurldecode($event->getRequest()->getPathInfo());
 
         if ($path !== $this->mcpPath) {
             return;

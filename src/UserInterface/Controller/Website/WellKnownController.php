@@ -21,6 +21,9 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
  * Discovery endpoints MCP clients use to find the OAuth authorization server:
  * RFC 9728 Protected Resource Metadata and RFC 8414 Authorization Server Metadata.
  *
+ * Both documents are path-inserted (RFC 9728 section 3, RFC 8414 section 3.1); the MCP
+ * endpoint URL is both the resource identifier and the issuer.
+ *
  * @internal
  */
 class WellKnownController
@@ -36,24 +39,24 @@ class WellKnownController
     ) {
     }
 
-    #[Route('/.well-known/oauth-protected-resource', name: 'sulu_mcp_prm', methods: ['GET'])]
+    #[Route('/.well-known/oauth-protected-resource%sulu_mcp.mcp_path%', name: 'sulu_mcp_prm', methods: ['GET'])]
     public function protectedResourceMetadata(): JsonResponse
     {
         return new JsonResponse([
             'resource' => \rtrim($this->serverUrl, '/') . $this->mcpPath,
-            'authorization_servers' => [\rtrim($this->serverUrl, '/')],
+            'authorization_servers' => [\rtrim($this->serverUrl, '/') . $this->mcpPath],
             'scopes_supported' => $this->scopes,
             'bearer_methods_supported' => ['header'],
         ]);
     }
 
-    #[Route('/.well-known/oauth-authorization-server', name: 'sulu_mcp_as_metadata', methods: ['GET'])]
+    #[Route('/.well-known/oauth-authorization-server%sulu_mcp.mcp_path%', name: 'sulu_mcp_as_metadata', methods: ['GET'])]
     public function authorizationServerMetadata(): JsonResponse
     {
         $base = \rtrim($this->serverUrl, '/');
 
         return new JsonResponse([
-            'issuer' => $base,
+            'issuer' => $base . $this->mcpPath,
             'authorization_endpoint' => $base . $this->routePath('sulu_mcp_oauth_authorize'),
             'token_endpoint' => $base . $this->routePath('sulu_mcp_oauth_token'),
             'response_types_supported' => ['code'],

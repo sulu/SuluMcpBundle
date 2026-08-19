@@ -25,5 +25,6 @@
         <server name="APP_ENV" value="test" force="true"/>
         <server name="KERNEL_CLASS" value="Sulu\Mcp\Tests\Application\Kernel"/>
         <server name="SEAL_DSN" value="memory://"/>
+        <server name="SHELL_VERBOSITY" value="-1"/>
     </php>
 </phpunit>

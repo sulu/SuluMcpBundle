@@ -138,6 +138,7 @@ services:
 
     Sulu\Mcp\UserInterface\Controller\Admin\DynamicClientRegistrationController:
         arguments:
+            $clientSecretHasher: '@league.oauth2_server.password_hasher'
             $allowedScopes: '%sulu_mcp.oauth.scopes%'
         tags: ['controller.service_arguments']
 
@@ -145,8 +146,6 @@ services:
 
     Sulu\Mcp\UserInterface\Controller\Admin\OAuthConsentController:
         tags: ['controller.service_arguments']
-
-    Sulu\Mcp\Infrastructure\Sulu\OAuth\SuluUserResolver: ~
 
     Sulu\Mcp\Infrastructure\Sulu\Admin\OAuthConsentAdmin:
         tags:
@@ -166,6 +165,15 @@ services:
         arguments:
             $serverUrl: '%sulu_mcp.server_url%'
             $mcpPath: '%sulu_mcp.mcp_path%'
+            $scopes: '%sulu_mcp.oauth.scopes%'
+
+    # Priority 7: the firewall runs at 8, so the token storage is populated by now.
+    Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpScopeListener:
+        arguments:
+            $mcpPath: '%sulu_mcp.mcp_path%'
+            $scopes: '%sulu_mcp.oauth.scopes%'
+        tags:
+            - { name: kernel.event_listener, event: kernel.request, method: onKernelRequest, priority: 7 }
 
     # Stable id so security.yaml never references an internal class name.
     sulu_mcp.authentication_entry_point:
@@ -196,6 +204,7 @@ services:
     # Commands
     Sulu\Mcp\UserInterface\Command\CreateMcpClientCommand:
         arguments:
+            $clientSecretHasher: '@league.oauth2_server.password_hasher'
             $serverUrl: '%sulu_mcp.server_url%'
             $mcpPath: '%sulu_mcp.mcp_path%'
 

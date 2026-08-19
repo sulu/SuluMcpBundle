@@ -21,6 +21,7 @@ use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\PasswordHasher\PasswordHasherInterface;
 use Symfony\Component\Routing\Attribute\Route;
 
 /**
@@ -40,6 +41,7 @@ class DynamicClientRegistrationController
      */
     public function __construct(
         private readonly ClientManagerInterface $clientManager,
+        private readonly PasswordHasherInterface $clientSecretHasher,
         private readonly array $allowedScopes = ['mcp:tools', 'mcp:resources'],
     ) {
     }
@@ -103,7 +105,7 @@ class DynamicClientRegistrationController
         $clientId = \bin2hex(\random_bytes(16));
         $clientSecret = 'none' === $tokenEndpointAuthMethod ? null : \bin2hex(\random_bytes(32));
 
-        $client = new Client($clientName, $clientId, $clientSecret);
+        $client = new Client($clientName, $clientId, null === $clientSecret ? null : $this->clientSecretHasher->hash($clientSecret));
 
         $client->setRedirectUris(...\array_map(
             static fn (string $uri) => new RedirectUri($uri),

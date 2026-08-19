@@ -22,9 +22,6 @@ twig:
 
 sulu_mcp:
     server_url: 'https://sulu-mcp-server.test'
-    oauth:
-        access_token_ttl: 3600
-        refresh_token_ttl: 2592000
     dangerous_tools:
         delete: true
         publish: true
@@ -43,7 +40,7 @@ league_oauth2_server:
     resource_server:
         public_key: '%kernel.project_dir%/config/jwt/public.pem'
     scopes:
-        available: ['mcp:tools', 'mcp:resources']
+        # `available` is contributed by SuluMcpBundle; `default` is the project's call.
         default: ['mcp:tools', 'mcp:resources']
     persistence:
         in_memory: ~

@@ -25,6 +25,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\PasswordHasher\PasswordHasherInterface;
 
 /**
  * @internal
@@ -48,6 +49,7 @@ class CreateMcpClientCommand extends Command
 
     public function __construct(
         private readonly ClientManagerInterface $clientManager,
+        private readonly PasswordHasherInterface $clientSecretHasher,
         private readonly string $serverUrl,
         private readonly string $mcpPath = '/admin/mcp',
     ) {
@@ -100,7 +102,7 @@ class CreateMcpClientCommand extends Command
         $identifier = \bin2hex(\random_bytes(16));
         $secret = \bin2hex(\random_bytes(32));
 
-        $oauthClient = new Client($name, $identifier, $secret);
+        $oauthClient = new Client($name, $identifier, $this->clientSecretHasher->hash($secret));
         if (null !== $redirectUri) {
             $oauthClient->setRedirectUris(new RedirectUri($redirectUri));
         }

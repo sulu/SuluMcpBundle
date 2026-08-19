@@ -44,6 +44,15 @@ final class OAuthSystemStoreListenerTest extends TestCase
         $listener->onKernelRequest($this->createRequestEvent('/admin/mcp'));
     }
 
+    public function testSetsSystemOnPercentEncodedMcpPath(): void
+    {
+        $systemStore = $this->prophesize(SystemStoreInterface::class);
+        $systemStore->setSystem('Sulu')->shouldBeCalledOnce();
+
+        $listener = new OAuthSystemStoreListener($systemStore->reveal(), '/admin/mcp');
+        $listener->onKernelRequest($this->createRequestEvent('/admin/mc%70'));
+    }
+
     public function testSetsConfiguredSystemOnMcpPath(): void
     {
         $systemStore = $this->prophesize(SystemStoreInterface::class);

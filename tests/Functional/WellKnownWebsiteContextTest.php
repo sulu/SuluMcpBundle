@@ -38,6 +38,7 @@ final class WellKnownWebsiteContextTest extends TestCase
             $body = \json_decode((string) $controller->authorizationServerMetadata()->getContent(), true);
 
             self::assertIsArray($body);
+            self::assertSame('https://sulu-mcp-server.test/admin/mcp', $body['issuer']);
             self::assertSame('https://sulu-mcp-server.test/admin/mcp/authorize', $body['authorization_endpoint']);
             self::assertSame('https://sulu-mcp-server.test/admin/mcp/token', $body['token_endpoint']);
             self::assertSame('https://sulu-mcp-server.test/admin/mcp/register', $body['registration_endpoint']);

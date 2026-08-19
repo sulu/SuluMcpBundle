@@ -43,6 +43,10 @@ final readonly class OAuthAuthorizationListener
             return;
         }
 
+        if ('sulu_mcp_oauth_authorize' !== $request->attributes->get('_route')) {
+            return;
+        }
+
         $requestId = $this->consentStore->getRequestId($request);
         if (null !== $requestId) {
             $decision = $this->consentStore->consumeDecision($request, $requestId);

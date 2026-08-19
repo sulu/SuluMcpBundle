@@ -177,6 +177,18 @@ final class McpExceptionListenerTest extends TestCase
         $this->assertNull($event->getResponse());
     }
 
+    public function testExceptionOnPercentEncodedMcpPathReturnsJsonRpcError(): void
+    {
+        $exception = new PermissionDeniedException('sulu.webspaces.example', PermissionTypes::VIEW, 'en');
+        $event = $this->createExceptionEvent($exception, '/_m%63p');
+
+        $this->listener->onKernelException($event);
+
+        $response = $event->getResponse();
+        $this->assertNotNull($response);
+        $this->assertSame(403, $response->getStatusCode());
+    }
+
     public function testExceptionOnNonMcpPathDoesNotSetResponse(): void
     {
         $exception = new PermissionDeniedException('sulu.webspaces.example', PermissionTypes::VIEW, 'en');
@@ -222,8 +234,10 @@ final class McpExceptionListenerTest extends TestCase
 
         $wwwAuth = $response->headers->get('WWW-Authenticate');
         $this->assertNotNull($wwwAuth);
-        $this->assertStringContainsString('oauth-protected-resource', $wwwAuth);
-        $this->assertStringContainsString('https://sulu.example.com', $wwwAuth);
+        $this->assertStringContainsString(
+            'resource_metadata="https://sulu.example.com/.well-known/oauth-protected-resource/_mcp"',
+            $wwwAuth,
+        );
 
         $body = \json_decode($response->getContent(), true);
         $this->assertSame('2.0', $body['jsonrpc']);

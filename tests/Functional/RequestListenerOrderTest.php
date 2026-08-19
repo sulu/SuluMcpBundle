@@ -16,19 +16,16 @@ namespace Sulu\Mcp\Tests\Functional;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use Sulu\Mcp\Infrastructure\Sulu\Security\EventListener\OAuthSystemStoreListener;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\EventListener\McpRequestFormatListener;
+use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpScopeListener;
 use Symfony\Bundle\FrameworkBundle\Test\KernelTestCase;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Security\Http\Firewall;
 
 /**
- * Pins the kernel.request listener order that the exact MCP path checks rely on.
- *
- * The listeners in this bundle compare `getPathInfo()` for equality rather than
- * by prefix, which is only safe because a request to a path the bundle does not
- * serve is rejected by the router before the firewall runs. If a Symfony or Sulu
- * upgrade reordered these listeners, that reasoning would silently stop holding
- * and unrouted paths under the MCP prefix would reach the security layer.
- * Priorities are asserted relative to each other, not as fixed numbers.
+ * Pins the kernel.request listener order the path checks and the scope check rely on:
+ * router before firewall (unknown paths 404 before authentication), McpScopeListener
+ * after it (the token storage must be populated). Priorities are asserted relative to
+ * each other, not as fixed numbers.
  */
 #[CoversNothing]
 final class RequestListenerOrderTest extends KernelTestCase
@@ -75,6 +72,24 @@ final class RequestListenerOrderTest extends KernelTestCase
                 \sprintf('%s prepares request state the firewall consumes and must run before it.', $class),
             );
         }
+    }
+
+    public function testScopeListenerRunsAfterFirewall(): void
+    {
+        $firewall = \min($this->prioritiesOf(
+            static fn (object $listener): bool => $listener instanceof Firewall,
+            'firewall',
+        ));
+        $scopeListener = \max($this->prioritiesOf(
+            static fn (object $listener): bool => $listener instanceof McpScopeListener,
+            McpScopeListener::class,
+        ));
+
+        self::assertLessThan(
+            $firewall,
+            $scopeListener,
+            'McpScopeListener reads the authenticated token and must run after the firewall.',
+        );
     }
 
     /**

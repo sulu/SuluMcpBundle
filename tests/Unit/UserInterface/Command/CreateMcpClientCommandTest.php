@@ -22,6 +22,7 @@ use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Mcp\UserInterface\Command\CreateMcpClientCommand;
 use Symfony\Component\Console\Tester\CommandTester;
+use Symfony\Component\PasswordHasher\Hasher\NativePasswordHasher;
 
 #[CoversClass(CreateMcpClientCommand::class)]
 final class CreateMcpClientCommandTest extends TestCase
@@ -30,13 +31,34 @@ final class CreateMcpClientCommandTest extends TestCase
 
     /** @var ObjectProphecy<ClientManagerInterface> */
     private ObjectProphecy $clientManager;
+    private NativePasswordHasher $clientSecretHasher;
     private CommandTester $tester;
 
     protected function setUp(): void
     {
         $this->clientManager = $this->prophesize(ClientManagerInterface::class);
-        $command = new CreateMcpClientCommand($this->clientManager->reveal(), 'https://sulu.example.com', '/admin/mcp');
+        $this->clientSecretHasher = new NativePasswordHasher(cost: 4);
+        $command = new CreateMcpClientCommand($this->clientManager->reveal(), $this->clientSecretHasher, 'https://sulu.example.com', '/admin/mcp');
         $this->tester = new CommandTester($command);
+    }
+
+    public function testStoresHashedSecretAndPrintsPlaintext(): void
+    {
+        $captured = $this->captureSavedClient();
+
+        $exitCode = $this->tester->execute(['name' => 'Claude.ai'], ['interactive' => false]);
+
+        self::assertSame(0, $exitCode);
+
+        $client = $captured();
+        self::assertInstanceOf(ClientInterface::class, $client);
+
+        $stored = $client->getSecret();
+        self::assertIsString($stored);
+
+        $plaintext = $this->displayedSecret();
+        self::assertNotSame($plaintext, $stored);
+        self::assertTrue($this->clientSecretHasher->verify($stored, $plaintext));
     }
 
     public function testInteractiveChatgptRegistersCallbackInSameCommand(): void
@@ -122,6 +144,13 @@ final class CreateMcpClientCommandTest extends TestCase
         );
 
         self::assertSame(2, $exitCode);
+    }
+
+    private function displayedSecret(): string
+    {
+        self::assertSame(1, \preg_match('/OAuth Client Secret: ([0-9a-f]{64})/', $this->tester->getDisplay(), $matches));
+
+        return $matches[1];
     }
 
     /**

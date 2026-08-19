@@ -22,6 +22,7 @@ use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Mcp\UserInterface\Controller\Admin\DynamicClientRegistrationController;
 use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\PasswordHasher\Hasher\NativePasswordHasher;
 
 #[CoversClass(DynamicClientRegistrationController::class)]
 final class DynamicClientRegistrationControllerTest extends TestCase
@@ -30,13 +31,16 @@ final class DynamicClientRegistrationControllerTest extends TestCase
 
     /** @var ObjectProphecy<ClientManagerInterface> */
     private ObjectProphecy $clientManager;
+    private NativePasswordHasher $clientSecretHasher;
     private DynamicClientRegistrationController $controller;
 
     protected function setUp(): void
     {
         $this->clientManager = $this->prophesize(ClientManagerInterface::class);
+        $this->clientSecretHasher = new NativePasswordHasher(cost: 4);
         $this->controller = new DynamicClientRegistrationController(
             $this->clientManager->reveal(),
+            $this->clientSecretHasher,
             ['mcp:tools'],
         );
     }
@@ -68,6 +72,32 @@ final class DynamicClientRegistrationControllerTest extends TestCase
         $body = $this->json($response->getContent());
         self::assertSame('client_secret_basic', $body['token_endpoint_auth_method']);
         self::assertSame('mcp:tools', $body['scope']);
+    }
+
+    public function testRegisterStoresHashedSecretAndReturnsPlaintext(): void
+    {
+        $capturedClient = null;
+        $this->clientManager->save(Argument::type(ClientInterface::class))
+            ->will(function(array $args) use (&$capturedClient): void {
+                $capturedClient = $args[0];
+            })
+            ->shouldBeCalledOnce();
+
+        $response = $this->controller->register($this->jsonRequest([
+            'client_name' => 'Claude Code',
+            'redirect_uris' => ['https://client.example.com/callback'],
+        ]));
+
+        self::assertSame(201, $response->getStatusCode());
+        self::assertInstanceOf(ClientInterface::class, $capturedClient);
+
+        $plaintext = $this->json($response->getContent())['client_secret'] ?? null;
+        self::assertIsString($plaintext);
+
+        $stored = $capturedClient->getSecret();
+        self::assertIsString($stored);
+        self::assertNotSame($plaintext, $stored);
+        self::assertTrue($this->clientSecretHasher->verify($stored, $plaintext));
     }
 
     public function testRegisterRejectsInvalidJson(): void

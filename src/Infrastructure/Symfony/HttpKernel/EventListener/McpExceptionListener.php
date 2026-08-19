@@ -46,7 +46,7 @@ class McpExceptionListener
     public function onKernelException(ExceptionEvent $event): void
     {
         $request = $event->getRequest();
-        if ($request->getPathInfo() !== $this->mcpPath) {
+        if (\rawurldecode($request->getPathInfo()) !== $this->mcpPath) {
             return;
         }
 

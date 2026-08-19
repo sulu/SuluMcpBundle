@@ -28,12 +28,18 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  * @phpstan-type SuluMcpConfig array{
  *     server_url: string,
  *     mcp_path: string,
- *     oauth: array{access_token_ttl: int, refresh_token_ttl: int, scopes: list<string>},
  *     dangerous_tools: array{delete: bool, publish: bool, block_remove: bool},
  * }
  */
 class SuluMcpBundle extends AbstractBundle
 {
+    /**
+     * mcp:tools covers the tools/* JSON-RPC methods, mcp:resources the resources/* ones.
+     *
+     * @var list<string>
+     */
+    public const SCOPES = ['mcp:tools', 'mcp:resources'];
+
     protected string $extensionAlias = 'sulu_mcp';
 
     public function getPath(): string
@@ -53,26 +59,13 @@ class SuluMcpBundle extends AbstractBundle
                 ->scalarNode('mcp_path')
                     ->defaultValue('/admin/mcp')
                     ->info('MCP endpoint path. Defaults to /admin/mcp so the request is handled by the admin kernel, where Sulu services tagged sulu.context: admin (article preview provider, etc.) are registered. Keep it in sync with the prefix your project imports config/routing_admin.yaml under, and keep the /admin/ prefix unless you have explicitly routed a different path to the admin kernel.')
-                ->end()
-                ->arrayNode('oauth')
-                    ->addDefaultsIfNotSet()
-                    ->children()
-                        ->integerNode('access_token_ttl')
-                            ->defaultValue(3600)
-                            ->min(1)
-                            ->info('Access token lifetime in seconds')
-                        ->end()
-                        ->integerNode('refresh_token_ttl')
-                            ->defaultValue(2592000)
-                            ->min(1)
-                            ->info('Refresh token lifetime in seconds (default: 30 days)')
-                        ->end()
-                        ->arrayNode('scopes')
-                            ->scalarPrototype()->end()
-                            ->defaultValue(['mcp:tools', 'mcp:resources'])
-                            ->cannotBeEmpty()
-                            ->info('OAuth scopes supported by the MCP server')
-                        ->end()
+                    // The listeners compare the request path against this value for equality.
+                    ->validate()
+                        ->ifTrue(static fn (mixed $path): bool => !\is_string($path)
+                            || !\str_starts_with($path, '/')
+                            || \str_ends_with($path, '/')
+                            || false !== \strpbrk($path, '{}%?#'))
+                        ->thenInvalid('sulu_mcp.mcp_path must be a literal path: starting with "/", without a trailing "/" and without "{", "}", "%%", "?" or "#".')
                     ->end()
                 ->end()
                 ->arrayNode('dangerous_tools')
@@ -115,15 +108,10 @@ class SuluMcpBundle extends AbstractBundle
         }
 
         if ($builder->hasExtension('league_oauth2_server')) {
+            // Only `scopes.available`; everything else is the project's to configure.
             $builder->prependExtensionConfig('league_oauth2_server', [
-                'authorization_server' => [
-                    'access_token_ttl' => $this->secondsToDateIntervalSpec($config['oauth']['access_token_ttl']),
-                    'refresh_token_ttl' => $this->secondsToDateIntervalSpec($config['oauth']['refresh_token_ttl']),
-                    'require_code_challenge_for_public_clients' => true,
-                ],
                 'scopes' => [
-                    'available' => $config['oauth']['scopes'],
-                    'default' => $config['oauth']['scopes'],
+                    'available' => self::SCOPES,
                 ],
             ]);
         }
@@ -136,7 +124,7 @@ class SuluMcpBundle extends AbstractBundle
     {
         $builder->setParameter('sulu_mcp.server_url', $config['server_url']);
         $builder->setParameter('sulu_mcp.mcp_path', $config['mcp_path']);
-        $builder->setParameter('sulu_mcp.oauth.scopes', $config['oauth']['scopes']);
+        $builder->setParameter('sulu_mcp.oauth.scopes', self::SCOPES);
         $builder->setParameter('sulu_mcp.dangerous_tools.delete', $config['dangerous_tools']['delete']);
         $builder->setParameter('sulu_mcp.dangerous_tools.publish', $config['dangerous_tools']['publish']);
         $builder->setParameter('sulu_mcp.dangerous_tools.block_remove', $config['dangerous_tools']['block_remove']);
@@ -171,10 +159,5 @@ class SuluMcpBundle extends AbstractBundle
         );
 
         return $config;
-    }
-
-    private function secondsToDateIntervalSpec(int $seconds): string
-    {
-        return \sprintf('PT%dS', $seconds);
     }
 }
