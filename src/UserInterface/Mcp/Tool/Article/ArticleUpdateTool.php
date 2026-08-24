@@ -28,6 +28,7 @@ use Sulu\Mcp\Application\Article\ArticleGroupResolver;
 use Sulu\Mcp\Application\Article\ArticleRouteValidator;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
@@ -47,6 +48,7 @@ class ArticleUpdateTool
 {
     use HandleTrait;
     use BlockDataNormalizerTrait;
+    use ContentLocaleTrait;
     use ContentNormalizerTrait;
 
     public function __construct(
@@ -74,7 +76,7 @@ class ArticleUpdateTool
     #[McpTool(
         name: 'sulu_article_update',
         title: 'Update Article',
-        description: 'Update an existing article. Reads the current article state, merges your changes, and writes back -- so you only need to pass the fields you want to change. Pass template-specific field values in "content" as a flat object: content={"article": "<p>Updated HTML</p>"}. Content may also include a full "blocks" tree (nested blocks allowed) to replace the block content in one call — block _ids are assigned automatically and unknown block fields are rejected before saving. To change routing, pass either content={"url": "/path"} (simple route templates) or content={"page": {"path": "/blog", "uuid": "<parent-uuid>", "suffix": "slug"}} (page_tree_route templates) -- the wrong form is rejected here instead of failing inside Sulu. You can update title and template as separate parameters. The article stays in draft state after updating -- call sulu_content_publish (type: article) to make changes live.',
+        description: 'Update an existing article. Reads the current article state, merges your changes, and writes back -- so you only need to pass the fields you want to change. Pass template-specific field values in "content" as a flat object: content={"article": "<p>Updated HTML</p>"}. Content may also include a full "blocks" tree (nested blocks allowed) to replace the block content in one call — block _ids are assigned automatically and unknown block fields are rejected before saving. To change routing, pass either content={"url": "/path"} (simple route templates) or content={"page": {"path": "/blog", "uuid": "<parent-uuid>", "suffix": "slug"}} (page_tree_route templates) -- the wrong form is rejected here instead of failing inside Sulu. You can update title and template as separate parameters. Calling this with a locale the article has no content in yet creates that translation -- pass title, template and routing data in content in that case, and the result carries "created_locale": true. The article stays in draft state after updating -- call sulu_content_publish (type: article) to make changes live.',
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.article.articles', PermissionTypes::EDIT)],
@@ -94,12 +96,16 @@ class ArticleUpdateTool
         ?array $seo = null,
     ): array {
         try {
-            // Read current article state to get template and existing content
+            // Read current article state to get template and existing content. loadGhost
+            // keeps the article findable in a locale it has not been translated to yet --
+            // without it the locale filter is strict and the article looks like it does
+            // not exist at all.
             $article = $this->articleRepository->getOneBy(
                 [
                     'uuid' => $uuid,
                     'locale' => $locale,
                     'stage' => DimensionContentInterface::STAGE_DRAFT,
+                    'loadGhost' => true,
                 ],
                 [
                     ArticleRepositoryInterface::GROUP_SELECT_ARTICLE_ADMIN => true,
@@ -111,13 +117,34 @@ class ArticleUpdateTool
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
 
-            $currentTemplateKey = $currentDimensionContent->getTemplateKey() ?? '';
-            $sourceContext = $this->articleContextResolver->forTemplateKey($currentTemplateKey);
-            $this->permissionChecker->check(
-                $sourceContext,
-                PermissionTypes::EDIT,
-                $locale,
-            );
+            // A not-yet-translated locale is created purely from what the caller passes.
+            // The resolve above never reaches into the source locale, so there is nothing to
+            // inherit -- dropping its result only keeps the unlocalized dimension's own fields
+            // (availableLocales, ghostLocale) out of the write.
+            $createsLocale = self::isMissingTranslation($currentDimensionContent, $locale);
+            if ($createsLocale && \in_array(null, [$title, $template, $content], true)) {
+                return self::missingTranslationError(
+                    'Article',
+                    $uuid,
+                    $locale,
+                    $currentDimensionContent,
+                    \sprintf('Creating the "%s" translation requires title, template and routing data in content.', $locale),
+                );
+            }
+
+            $currentTemplateKey = $createsLocale ? '' : ($currentDimensionContent->getTemplateKey() ?? '');
+
+            // The article has no content in this locale, so there is no source template and
+            // no source group to check -- like a create, only the target group is gated.
+            $sourceContext = null;
+            if (!$createsLocale) {
+                $sourceContext = $this->articleContextResolver->forTemplateKey($currentTemplateKey);
+                $this->permissionChecker->check(
+                    $sourceContext,
+                    PermissionTypes::EDIT,
+                    $locale,
+                );
+            }
 
             // Trusted template: the `template` arg, else the current one. content/excerpt/seo
             // below must not smuggle a different value past this point (not even content.template).
@@ -135,7 +162,7 @@ class ArticleUpdateTool
                 );
             }
 
-            $currentData = $this->contentManager->normalize($currentDimensionContent);
+            $currentData = $createsLocale ? [] : $this->contentManager->normalize($currentDimensionContent);
 
             // Build update data: start with current state, overlay user changes
             $data = \array_merge(
@@ -148,7 +175,7 @@ class ArticleUpdateTool
             }
             if (null !== $content) {
                 $normalizedContent = self::normalizeContent($content);
-                if ($validationError = ArticleRouteValidator::validate($normalizedContent, required: false)) {
+                if ($validationError = ArticleRouteValidator::validate($normalizedContent, required: $createsLocale)) {
                     return $validationError;
                 }
                 $suluContent = ArticleRouteValidator::normalizeForSulu($normalizedContent);
@@ -192,6 +219,10 @@ class ArticleUpdateTool
                 'uuid' => $updatedArticle->getUuid(),
                 'data' => $this->compactContent($normalized, $this->detectBlockProperties($normalized)),
             ];
+
+            if ($createsLocale) {
+                $result['created_locale'] = true;
+            }
 
             $resolvedTemplate = \is_string($normalized['template'] ?? null) ? $normalized['template'] : null;
 

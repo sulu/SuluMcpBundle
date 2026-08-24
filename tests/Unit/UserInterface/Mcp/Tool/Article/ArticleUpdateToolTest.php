@@ -126,6 +126,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('blog');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old Title', 'template' => 'blog']);
@@ -155,6 +156,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'article' => '<p>Old</p>']);
@@ -198,6 +200,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
 
@@ -237,6 +240,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
 
@@ -278,6 +282,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'article']);
@@ -324,6 +329,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'article']);
@@ -379,6 +385,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'article']);
@@ -409,6 +416,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'article']);
@@ -457,6 +465,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'article']);
@@ -483,6 +492,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn([]);
@@ -504,6 +514,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn([
@@ -553,6 +564,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn([]);
@@ -573,6 +585,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('blog');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'blog']);
@@ -650,6 +663,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('blog');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'blog']);
@@ -675,6 +689,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn([
@@ -704,6 +719,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($currentArticle);
 
         $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('blog');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'blog']);
@@ -733,5 +749,80 @@ final class ArticleUpdateToolTest extends TestCase
         $this->assertSame(['id' => 5], $data['excerpt']['image']);
         $this->assertSame('S', $data['seo']['title']);
         $this->assertTrue($data['seoNoIndex']);
+    }
+
+    /**
+     * A locale the article has no content in yet: Sulu merges the unlocalized dimension
+     * only, so the resolved locale stays null and availableLocales lists the locales
+     * that do exist.
+     */
+    private function setUpGhostLocale(array $translatedLocales = ['de']): void
+    {
+        $this->articleRepository->getOneBy(Argument::cetera())->willReturn(new Article('uuid-1'));
+
+        $ghostDimensionContent = new ArticleDimensionContent(new Article());
+        foreach ($translatedLocales as $translatedLocale) {
+            $ghostDimensionContent->addAvailableLocale($translatedLocale);
+        }
+        $this->contentManager->resolve(Argument::cetera())->willReturn($ghostDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())
+            ->willReturn(['locale' => null, 'availableLocales' => $translatedLocales]);
+    }
+
+    public function testUpdateArticleCreatesMissingLocale(): void
+    {
+        $this->setUpGhostLocale();
+
+        $updatedArticle = new Article('uuid-1');
+
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($updatedArticle, &$capturedEnvelope) {
+                $capturedEnvelope = $args[0];
+
+                return $args[0]->with(new HandledStamp($updatedArticle, 'handler'));
+            });
+
+        $result = $this->tool->updateArticle('uuid-1', 'en', 'English Title', 'blog', ['url' => '/english-article']);
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['created_locale']);
+
+        $message = $capturedEnvelope->getMessage();
+        $this->assertInstanceOf(ModifyArticleMessage::class, $message);
+        $capturedData = $message->getData();
+
+        $this->assertSame('en', $capturedData['locale']);
+        $this->assertSame('English Title', $capturedData['title']);
+        $this->assertSame('blog', $capturedData['template']);
+        // The unlocalized dimension's own fields must not travel into the new locale.
+        $this->assertArrayNotHasKey('availableLocales', $capturedData);
+    }
+
+    public function testUpdateArticleRejectsIncompleteNewLocaleWithoutDispatching(): void
+    {
+        $this->setUpGhostLocale(['de', 'fr']);
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updateArticle('uuid-1', 'en', 'English Title', 'blog');
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('has no "en" content yet', $result['error']);
+        $this->assertStringContainsString('title, template and routing data', $result['hint']);
+        $this->assertStringContainsString('de, fr', $result['hint']);
+    }
+
+    public function testUpdateArticleRequiresRoutingDataWhenCreatingLocale(): void
+    {
+        $this->setUpGhostLocale();
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updateArticle('uuid-1', 'en', 'English Title', 'blog', ['article' => '<p>EN</p>']);
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('routing data', $result['error']);
     }
 }

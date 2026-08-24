@@ -23,6 +23,7 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
@@ -46,6 +47,7 @@ class PageUpdateTool
 {
     use HandleTrait;
     use BlockDataNormalizerTrait;
+    use ContentLocaleTrait;
     use ContentNormalizerTrait;
 
     public function __construct(
@@ -71,7 +73,7 @@ class PageUpdateTool
     #[McpTool(
         name: 'sulu_page_update',
         title: 'Update Page',
-        description: 'Update an existing page. Reads the current page state, merges your changes, and writes back — so you only need to pass the fields you want to change. Pass template-specific field values in "content" as a flat object: content={"article": "<p>Updated HTML</p>"}. Content may also include a full "blocks" tree (nested blocks allowed) to replace the block content in one call — block _ids are assigned automatically and unknown block fields are rejected before saving. You can update title, url, and template as separate parameters. The page stays in draft state after updating — call sulu_content_publish (type: page) to make changes live.',
+        description: 'Update an existing page. Reads the current page state, merges your changes, and writes back — so you only need to pass the fields you want to change. Pass template-specific field values in "content" as a flat object: content={"article": "<p>Updated HTML</p>"}. Content may also include a full "blocks" tree (nested blocks allowed) to replace the block content in one call — block _ids are assigned automatically and unknown block fields are rejected before saving. You can update title, url, and template as separate parameters. Calling this with a locale the page has no content in yet creates that translation — pass title, url and template in that case, and the result carries "created_locale": true. The page stays in draft state after updating — call sulu_content_publish (type: page) to make changes live.',
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.webspaces.#context#', PermissionTypes::EDIT)],
@@ -92,12 +94,16 @@ class PageUpdateTool
         ?array $seo = null,
     ): array {
         try {
-            // Read current page state to get template and existing content
+            // Read current page state to get template and existing content. loadGhost
+            // keeps the page findable in a locale it has not been translated to yet --
+            // without it the locale filter is strict and the page looks like it does
+            // not exist at all.
             $page = $this->pageRepository->getOneBy(
                 [
                     'uuid' => $uuid,
                     'locale' => $locale,
                     'stage' => DimensionContentInterface::STAGE_DRAFT,
+                    'loadGhost' => true,
                 ],
                 [
                     PageRepositoryInterface::GROUP_SELECT_PAGE_ADMIN => true,
@@ -117,7 +123,23 @@ class PageUpdateTool
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
-            $currentData = $this->contentManager->normalize($currentDimensionContent);
+
+            // A not-yet-translated locale is created purely from what the caller passes.
+            // The resolve above never reaches into the source locale, so there is nothing to
+            // inherit -- dropping its result only keeps the unlocalized dimension's own fields
+            // (availableLocales, ghostLocale, the webspace default template) out of the write.
+            $createsLocale = self::isMissingTranslation($currentDimensionContent, $locale);
+            if ($createsLocale && \in_array(null, [$title, $url, $template], true)) {
+                return self::missingTranslationError(
+                    'Page',
+                    $uuid,
+                    $locale,
+                    $currentDimensionContent,
+                    \sprintf('Creating the "%s" translation requires title, url and template.', $locale),
+                );
+            }
+
+            $currentData = $createsLocale ? [] : $this->contentManager->normalize($currentDimensionContent);
 
             // Trusted template: the `template` arg, else the current one. content/excerpt/seo
             // below must not smuggle a different value past this point.
@@ -178,6 +200,10 @@ class PageUpdateTool
                 'uuid' => $updatedPage->getUuid(),
                 'data' => $this->compactContent($normalized, $this->detectBlockProperties($normalized)),
             ];
+
+            if ($createsLocale) {
+                $result['created_locale'] = true;
+            }
 
             $adminUrl = $this->adminLinkGenerator->generate('page', [
                 'webspace' => $updatedPage->getWebspaceKey(),

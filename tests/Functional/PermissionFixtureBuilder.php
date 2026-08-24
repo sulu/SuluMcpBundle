@@ -83,7 +83,10 @@ final readonly class PermissionFixtureBuilder
         return $accessControl;
     }
 
-    public function user(string $username, Role $role, string $locale = 'en'): User
+    /**
+     * @param list<string> $roleLocales locales the role is granted for, defaults to the user locale
+     */
+    public function user(string $username, Role $role, string $locale = 'en', array $roleLocales = []): User
     {
         $user = new User();
         $user->setUsername($username);
@@ -94,7 +97,7 @@ final readonly class PermissionFixtureBuilder
         $userRole = new UserRole();
         $userRole->setUser($user);
         $userRole->setRole($role);
-        $userRole->setLocale(\json_encode([$locale], \JSON_THROW_ON_ERROR));
+        $userRole->setLocale(\json_encode([] !== $roleLocales ? $roleLocales : [$locale], \JSON_THROW_ON_ERROR));
         $user->addUserRole($userRole);
 
         $this->entityManager->persist($user);

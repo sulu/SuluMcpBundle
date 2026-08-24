@@ -67,6 +67,10 @@ final readonly class ContentTypeResolver
     /**
      * Load the draft aggregate for the given content type, or null when the type
      * is unsupported or no matching entity exists.
+     *
+     * loadGhost keeps the entity findable in a locale it has not been translated to
+     * yet -- without it the locale filter is strict and the entity looks like it does
+     * not exist at all. Callers tell the two apart with ContentLocaleTrait.
      */
     public function loadDraft(string $type, string $uuid, string $locale): ?object
     {
@@ -74,6 +78,7 @@ final readonly class ContentTypeResolver
             'uuid' => $uuid,
             'locale' => $locale,
             'stage' => DimensionContentInterface::STAGE_DRAFT,
+            'loadGhost' => true,
         ];
 
         try {

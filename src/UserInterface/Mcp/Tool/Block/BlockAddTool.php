@@ -23,6 +23,7 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Content\Domain\Model\TemplateInterface;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
@@ -46,6 +47,7 @@ class BlockAddTool
     use HandleTrait;
     use BlockDataNormalizerTrait;
     use ContentNormalizerTrait;
+    use ContentLocaleTrait;
 
     public function __construct(
         MessageBusInterface $messageBus,
@@ -112,6 +114,16 @@ class BlockAddTool
                 'page' === $type ? Page::class : null,
                 'page' === $type ? $uuid : null,
             );
+
+            if (self::isMissingTranslation($dimensionContent, $locale)) {
+                return self::missingTranslationError(
+                    \ucfirst($type),
+                    $uuid,
+                    $locale,
+                    $dimensionContent,
+                    \sprintf('Create the "%s" translation with sulu_%s_update first, then work on its blocks.', $locale, $type),
+                );
+            }
 
             $currentData = $this->contentManager->normalize($dimensionContent);
 

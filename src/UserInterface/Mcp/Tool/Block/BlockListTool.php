@@ -19,6 +19,7 @@ use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Content\Domain\Model\TemplateInterface;
+use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
@@ -36,6 +37,7 @@ use Sulu\Page\Domain\Model\Page;
 class BlockListTool
 {
     use ContentNormalizerTrait;
+    use ContentLocaleTrait;
 
     public function __construct(
         private readonly ContentTypeResolver $contentTypeResolver,
@@ -91,6 +93,16 @@ class BlockListTool
                 'page' === $type ? Page::class : null,
                 'page' === $type ? $uuid : null,
             );
+
+            if (self::isMissingTranslation($dimensionContent, $locale)) {
+                return self::missingTranslationError(
+                    \ucfirst($type),
+                    $uuid,
+                    $locale,
+                    $dimensionContent,
+                    \sprintf('Create the "%s" translation with sulu_%s_update first, then work on its blocks.', $locale, $type),
+                );
+            }
         } catch (PermissionDeniedException $e) {
             throw new ToolCallException($e->getMessage(), 0, $e);
         }

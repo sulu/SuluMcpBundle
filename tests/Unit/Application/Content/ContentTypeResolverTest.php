@@ -23,6 +23,7 @@ use Sulu\Article\Application\Message\ModifyArticleMessage;
 use Sulu\Article\Application\Message\RemoveArticleMessage;
 use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
+use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Page\Application\Message\ApplyWorkflowTransitionPageMessage;
 use Sulu\Page\Application\Message\ModifyPageMessage;
@@ -188,5 +189,22 @@ final class ContentTypeResolverTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
         $this->resolver->createTransitionMessage('contact', 'uuid-1', 'en', 'publish');
+    }
+
+    public function testLoadDraftLoadsGhostSoUntranslatedLocalesStayFindable(): void
+    {
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(
+            [
+                'uuid' => 'uuid-1',
+                'locale' => 'en',
+                'stage' => DimensionContentInterface::STAGE_DRAFT,
+                'loadGhost' => true,
+            ],
+            [PageRepositoryInterface::GROUP_SELECT_PAGE_ADMIN => true],
+        )->shouldBeCalledOnce()->willReturn($page);
+
+        $this->assertSame($page, $this->resolver->loadDraft('page', 'uuid-1', 'en'));
     }
 }

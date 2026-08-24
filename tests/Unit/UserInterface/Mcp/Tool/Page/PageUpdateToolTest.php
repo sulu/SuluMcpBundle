@@ -138,11 +138,13 @@ final class PageUpdateToolTest extends TestCase
                 'uuid' => $uuid,
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
+                'loadGhost' => true,
             ],
             [PageRepositoryInterface::GROUP_SELECT_PAGE_ADMIN => true],
         )->willReturn($existingPage);
 
         $currentDimensionContent = new PageDimensionContent(new Page());
+        $currentDimensionContent->setLocale($locale);
         $this->contentManager->resolve(Argument::cetera())
             ->willReturn($currentDimensionContent);
         $this->contentManager->normalize(Argument::cetera())
@@ -295,6 +297,7 @@ final class PageUpdateToolTest extends TestCase
         $this->pageRepository->getOneBy(Argument::cetera())->willReturn($existingPage);
 
         $currentDimensionContent = new PageDimensionContent(new Page());
+        $currentDimensionContent->setLocale('en');
         $this->contentManager->resolve(Argument::cetera())->willReturn($currentDimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['template' => 'default']);
 
@@ -433,6 +436,7 @@ final class PageUpdateToolTest extends TestCase
         $existingPage->setWebspaceKey('example');
         $this->pageRepository->getOneBy(Argument::cetera())->willReturn($existingPage);
         $currentDimensionContent = new PageDimensionContent(new Page());
+        $currentDimensionContent->setLocale('en');
         $this->contentManager->resolve(Argument::cetera())->willReturn($currentDimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['template' => 'default', 'title' => 'Title']);
 
@@ -509,6 +513,7 @@ final class PageUpdateToolTest extends TestCase
         $this->pageRepository->getOneBy(Argument::cetera())->willReturn($existingPage);
 
         $currentDimensionContent = new PageDimensionContent(new Page());
+        $currentDimensionContent->setLocale('en');
         $this->contentManager->resolve(Argument::cetera())->willReturn($currentDimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['template' => 'default']);
 
@@ -540,5 +545,89 @@ final class PageUpdateToolTest extends TestCase
         $this->assertSame(['id' => 5], $capturedData['excerpt']['image']);
         $this->assertSame('S', $capturedData['seo']['title']);
         $this->assertTrue($capturedData['seoNoIndex']);
+    }
+
+    /**
+     * A locale the page has no content in yet: Sulu merges the unlocalized dimension
+     * only, so the resolved locale stays null and availableLocales lists the locales
+     * that do exist.
+     */
+    private function setUpGhostLocale(string $uuid, array $translatedLocales = ['de']): Page
+    {
+        $existingPage = new Page($uuid);
+        $existingPage->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($existingPage);
+
+        $ghostDimensionContent = new PageDimensionContent(new Page());
+        foreach ($translatedLocales as $translatedLocale) {
+            $ghostDimensionContent->addAvailableLocale($translatedLocale);
+        }
+        $this->contentManager->resolve(Argument::cetera())->willReturn($ghostDimensionContent);
+        $this->contentManager->normalize(Argument::cetera())
+            ->willReturn(['locale' => null, 'availableLocales' => $translatedLocales]);
+
+        return $existingPage;
+    }
+
+    public function testUpdatePageCreatesMissingLocale(): void
+    {
+        $this->setUpGhostLocale('uuid-1');
+
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockPage, &$capturedEnvelope) {
+                $capturedEnvelope = $args[0];
+
+                return $args[0]->with(new HandledStamp($mockPage, 'handler'));
+            });
+
+        $result = $this->tool->updatePage('uuid-1', 'en', 'English Title', '/english', 'default', ['article' => '<p>EN</p>']);
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['created_locale']);
+
+        $message = $capturedEnvelope->getMessage();
+        $this->assertInstanceOf(ModifyPageMessage::class, $message);
+        $capturedData = $message->getData();
+
+        $this->assertSame('en', $capturedData['locale']);
+        $this->assertSame('English Title', $capturedData['title']);
+        $this->assertSame('/english', $capturedData['url']);
+        $this->assertSame('default', $capturedData['template']);
+        // The unlocalized dimension's own fields must not travel into the new locale.
+        $this->assertArrayNotHasKey('availableLocales', $capturedData);
+    }
+
+    public function testUpdatePageRejectsIncompleteNewLocaleWithoutDispatching(): void
+    {
+        $this->setUpGhostLocale('uuid-1', ['de', 'fr']);
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updatePage('uuid-1', 'en', 'English Title');
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('has no "en" content yet', $result['error']);
+        $this->assertStringContainsString('title, url and template', $result['hint']);
+        $this->assertStringContainsString('de, fr', $result['hint']);
+    }
+
+    public function testUpdatePageDoesNotFlagCreatedLocaleOnPlainUpdate(): void
+    {
+        $this->setUpReadModifyWrite('uuid-1', 'en', ['template' => 'default', 'title' => 'Old Title']);
+
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+        $this->messageBus->dispatch(Argument::cetera())
+            ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
+
+        $result = $this->tool->updatePage('uuid-1', 'en', 'New Title');
+
+        $this->assertTrue($result['success']);
+        $this->assertArrayNotHasKey('created_locale', $result);
     }
 }

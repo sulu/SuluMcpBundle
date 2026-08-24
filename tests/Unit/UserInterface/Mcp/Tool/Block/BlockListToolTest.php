@@ -160,6 +160,7 @@ final class BlockListToolTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($article);
 
         $dimensionContent = new PageDimensionContent(new Page());
+        $dimensionContent->setLocale('en');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn([
             'blocks' => [
@@ -208,11 +209,32 @@ final class BlockListToolTest extends TestCase
         $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
 
         $dimensionContent = new PageDimensionContent(new Page());
+        $dimensionContent->setLocale('en');
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn([
             'template' => 'default',
             'title' => 'Test Page',
             'blocks' => $blocks,
         ]);
+    }
+
+    public function testRejectsLocaleWithoutContentInsteadOfReportingNotFound(): void
+    {
+        $page = new Page('uuid-1');
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
+
+        // A locale the page has not been translated to yet resolves to the unlocalized
+        // dimension, so the merged locale stays null.
+        $ghostDimensionContent = new PageDimensionContent(new Page());
+        $ghostDimensionContent->addAvailableLocale('de');
+        $this->contentManager->resolve(Argument::cetera())->willReturn($ghostDimensionContent);
+
+        $result = $this->tool->listBlocks('page', 'uuid-1', 'en', 'blocks');
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('has no "en" content yet', $result['error']);
+        $this->assertStringContainsString('sulu_page_update', $result['hint']);
+        $this->assertStringContainsString('de', $result['hint']);
     }
 }
