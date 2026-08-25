@@ -23,6 +23,12 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
 /**
  * Rejects MCP requests whose access token lacks the scope the JSON-RPC method needs.
  *
+ * The firewall only proves the bearer token is valid; it cannot check scopes, because the
+ * whole transport is a single POST route and the method that says what is being accessed
+ * sits in the JSON-RPC body. Without this listener every token the shared authorization
+ * server issued — including one a project's own client obtained for unrelated scopes —
+ * would drive tools and resources with the authorizing user's full Sulu permissions.
+ *
  * @internal
  */
 final readonly class McpScopeListener
