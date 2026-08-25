@@ -64,7 +64,7 @@ class ContentPublishTool
             new PermissionRequirement('#context#', PermissionTypes::LIVE),
         ],
         objectResolved: true,
-        discoveryContexts: ['sulu.snippet.snippets', ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
+        discoveryContexts: ['sulu.snippet.snippets', 'sulu.product.products', ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function publishContent(string $type, string $uuid, string $locale): array
     {

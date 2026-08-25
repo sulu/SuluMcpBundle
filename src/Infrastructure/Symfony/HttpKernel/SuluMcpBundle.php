@@ -16,6 +16,7 @@ namespace Sulu\Mcp\Infrastructure\Symfony\HttpKernel;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
+use Sulu\Product\Infrastructure\Symfony\HttpKernel\SuluProductBundle;
 use Symfony\Component\Config\Definition\Configuration;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\Config\Definition\Processor;
@@ -128,12 +129,35 @@ class SuluMcpBundle extends AbstractBundle
         $builder->setParameter('sulu_mcp.dangerous_tools.delete', $config['dangerous_tools']['delete']);
         $builder->setParameter('sulu_mcp.dangerous_tools.publish', $config['dangerous_tools']['publish']);
         $builder->setParameter('sulu_mcp.dangerous_tools.block_remove', $config['dangerous_tools']['block_remove']);
+
         $builder->setParameter(
             'sulu_mcp.disabled_tool_names',
             DangerousToolsPass::resolveDisabledToolNames($config['dangerous_tools']),
         );
 
         $container->import(\dirname(__DIR__, 4) . '/config/services.yaml');
+
+        // Tools reach the registry only as mcp.tool-tagged services, so skipping the import
+        // is all it takes to keep them out of an installation without SuluProductBundle.
+        if (self::isProductBundleLoaded($builder)) {
+            $container->import(\dirname(__DIR__, 4) . '/config/services_product.yaml');
+        }
+    }
+
+    /**
+     * The bundle list rather than class_exists(): the classes can be installed without the
+     * bundle being registered, and then its services do not exist to wire against.
+     */
+    private static function isProductBundleLoaded(ContainerBuilder $builder): bool
+    {
+        if (!$builder->hasParameter('kernel.bundles')) {
+            return \class_exists(SuluProductBundle::class);
+        }
+
+        $bundles = $builder->getParameter('kernel.bundles');
+
+        return \is_array($bundles)
+            && (\in_array(SuluProductBundle::class, $bundles, true) || isset($bundles['SuluProductBundle']));
     }
 
     public function build(ContainerBuilder $container): void

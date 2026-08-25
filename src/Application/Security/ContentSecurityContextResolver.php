@@ -24,7 +24,7 @@ use Sulu\Page\Domain\Model\PageInterface;
  * Per-type security context for a loaded content entity:
  * page → sulu.webspaces.<key> (from the aggregate), article → per-group (from the
  * RESOLVED dimension content's template key — NOT the aggregate),
- * snippet → sulu.snippet.snippets.
+ * snippet → sulu.snippet.snippets, product → sulu.product.products.
  *
  * @internal
  */
@@ -37,7 +37,7 @@ final readonly class ContentSecurityContextResolver
     }
 
     /**
-     * @param object $aggregate the loaded draft aggregate (Page/Article/Snippet)
+     * @param object $aggregate the loaded draft aggregate (Page/Article/Snippet/Product)
      * @param TemplateInterface|null $dimensionContent the resolved dimension content (carries the article template key)
      */
     public function forEntity(string $type, object $aggregate, ?TemplateInterface $dimensionContent = null): string
@@ -46,6 +46,7 @@ final readonly class ContentSecurityContextResolver
             'page' => $aggregate instanceof PageInterface ? 'sulu.webspaces.' . $aggregate->getWebspaceKey() : '',
             'article' => $this->articleContextResolver->forTemplateKey($dimensionContent?->getTemplateKey() ?? ''),
             'snippet' => 'sulu.snippet.snippets',
+            'product' => 'sulu.product.products',
             default => '',
         };
     }

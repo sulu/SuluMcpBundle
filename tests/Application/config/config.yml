@@ -48,6 +48,9 @@ league_oauth2_server:
 sulu_article:
     default_main_webspace: website
 
+sulu_product:
+    default_main_webspace: website
+
 # SuluPreviewBundle's default kernel factory resolves the project dir by
 # walking up from the App\Kernel class file to the nearest composer.json,
 # which lands on the bundle root instead of tests/Application. Point it at

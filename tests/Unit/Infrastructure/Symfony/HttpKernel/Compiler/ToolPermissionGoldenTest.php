@@ -48,6 +48,15 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageUpdateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\PingTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkGenerateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Product\AttributeListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductCreateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductFamilyListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductGetTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductUpdateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantCreateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantUpdateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetListTool;
@@ -100,6 +109,15 @@ final class ToolPermissionGoldenTest extends TestCase
         PageUpdateTool::class => ['sulu_page_update', [['sulu.webspaces.#context#', PermissionTypes::EDIT]]],
         PreviewLinkGenerateTool::class => ['sulu_preview_link_generate', [['#context#', PermissionTypes::EDIT]]],
         PreviewLinkRevokeTool::class => ['sulu_preview_link_revoke', [['#context#', PermissionTypes::EDIT]]],
+        ProductGetTool::class => ['sulu_product_get', [['sulu.product.products', PermissionTypes::VIEW]]],
+        ProductListTool::class => ['sulu_product_list', [['sulu.product.products', PermissionTypes::VIEW]]],
+        ProductCreateTool::class => ['sulu_product_create', [['sulu.product.products', PermissionTypes::EDIT], ['sulu.product.products', PermissionTypes::ADD]]],
+        ProductUpdateTool::class => ['sulu_product_update', [['sulu.product.products', PermissionTypes::EDIT]]],
+        ProductVariantListTool::class => ['sulu_product_variant_list', [['sulu.product.products', PermissionTypes::VIEW]]],
+        ProductVariantCreateTool::class => ['sulu_product_variant_create', [['sulu.product.products', PermissionTypes::EDIT], ['sulu.product.products', PermissionTypes::ADD]]],
+        ProductVariantUpdateTool::class => ['sulu_product_variant_update', [['sulu.product.products', PermissionTypes::EDIT]]],
+        ProductFamilyListTool::class => ['sulu_product_family_list', [['sulu.product.product_families', PermissionTypes::VIEW]]],
+        AttributeListTool::class => ['sulu_attribute_list', [['sulu.product.attributes', PermissionTypes::VIEW]]],
         SnippetCreateTool::class => ['sulu_snippet_create', [['sulu.snippet.snippets', PermissionTypes::EDIT], ['sulu.snippet.snippets', PermissionTypes::ADD]]],
         SnippetGetTool::class => ['sulu_snippet_get', [['sulu.snippet.snippets', PermissionTypes::VIEW]]],
         SnippetListTool::class => ['sulu_snippet_list', [['sulu.snippet.snippets', PermissionTypes::VIEW]]],

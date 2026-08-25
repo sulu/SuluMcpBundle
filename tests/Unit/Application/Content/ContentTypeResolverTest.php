@@ -30,6 +30,11 @@ use Sulu\Page\Application\Message\ModifyPageMessage;
 use Sulu\Page\Application\Message\RemovePageMessage;
 use Sulu\Page\Domain\Model\Page;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
+use Sulu\Product\Application\Message\ApplyWorkflowTransitionProductMessage;
+use Sulu\Product\Application\Message\ModifyProductMessage;
+use Sulu\Product\Application\Message\RemoveProductMessage;
+use Sulu\Product\Domain\Model\Product;
+use Sulu\Product\Domain\Repository\ProductRepositoryInterface;
 use Sulu\Snippet\Application\Message\ApplyWorkflowTransitionSnippetMessage;
 use Sulu\Snippet\Application\Message\ModifySnippetMessage;
 use Sulu\Snippet\Application\Message\RemoveSnippetMessage;
@@ -223,5 +228,66 @@ final class ContentTypeResolverTest extends TestCase
         )->shouldBeCalledOnce()->willReturn($page);
 
         $this->assertSame($page, $this->resolver->loadDraft('page', 'uuid-1', 'en'));
+    }
+
+    public function testProductIsUnsupportedWithoutTheProductBundle(): void
+    {
+        self::assertFalse($this->resolver->supports('product'));
+        self::assertNotContains('product', $this->resolver->supportedTypes());
+        self::assertNull($this->resolver->loadDraft('product', 'uuid', 'en'));
+    }
+
+    public function testProductIsSupportedWhenTheProductRepositoryIsWired(): void
+    {
+        $resolver = $this->resolverWithProducts();
+
+        self::assertTrue($resolver->supports('product'));
+        self::assertContains('product', $resolver->supportedTypes());
+    }
+
+    public function testCreateProductMessagesAreBuiltWhenTheProductBundleIsPresent(): void
+    {
+        $resolver = $this->resolverWithProducts();
+
+        self::assertInstanceOf(ModifyProductMessage::class, $resolver->createModifyMessage('product', 'uuid', ['locale' => 'en']));
+        self::assertInstanceOf(RemoveProductMessage::class, $resolver->createRemoveMessage('product', 'uuid', 'en'));
+        self::assertInstanceOf(ApplyWorkflowTransitionProductMessage::class, $resolver->createTransitionMessage('product', 'uuid', 'en', 'publish'));
+    }
+
+    public function testProductMessagesAreRejectedWithoutTheProductBundle(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->resolver->createModifyMessage('product', 'uuid', ['locale' => 'en']);
+    }
+
+    public function testLoadDraftUsesTheProductAdminSelectGroup(): void
+    {
+        $productRepository = $this->prophesize(ProductRepositoryInterface::class);
+        $product = new Product('product-uuid');
+
+        $productRepository->getOneBy(
+            Argument::cetera(),
+            [ProductRepositoryInterface::GROUP_SELECT_PRODUCT_ADMIN => true],
+        )->shouldBeCalledOnce()->willReturn($product);
+
+        $resolver = new ContentTypeResolver(
+            $this->pageRepository->reveal(),
+            $this->articleRepository->reveal(),
+            $this->snippetRepository->reveal(),
+            $productRepository->reveal(),
+        );
+
+        self::assertSame($product, $resolver->loadDraft('product', 'product-uuid', 'en'));
+    }
+
+    private function resolverWithProducts(): ContentTypeResolver
+    {
+        return new ContentTypeResolver(
+            $this->pageRepository->reveal(),
+            $this->articleRepository->reveal(),
+            $this->snippetRepository->reveal(),
+            $this->prophesize(ProductRepositoryInterface::class)->reveal(),
+        );
     }
 }

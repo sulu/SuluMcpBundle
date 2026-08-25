@@ -22,6 +22,10 @@ use Sulu\Page\Application\Message\ApplyWorkflowTransitionPageMessage;
 use Sulu\Page\Application\Message\ModifyPageMessage;
 use Sulu\Page\Application\Message\RemovePageMessage;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
+use Sulu\Product\Application\Message\ApplyWorkflowTransitionProductMessage;
+use Sulu\Product\Application\Message\ModifyProductMessage;
+use Sulu\Product\Application\Message\RemoveProductMessage;
+use Sulu\Product\Domain\Repository\ProductRepositoryInterface;
 use Sulu\Snippet\Application\Message\ApplyWorkflowTransitionSnippetMessage;
 use Sulu\Snippet\Application\Message\ModifySnippetMessage;
 use Sulu\Snippet\Application\Message\RemoveSnippetMessage;
@@ -44,16 +48,19 @@ final readonly class ContentTypeResolver
      */
     private const SUPPORTED_TYPES = ['page', 'article', 'snippet'];
 
+    private const PRODUCT_TYPE = 'product';
+
     public function __construct(
         private PageRepositoryInterface $pageRepository,
         private ArticleRepositoryInterface $articleRepository,
         private SnippetRepositoryInterface $snippetRepository,
+        private ?ProductRepositoryInterface $productRepository = null,
     ) {
     }
 
     public function supports(string $type): bool
     {
-        return \in_array($type, self::SUPPORTED_TYPES, true);
+        return \in_array($type, $this->supportedTypes(), true);
     }
 
     /**
@@ -61,7 +68,11 @@ final readonly class ContentTypeResolver
      */
     public function supportedTypes(): array
     {
-        return self::SUPPORTED_TYPES;
+        if (null === $this->productRepository) {
+            return self::SUPPORTED_TYPES;
+        }
+
+        return [...self::SUPPORTED_TYPES, self::PRODUCT_TYPE];
     }
 
     /**
@@ -86,6 +97,7 @@ final readonly class ContentTypeResolver
                 'page' => $this->pageRepository->getOneBy($filters, [PageRepositoryInterface::GROUP_SELECT_PAGE_ADMIN => true]),
                 'article' => $this->articleRepository->getOneBy($filters, [ArticleRepositoryInterface::GROUP_SELECT_ARTICLE_ADMIN => true]),
                 'snippet' => $this->snippetRepository->getOneBy($filters, [SnippetRepositoryInterface::GROUP_SELECT_SNIPPET_ADMIN => true]),
+                self::PRODUCT_TYPE => $this->productRepository?->getOneBy($filters, [ProductRepositoryInterface::GROUP_SELECT_PRODUCT_ADMIN => true]),
                 default => null,
             };
         } catch (\Throwable) {
@@ -98,11 +110,14 @@ final readonly class ContentTypeResolver
      */
     public function createModifyMessage(string $type, string $uuid, array $data): object
     {
+        $this->assertSupported($type);
+
         return match ($type) {
             'page' => new ModifyPageMessage(['uuid' => $uuid], $data),
             'article' => new ModifyArticleMessage(['uuid' => $uuid], $data),
             'snippet' => new ModifySnippetMessage(['uuid' => $uuid], $data),
-            default => throw new \InvalidArgumentException(\sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', self::SUPPORTED_TYPES))),
+            self::PRODUCT_TYPE => new ModifyProductMessage(['uuid' => $uuid], $data), // @phpstan-ignore argument.type (message shape is validated by its own handler)
+            default => throw new \InvalidArgumentException(\sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', $this->supportedTypes()))),
         };
     }
 
@@ -112,11 +127,14 @@ final readonly class ContentTypeResolver
      */
     public function createRemoveMessage(string $type, string $uuid, string $locale, bool $forceRemoveChildren = false): object
     {
+        $this->assertSupported($type);
+
         return match ($type) {
             'page' => new RemovePageMessage(['uuid' => $uuid], $locale, $forceRemoveChildren),
             'article' => new RemoveArticleMessage(['uuid' => $uuid], $locale),
             'snippet' => new RemoveSnippetMessage(['uuid' => $uuid], $locale),
-            default => throw new \InvalidArgumentException(\sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', self::SUPPORTED_TYPES))),
+            self::PRODUCT_TYPE => new RemoveProductMessage(['uuid' => $uuid], $locale),
+            default => throw new \InvalidArgumentException(\sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', $this->supportedTypes()))),
         };
     }
 
@@ -125,11 +143,31 @@ final readonly class ContentTypeResolver
      */
     public function createTransitionMessage(string $type, string $uuid, string $locale, string $transition): object
     {
+        $this->assertSupported($type);
+
         return match ($type) {
             'page' => new ApplyWorkflowTransitionPageMessage(['uuid' => $uuid], $locale, $transition),
             'article' => new ApplyWorkflowTransitionArticleMessage(['uuid' => $uuid], $locale, $transition),
             'snippet' => new ApplyWorkflowTransitionSnippetMessage(['uuid' => $uuid], $locale, $transition),
-            default => throw new \InvalidArgumentException(\sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', self::SUPPORTED_TYPES))),
+            self::PRODUCT_TYPE => new ApplyWorkflowTransitionProductMessage(['uuid' => $uuid], $locale, $transition),
+            default => throw new \InvalidArgumentException(\sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', $this->supportedTypes()))),
         };
+    }
+
+    /**
+     * Checked against the live list, not the match arms below: those would otherwise build a
+     * product message when SuluProductBundle is not installed.
+     */
+    private function assertSupported(string $type): void
+    {
+        if ($this->supports($type)) {
+            return;
+        }
+
+        throw new \InvalidArgumentException(\sprintf(
+            'Unsupported content type "%s". Supported: %s.',
+            $type,
+            \implode(', ', $this->supportedTypes()),
+        ));
     }
 }

@@ -21,6 +21,7 @@ use Sulu\Bundle\CategoryBundle\Admin\CategoryAdmin;
 use Sulu\Bundle\MediaBundle\Admin\MediaAdmin;
 use Sulu\Bundle\TagBundle\Admin\TagAdmin;
 use Sulu\Page\Infrastructure\Sulu\Admin\PageAdmin;
+use Sulu\Product\Infrastructure\Sulu\Admin\ProductAdmin;
 use Sulu\Snippet\Infrastructure\Sulu\Admin\SnippetAdmin;
 
 /**
@@ -48,6 +49,7 @@ final class TestViewRegistry extends ViewRegistry
             MediaAdmin::EDIT_FORM_VIEW => '/media/:locale/:id',
             TagAdmin::EDIT_FORM_VIEW => '/tags/:id',
             CategoryAdmin::EDIT_FORM_VIEW => '/categories/:locale/:id',
+            ProductAdmin::EDIT_TABS_VIEW => '/:locale/products/:id',
         ];
 
         if (isset($paths[$name])) {

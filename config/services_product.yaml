@@ -1,0 +1,38 @@
+# Imported by SuluMcpBundle only when SuluProductBundle is registered.
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    Sulu\Mcp\Application\Content\ContentTypeResolver:
+        arguments:
+            $productRepository: '@Sulu\Product\Domain\Repository\ProductRepositoryInterface'
+
+    Sulu\Mcp\Application\Product\VariantParentResolver: ~
+
+    # The admin_link_provider tag is set explicitly: the `_instanceof` rule in
+    # services.yaml is file-scoped and does not reach this file.
+    Sulu\Mcp\Infrastructure\Sulu\AdminLink\ProductAdminLinkProvider:
+        arguments:
+            $viewRegistry: '@sulu_admin.view_registry'
+        tags:
+            - { name: sulu_mcp.admin_link_provider }
+            - { name: sulu.context, context: admin }
+    Sulu\Mcp\Infrastructure\Sulu\AdminLink\ProductVariantAdminLinkProvider:
+        arguments:
+            $viewRegistry: '@sulu_admin.view_registry'
+        tags:
+            - { name: sulu_mcp.admin_link_provider }
+            - { name: sulu.context, context: admin }
+
+    Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductGetTool: ~
+    Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductListTool: ~
+    Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductCreateTool: ~
+    Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductUpdateTool: ~
+
+    Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantListTool: ~
+    Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantCreateTool: ~
+    Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantUpdateTool: ~
+
+    Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductFamilyListTool: ~
+    Sulu\Mcp\UserInterface\Mcp\Tool\Product\AttributeListTool: ~

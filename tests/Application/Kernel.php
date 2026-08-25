@@ -19,6 +19,7 @@ use Sulu\Bundle\TestBundle\Kernel\SuluTestKernel;
 use Sulu\Bundle\TestBundle\SuluTestBundle;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\SuluMcpBundle;
 use Sulu\Mcp\Tests\Application\TestBundle\TestBundle;
+use Sulu\Product\Infrastructure\Symfony\HttpKernel\SuluProductBundle;
 use Sulu\Snippet\Infrastructure\Symfony\HttpKernel\SuluSnippetBundle;
 use Symfony\AI\McpBundle\McpBundle;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
@@ -35,6 +36,7 @@ class Kernel extends SuluTestKernel
 
         $bundles[] = new SuluArticleBundle();
         $bundles[] = new SuluSnippetBundle();
+        $bundles[] = new SuluProductBundle();
         $bundles[] = new McpBundle();
         $bundles[] = new LeagueOAuth2ServerBundle();
         $bundles[] = new SuluMcpBundle();

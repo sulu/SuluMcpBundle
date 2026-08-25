@@ -225,7 +225,9 @@ services:
     Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool: ~  # gated by dangerous_tools.publish
 
     # Block management tools
-    Sulu\Mcp\Application\Content\ContentTypeResolver: ~
+    Sulu\Mcp\Application\Content\ContentTypeResolver:
+        arguments:
+            $productRepository: null  # overridden in services_product.yaml
     Sulu\Mcp\Application\Content\ContentMetadataMapper:
         arguments:
             $formMetadataProvider: '@sulu_admin.form_metadata_provider'

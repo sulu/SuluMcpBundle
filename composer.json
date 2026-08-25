@@ -50,7 +50,11 @@
         "phpstan/phpstan-symfony": "^2.0",
         "phpstan/phpstan-doctrine": "^2.0",
         "spaze/phpstan-disallowed-calls": "^4.7",
-        "phpspec/prophecy-phpunit": "^2.0"
+        "phpspec/prophecy-phpunit": "^2.0",
+        "sulu/product-bundle": "3.0.x-dev"
+    },
+    "suggest": {
+        "sulu/product-bundle": "Enables the sulu_product_* MCP tools and type=\"product\" on the unified content tools"
     },
     "autoload": {
         "psr-4": {
