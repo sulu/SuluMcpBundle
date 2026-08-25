@@ -41,6 +41,7 @@ class MediaGetTool
      */
     #[McpTool(
         name: 'sulu_media_get',
+        title: 'Get Media',
         description: 'Get detailed information about a media file by ID. Returns metadata (title, description, copyright, mime type, size), the original URL, and all available format/thumbnail URLs.',
     )]
     #[RequiresPermission(

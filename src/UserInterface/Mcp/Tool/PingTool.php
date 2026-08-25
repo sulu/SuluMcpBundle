@@ -36,6 +36,7 @@ class PingTool
      */
     #[McpTool(
         name: 'sulu_ping',
+        title: 'Ping Server',
         description: 'Verify MCP connection and authentication. Returns server info, the authenticated user, and available webspaces.',
     )]
     public function ping(): array

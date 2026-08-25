@@ -37,6 +37,7 @@ class NavigationGetTool
      */
     #[McpTool(
         name: 'sulu_navigation_get',
+        title: 'Get Navigation',
         description: 'Get the published navigation tree of a webspace for one navigation context. Returns nodes with title, url, targetType, and nested "children". Only published (live) pages that are assigned to the given navigation context appear — a page missing here may simply be unpublished or not assigned to the context. Context keys are defined per webspace in config/webspaces/*.xml under <navigation><contexts> (commonly "main" or "footer"); use sulu_get_context to discover webspaces. Use sulu_page_tree instead when you need the full page hierarchy including drafts.',
     )]
     #[RequiresPermission(

@@ -63,6 +63,7 @@ class ArticleCreateTool
      */
     #[McpTool(
         name: 'sulu_article_create',
+        title: 'Create Article',
         description: 'Create a new article (draft). Workflow: 1) Call sulu_get_context to discover article templates and their fields. 2) Choose a template key (e.g. "blog") and pass its field values in "content" as a flat object: content={"article": "<p>HTML here</p>"}. Content may also include a full "blocks" tree (nested blocks allowed), e.g. content={"blocks": [{"type": "text", "content": "<p>…</p>"}]} — block _ids are assigned automatically and unknown block fields are rejected before saving. The "title" is a separate parameter -- do not repeat it in content. IMPORTANT: articles need URL routing data, and the form depends on the template field type. If the template has a property of type "route", pass content={"url": "/my-article"}. If the template has a property of type "page_tree_route" (most blog templates), pass content={"page": {"path": "/blog", "uuid": "<parent-page-uuid>", "suffix": "my-article"}}. The wrong form is rejected here (so you do not get a silent url=null). Leave type unset unless the project defines multiple article types. After create, call sulu_content_publish (type: article) to make it live.',
     )]
     #[RequiresPermission(

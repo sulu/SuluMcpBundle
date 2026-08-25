@@ -55,6 +55,7 @@ class ContentUnpublishTool
      */
     #[McpTool(
         name: 'sulu_content_unpublish',
+        title: 'Unpublish Content',
         description: 'Unpublish a live page, article, or snippet — removes it from the website but keeps the draft. Set "type" to "page", "article", or "snippet". The content is preserved and can be re-published later with sulu_content_publish. Use this to take content offline without deleting it.',
     )]
     #[RequiresPermission(

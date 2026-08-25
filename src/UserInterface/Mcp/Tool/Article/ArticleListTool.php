@@ -54,6 +54,7 @@ class ArticleListTool
      */
     #[McpTool(
         name: 'sulu_article_list',
+        title: 'List Articles',
         description: 'List articles with optional filters. Returns lightweight summaries (title, template, URL, workflow state, dates) — no blocks or HTML content. Use sulu_article_get with a UUID to fetch the full content of a specific article. Use "template" to filter by template key (e.g. "blog", "default"). Results are paginated — use "page" and "limit" to control.',
     )]
     #[RequiresPermission(

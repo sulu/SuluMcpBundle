@@ -34,6 +34,7 @@ class TagDeleteTool
      */
     #[McpTool(
         name: 'sulu_tag_delete',
+        title: 'Delete Tag',
         description: 'Delete a tag by ID. This removes the tag but does not affect content that was tagged with it.',
     )]
     #[RequiresPermission(requirements: [

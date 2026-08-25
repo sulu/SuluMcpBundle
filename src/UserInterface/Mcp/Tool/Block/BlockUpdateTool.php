@@ -66,6 +66,7 @@ class BlockUpdateTool
      */
     #[McpTool(
         name: 'sulu_block_update',
+        title: 'Update Block',
         description: 'Update a single block by its _id. Pass blockData as a flat object mapping the block-type\'s template field names to new values, e.g. blockData={"title": "New heading"}. Only the keys you pass are changed; other fields are preserved. Unknown keys are rejected against the block type\'s schema; the internal {name, value} storage shape is rejected too. Use sulu_page_get, sulu_article_get, or sulu_snippet_get to find block _id values (returned in block summaries), and sulu_block_list to read full content before updating. The entity must be re-published after updating blocks.',
     )]
     #[RequiresPermission(

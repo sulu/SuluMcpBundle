@@ -34,6 +34,7 @@ class CategoryDeleteTool
      */
     #[McpTool(
         name: 'sulu_category_delete',
+        title: 'Delete Category',
         description: 'Delete a category by ID. This removes the category and its children from the tree.',
     )]
     #[RequiresPermission(requirements: [

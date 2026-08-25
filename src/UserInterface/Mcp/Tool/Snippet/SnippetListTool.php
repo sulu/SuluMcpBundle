@@ -46,6 +46,7 @@ class SnippetListTool
      */
     #[McpTool(
         name: 'sulu_snippet_list',
+        title: 'List Snippets',
         description: 'List snippets with optional template filter. Snippets are global reusable content. Returns lightweight summaries (title, template, workflow state, dates) — no blocks or HTML content. Use sulu_snippet_get with a UUID to fetch the full content of a specific snippet. Results are paginated — use "page" and "limit" to control.',
     )]
     #[RequiresPermission(requirements: [

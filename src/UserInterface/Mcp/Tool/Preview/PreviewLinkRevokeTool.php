@@ -52,6 +52,7 @@ class PreviewLinkRevokeTool
      */
     #[McpTool(
         name: 'sulu_preview_link_revoke',
+        title: 'Revoke Preview Link',
         description: 'Revoke/invalidate a previously generated public preview link for a page or article. After revoking, the preview URL will no longer work. Pass `type` as "page" or "article" (the same singular values used by the other tools). If no preview link exists for the resource, the operation returns an error — verify a link exists with sulu_preview_link_generate before revoking.',
     )]
     #[RequiresPermission(

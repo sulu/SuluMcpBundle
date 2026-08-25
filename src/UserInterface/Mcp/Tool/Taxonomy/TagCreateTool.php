@@ -37,6 +37,7 @@ class TagCreateTool
      */
     #[McpTool(
         name: 'sulu_tag_create',
+        title: 'Create Tag',
         description: 'Create a new tag. Tags are flat labels used to classify content (pages, articles, media). Pass just the tag name.',
     )]
     #[RequiresPermission(requirements: [

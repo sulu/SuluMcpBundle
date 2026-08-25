@@ -57,6 +57,7 @@ class ContentDeleteTool
      */
     #[McpTool(
         name: 'sulu_content_delete',
+        title: 'Delete Content',
         description: 'Permanently delete a page, article, or snippet by UUID. Set "type" to "page", "article", or "snippet". Removes both draft and published versions — this cannot be undone. For pages with children, set forceRemoveChildren=true to delete the whole subtree (ignored for articles/snippets). Snippets may be referenced by other content; deleting one removes that shared content everywhere it is used.',
     )]
     #[RequiresPermission(

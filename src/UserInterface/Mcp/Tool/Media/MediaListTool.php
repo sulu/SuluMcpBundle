@@ -44,6 +44,7 @@ class MediaListTool
      */
     #[McpTool(
         name: 'sulu_media_list',
+        title: 'List Media',
         description: 'List/search media files. Filter by collection ID, media types, or search text. Note: tag-based filtering is not supported — use search text instead. Returns paginated list with total count.',
     )]
     #[RequiresPermission(

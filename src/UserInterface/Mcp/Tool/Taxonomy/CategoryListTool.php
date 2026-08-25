@@ -37,6 +37,7 @@ class CategoryListTool
      */
     #[McpTool(
         name: 'sulu_category_list',
+        title: 'List Categories',
         description: 'List all categories as a tree structure. Returns hierarchical array with nested children. Each category has id, name, key, hasChildren, and children array. Accepts an optional maxDepth to limit response size on deep category trees; when a node has hasChildren:true but children:[] the branch was depth-truncated — request again with a higher maxDepth or fetch that branch separately.',
     )]
     #[RequiresPermission(requirements: [

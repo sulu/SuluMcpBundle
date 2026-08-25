@@ -34,6 +34,7 @@ class TagListTool
      */
     #[McpTool(
         name: 'sulu_tag_list',
+        title: 'List Tags',
         description: 'List tags with pagination. Returns a page of tag objects (each with id and name), plus total tag count so you know how many pages exist. Use page and limit to navigate large tag collections.',
     )]
     #[RequiresPermission(requirements: [

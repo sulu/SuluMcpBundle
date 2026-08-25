@@ -47,6 +47,7 @@ class PageGetTool
      */
     #[McpTool(
         name: 'sulu_page_get',
+        title: 'Get Page',
         description: 'Get a single page by its UUID. Returns draft metadata, template fields, block summaries (index, _id, type, title), and SEO/excerpt data. Use sulu_block_list with type="page" to fetch full block content. Always call this before sulu_page_update.',
     )]
     #[RequiresPermission(

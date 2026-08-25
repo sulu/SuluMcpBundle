@@ -44,6 +44,7 @@ class PageTreeTool
      */
     #[McpTool(
         name: 'sulu_page_tree',
+        title: 'Get Page Tree',
         description: 'Get the page tree as a nested hierarchy for a webspace. Each node contains uuid, title, url, template, and a "children" array with the same structure. Shows the site structure — use this to find the parentId when creating new pages, or to understand the site navigation. Root-level pages are direct children of the webspace root. Accepts an optional maxDepth to limit response size on deep site trees; when a node has hasChildren:true but children:[] the branch was depth-truncated — request again with a higher maxDepth or fetch that branch separately.',
     )]
     #[RequiresPermission(

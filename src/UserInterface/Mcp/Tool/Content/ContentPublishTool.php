@@ -55,6 +55,7 @@ class ContentPublishTool
      */
     #[McpTool(
         name: 'sulu_content_publish',
+        title: 'Publish Content',
         description: 'Publish a page, article, or snippet to make its current draft the live version. Set "type" to "page", "article", or "snippet". Content is always created/updated as a draft first — call this after creating or updating to go live. Can be called again to re-publish after edits. IMPORTANT: Always ask the user for confirmation before calling this tool — never publish without explicit user approval.',
     )]
     #[RequiresPermission(

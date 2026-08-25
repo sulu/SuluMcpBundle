@@ -40,6 +40,7 @@ class CategoryCreateTool
      */
     #[McpTool(
         name: 'sulu_category_create',
+        title: 'Create Category',
         description: 'Create a new category. Categories are hierarchical (tree structure) used to classify content. Pass locale, name, optional key (slug), and optional parentId to nest under an existing category.',
     )]
     #[RequiresPermission(requirements: [

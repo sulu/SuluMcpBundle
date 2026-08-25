@@ -36,6 +36,7 @@ class ContactListTool
      */
     #[McpTool(
         name: 'sulu_contact_list',
+        title: 'List Contacts',
         description: 'List contacts or accounts. Set type="contact" for people or type="account" for organizations. Returns basic info (id, name). Contacts and accounts are used for author attribution and organizational references in content.',
     )]
     #[RequiresPermission(

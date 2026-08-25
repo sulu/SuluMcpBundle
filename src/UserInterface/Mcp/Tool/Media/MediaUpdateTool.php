@@ -46,6 +46,7 @@ class MediaUpdateTool
      */
     #[McpTool(
         name: 'sulu_media_update',
+        title: 'Update Media',
         description: 'Update media metadata (title, description, copyright). Does not change the file itself — only metadata fields. Pass only the fields you want to change.',
     )]
     #[RequiresPermission(

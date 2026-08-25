@@ -56,6 +56,7 @@ class SnippetCreateTool
      */
     #[McpTool(
         name: 'sulu_snippet_create',
+        title: 'Create Snippet',
         description: 'Create a new snippet (draft). Snippets are reusable global content blocks (e.g. contact info, footer text) — they are not scoped to a webspace. Workflow: 1) Call sulu_get_context to discover snippet templates and their fields. 2) Choose a template key and pass its field values in "content" as a flat object: content={"body": "<p>HTML here</p>"}. Content may also include a full "blocks" tree (nested blocks allowed), e.g. content={"blocks": [{"type": "text", "content": "<p>…</p>"}]} — block _ids are assigned automatically and unknown block fields are rejected before saving. The "title" is a separate parameter — do not repeat it in content. The snippet is created as a draft — call sulu_content_publish (type: snippet) afterward to make it live.',
     )]
     #[RequiresPermission(requirements: [

@@ -41,6 +41,7 @@ class SnippetGetTool
      */
     #[McpTool(
         name: 'sulu_snippet_get',
+        title: 'Get Snippet',
         description: 'Get a snippet by UUID. Snippets are reusable content blocks (e.g., contact info, footer content) shared across pages. Returns full content data. Snippets are global — not scoped to a webspace.',
     )]
     #[RequiresPermission(requirements: [
