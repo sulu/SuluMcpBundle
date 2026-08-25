@@ -18,7 +18,6 @@ use Mcp\Exception\ToolCallException;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
-use Sulu\Content\Domain\Model\TemplateInterface;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
@@ -69,7 +68,7 @@ class BlockListTool
         int $limit = 3,
         ?string $parentBlockId = null,
     ): array {
-        $entity = $this->contentTypeResolver->loadDraft($type, $uuid, $locale);
+        $entity = $this->contentTypeResolver->loadDraft($type, $uuid, $locale, loadGhost: true);
 
         if (null === $entity) {
             return ['error' => \sprintf('%s not found: %s', \ucfirst($type), $uuid)];
@@ -81,10 +80,11 @@ class BlockListTool
         ]);
 
         try {
-            $context = $this->contentSecurityContextResolver->forEntity(
+            $context = $this->contentSecurityContextResolver->forEntityInLocale(
                 $type,
                 $entity,
-                $dimensionContent instanceof TemplateInterface ? $dimensionContent : null,
+                $dimensionContent,
+                $locale,
             );
             $this->permissionChecker->check(
                 $context,
@@ -94,14 +94,8 @@ class BlockListTool
                 'page' === $type ? $uuid : null,
             );
 
-            if (self::isMissingTranslation($dimensionContent, $locale)) {
-                return self::missingTranslationError(
-                    \ucfirst($type),
-                    $uuid,
-                    $locale,
-                    $dimensionContent,
-                    \sprintf('Create the "%s" translation with sulu_%s_update first, then work on its blocks.', $locale, $type),
-                );
+            if ($missingTranslation = self::missingBlockTranslationError($dimensionContent, $type, $uuid, $locale)) {
+                return $missingTranslation;
             }
         } catch (PermissionDeniedException $e) {
             throw new ToolCallException($e->getMessage(), 0, $e);

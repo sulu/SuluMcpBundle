@@ -77,7 +77,7 @@ class SnippetUpdateTool
         ?array $content = null,
     ): array {
         try {
-            $snippet = $this->contentTypeResolver->loadDraft('snippet', $uuid, $locale);
+            $snippet = $this->contentTypeResolver->loadDraft('snippet', $uuid, $locale, loadGhost: true);
 
             if (null === $snippet) {
                 return ['error' => \sprintf('Snippet not found: %s', $uuid)];

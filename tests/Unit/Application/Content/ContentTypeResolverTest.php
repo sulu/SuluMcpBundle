@@ -205,6 +205,23 @@ final class ContentTypeResolverTest extends TestCase
             [PageRepositoryInterface::GROUP_SELECT_PAGE_ADMIN => true],
         )->shouldBeCalledOnce()->willReturn($page);
 
+        $this->assertSame($page, $this->resolver->loadDraft('page', 'uuid-1', 'en', loadGhost: true));
+    }
+
+    public function testLoadDraftKeepsUntranslatedLocalesUnfindableByDefault(): void
+    {
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(
+            [
+                'uuid' => 'uuid-1',
+                'locale' => 'en',
+                'stage' => DimensionContentInterface::STAGE_DRAFT,
+                'loadGhost' => false,
+            ],
+            [PageRepositoryInterface::GROUP_SELECT_PAGE_ADMIN => true],
+        )->shouldBeCalledOnce()->willReturn($page);
+
         $this->assertSame($page, $this->resolver->loadDraft('page', 'uuid-1', 'en'));
     }
 }

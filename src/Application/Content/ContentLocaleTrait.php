@@ -64,4 +64,33 @@ trait ContentLocaleTrait
             ),
         ];
     }
+
+    /**
+     * Blocks live inside a translation, so every block tool refuses the same way when
+     * the requested locale has none yet.
+     *
+     * @template T of ContentRichEntityInterface
+     *
+     * @param DimensionContentInterface<T> $dimensionContent
+     *
+     * @return array{error: string, hint: string}|null null when the translation exists
+     */
+    private static function missingBlockTranslationError(
+        DimensionContentInterface $dimensionContent,
+        string $type,
+        string $uuid,
+        string $locale,
+    ): ?array {
+        if (!self::isMissingTranslation($dimensionContent, $locale)) {
+            return null;
+        }
+
+        return self::missingTranslationError(
+            \ucfirst($type),
+            $uuid,
+            $locale,
+            $dimensionContent,
+            \sprintf('Create the "%s" translation with sulu_%s_update first, then work on its blocks.', $locale, $type),
+        );
+    }
 }

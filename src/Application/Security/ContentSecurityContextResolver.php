@@ -13,6 +13,9 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Application\Security;
 
+use Sulu\Content\Application\ContentManager\ContentManagerInterface;
+use Sulu\Content\Domain\Model\ContentRichEntityInterface;
+use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Content\Domain\Model\TemplateInterface;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Page\Domain\Model\PageInterface;
@@ -29,6 +32,7 @@ final readonly class ContentSecurityContextResolver
 {
     public function __construct(
         private ArticleSecurityContextResolver $articleContextResolver,
+        private ContentManagerInterface $contentManager,
     ) {
     }
 
@@ -44,5 +48,30 @@ final readonly class ContentSecurityContextResolver
             'snippet' => 'sulu.snippet.snippets',
             default => '',
         };
+    }
+
+    /**
+     * Same mapping for the loadGhost callers: a ghost carries no template key of its
+     * own, so an article's group can only come from a locale the article does have
+     * content in. loadGhost drops the locale filter, so every locale is loaded
+     * already and resolving the source one costs no query.
+     *
+     * @template T of ContentRichEntityInterface
+     *
+     * @param object $aggregate the loaded draft aggregate (Page/Article/Snippet)
+     * @param DimensionContentInterface<T> $dimensionContent the dimension content resolved for $locale, ghost or not
+     */
+    public function forEntityInLocale(string $type, object $aggregate, DimensionContentInterface $dimensionContent, string $locale): string
+    {
+        $ghostLocale = $dimensionContent->getGhostLocale();
+
+        if ('article' === $type && $locale !== $dimensionContent->getLocale() && null !== $ghostLocale) {
+            $dimensionContent = $this->contentManager->resolve($aggregate, [ // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; the caller holds a bare object)
+                'locale' => $ghostLocale,
+                'stage' => DimensionContentInterface::STAGE_DRAFT,
+            ]);
+        }
+
+        return $this->forEntity($type, $aggregate, $dimensionContent instanceof TemplateInterface ? $dimensionContent : null);
     }
 }

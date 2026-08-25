@@ -21,8 +21,11 @@ use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Domain\Model\Article;
+use Sulu\Article\Domain\Model\ArticleDimensionContent;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
+use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
@@ -60,7 +63,7 @@ final class BlockListToolTest extends TestCase
         $this->contentManager = $this->prophesize(ContentManagerInterface::class);
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
         $groupProvider = new TestGroupProvider([]);
-        $this->contentSecurityContextResolver = new ContentSecurityContextResolver(new ArticleSecurityContextResolver($groupProvider));
+        $this->contentSecurityContextResolver = new ContentSecurityContextResolver(new ArticleSecurityContextResolver($groupProvider), $this->contentManager->reveal());
         $this->tool = new BlockListTool(
             new ContentTypeResolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
             $this->contentManager->reveal(),
@@ -236,5 +239,50 @@ final class BlockListToolTest extends TestCase
         $this->assertStringContainsString('has no "en" content yet', $result['error']);
         $this->assertStringContainsString('sulu_page_update', $result['hint']);
         $this->assertStringContainsString('de', $result['hint']);
+    }
+
+    public function testRejectsArticleLocaleWithoutContentInAMultiGroupInstall(): void
+    {
+        $article = new Article('article-uuid');
+        $this->articleRepository->getOneBy(Argument::cetera())->willReturn($article);
+
+        // The ghost carries no template key of its own, so the article's group has to
+        // come from the locale it is a ghost of -- otherwise the context is unresolvable
+        // and the caller gets a denial instead of the missing-translation hint.
+        $ghost = new ArticleDimensionContent(new Article());
+        $ghost->setGhostLocale('de');
+        $ghost->addAvailableLocale('de');
+        $source = new ArticleDimensionContent(new Article());
+        $source->setLocale('de');
+        $source->setTemplateKey('blog_article');
+
+        $this->contentManager->resolve(Argument::any(), ['locale' => 'en', 'stage' => DimensionContentInterface::STAGE_DRAFT])
+            ->willReturn($ghost);
+        $this->contentManager->resolve(Argument::any(), ['locale' => 'de', 'stage' => DimensionContentInterface::STAGE_DRAFT])
+            ->willReturn($source);
+
+        $permissionChecker = FakeToolPermissionChecker::grantingAll()
+            ->grantingNoneExcept()
+            ->grantContext('sulu.article.articles_blog');
+
+        $tool = new BlockListTool(
+            new ContentTypeResolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
+            $this->contentManager->reveal(),
+            $permissionChecker,
+            new ContentSecurityContextResolver(
+                new ArticleSecurityContextResolver(new TestGroupProvider([
+                    (new FormGroup('default', 'Default'))->withTemplate('default'),
+                    (new FormGroup('blog', 'Blog'))->withTemplate('blog_article'),
+                ])),
+                $this->contentManager->reveal(),
+            ),
+        );
+
+        $result = $tool->listBlocks('article', 'article-uuid', 'en', 'blocks');
+
+        $this->assertSame(['sulu.article.articles_blog'], $permissionChecker->checkedContexts());
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('has no "en" content yet', $result['error']);
+        $this->assertStringContainsString('sulu_article_update', $result['hint']);
     }
 }
