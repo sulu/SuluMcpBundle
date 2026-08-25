@@ -13,6 +13,7 @@
 /auth.json
 .DS_Store
 /tests/Application/config/jwt/*.pem
+/tests/Application/config/reference.php
 /tests/Application/.env.local
 /tests/Application/.env.*.local
 /tests/Application/public/build/

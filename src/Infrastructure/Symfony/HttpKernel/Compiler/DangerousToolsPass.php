@@ -28,11 +28,9 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  * in bundle configuration. Must run before symfony/mcp-bundle's McpPass so the
  * removed services are absent from the `mcp.tool` tagged-service iterator.
  *
- * Mcp also performs runtime attribute discovery that registers every
- * `#[McpTool]`-tagged class regardless of DI -- removing the service alone is
- * not enough. The pass therefore also publishes the disabled tool NAMES as a
- * container parameter, consumed by `FilteredRegistry` to drop the same tools
- * from the discovery state at runtime.
+ * The disabled tool NAMES are additionally published as a container parameter and
+ * consumed by `FilteredRegistry`, which refuses the same tools at registration
+ * time -- covering any path that reaches the registry without going through DI.
  *
  * @internal
  */

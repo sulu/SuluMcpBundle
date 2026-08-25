@@ -14,7 +14,6 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Infrastructure\Symfony\HttpKernel;
 
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
-use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\McpDiscoveryPathPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
 use Symfony\Component\Config\Definition\Configuration;
@@ -157,7 +156,6 @@ class SuluMcpBundle extends AbstractBundle
         $container->addCompilerPass(new DangerousToolsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 100);
         $container->addCompilerPass(new ToolPermissionMapPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 90);
         $container->addCompilerPass(new ToolReferenceHandlerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 80);
-        $container->addCompilerPass(new McpDiscoveryPathPass());
     }
 
     /**

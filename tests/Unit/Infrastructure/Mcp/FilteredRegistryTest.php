@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Tests\Unit\Infrastructure\Mcp;
 
-use Mcp\Capability\Discovery\DiscoveryState;
 use Mcp\Capability\Registry\ToolReference;
 use Mcp\Capability\RegistryInterface;
 use Mcp\Schema\Page;
@@ -50,7 +49,13 @@ final class FilteredRegistryTest extends TestCase
 
     private function tool(string $name): Tool
     {
-        return new Tool($name, ['type' => 'object', 'properties' => [], 'required' => null], null, null);
+        return new Tool(
+            name: $name,
+            title: null,
+            inputSchema: ['type' => 'object', 'properties' => [], 'required' => null],
+            description: null,
+            annotations: null,
+        );
     }
 
     /**
@@ -173,36 +178,23 @@ final class FilteredRegistryTest extends TestCase
     public function testRegisterToolForwardsNonDisabledTool(): void
     {
         $tool = $this->tool('sulu_safe');
-        $this->inner->registerTool($tool, Argument::cetera())->shouldBeCalledOnce();
+        $reference = new ToolReference($tool, static fn () => null);
+        $this->inner->registerTool($tool, Argument::cetera())->willReturn($reference)->shouldBeCalledOnce();
 
         $checker = FakeToolPermissionChecker::grantingAll();
         $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), ['sulu_dangerous']);
 
-        $registry->registerTool($tool, static fn () => null);
+        self::assertSame($reference, $registry->registerTool($tool, static fn () => null));
     }
 
-    public function testSetDiscoveryStateStripsDisabledToolNames(): void
+    public function testRegisterToolReturnsADetachedReferenceForDisabledToolNames(): void
     {
-        $dangerousRef = new ToolReference($this->tool('sulu_dangerous'), static fn () => null);
-        $safeRef = new ToolReference($this->tool('sulu_safe'), static fn () => null);
+        $this->inner->registerTool(Argument::cetera())->shouldNotBeCalled();
 
-        $state = new DiscoveryState(tools: ['sulu_dangerous' => $dangerousRef, 'sulu_safe' => $safeRef]);
-
-        $passedState = null;
-        $this->inner->setDiscoveryState(Argument::type(DiscoveryState::class))
-            ->will(function(array $args) use (&$passedState) {
-                $passedState = $args[0];
-            })
-            ->shouldBeCalledOnce();
-
+        $tool = $this->tool('sulu_dangerous');
         $checker = FakeToolPermissionChecker::grantingAll();
         $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), ['sulu_dangerous']);
 
-        $registry->setDiscoveryState($state);
-
-        self::assertInstanceOf(DiscoveryState::class, $passedState);
-        $tools = $passedState->getTools();
-        self::assertArrayNotHasKey('sulu_dangerous', $tools);
-        self::assertArrayHasKey('sulu_safe', $tools);
+        self::assertSame($tool, $registry->registerTool($tool, static fn () => null)->tool);
     }
 }

@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Tests\Functional;
 
 use Mcp\Capability\RegistryInterface;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry;
 
 /**
  * Boots the real kernel and diffs the compiled tool_permissions
@@ -39,9 +40,11 @@ final class ToolPermissionMapCompletenessTest extends FunctionalTestCase
         // when the mcp.server service is actually built.
         $container->get('mcp.server');
 
+        // The undecorated registry, because FilteredRegistry::getTools() hides
+        // everything the (tokenless) test request is not permitted to see.
         /** @var RegistryInterface $registry */
-        $registry = $container->get('mcp.registry');
-        $discoveredNames = \array_keys($registry->getDiscoveryState()->getTools());
+        $registry = $container->get(FilteredRegistry::class . '.inner');
+        $discoveredNames = \array_keys($registry->getTools()->references);
 
         $expected = [...\array_keys($map), ...self::ALLOWLIST];
         \sort($expected);

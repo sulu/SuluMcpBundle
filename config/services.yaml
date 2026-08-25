@@ -46,8 +46,8 @@ services:
         tags:
             - { name: sulu.context, context: admin }
 
-    # Attribute discovery re-adds tools that DangerousToolsPass removed, and the
-    # calls would then fall through to `new $class()`.
+    # Second layer over DangerousToolsPass: refuses disabled tools at registration
+    # time, and hides tools the current user's role does not grant from tools/list.
     Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry:
         decorates: mcp.registry
         arguments:

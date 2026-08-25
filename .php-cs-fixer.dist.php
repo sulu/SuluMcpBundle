@@ -16,6 +16,8 @@ $finder = (new PhpCsFixer\Finder())
     ])
     // Generated container/cache artifacts from booting the functional test kernel.
     ->exclude('Application/var')
+    // Config-reference shapes Symfony's DI component dumps on cache warmup.
+    ->notPath('Application/config/reference.php')
 ;
 
 return (new PhpCsFixer\Config())

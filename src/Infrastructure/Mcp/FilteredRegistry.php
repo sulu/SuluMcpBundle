@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Infrastructure\Mcp;
 
-use Mcp\Capability\Discovery\DiscoveryState;
 use Mcp\Capability\Registry\PromptReference;
 use Mcp\Capability\Registry\ResourceReference;
 use Mcp\Capability\Registry\ResourceTemplateReference;
@@ -22,16 +21,14 @@ use Mcp\Capability\RegistryInterface;
 use Mcp\Exception\InvalidCursorException;
 use Mcp\Schema\Page;
 use Mcp\Schema\Prompt;
-use Mcp\Schema\Resource;
+use Mcp\Schema\ResourceDefinition;
 use Mcp\Schema\ResourceTemplate;
 use Mcp\Schema\Tool;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 
 /**
  * Hides tools disabled via `dangerous_tools.*`, and (in `getTools()`) tools the
- * current user's role does not grant. Needed because Mcp also registers tools by
- * runtime attribute discovery, which re-adds anything DangerousToolsPass pruned
- * from the service locator -- those then fail with ArgumentCountError on call.
+ * current user's role does not grant.
  *
  * `getTool()` stays unfiltered by permission, so calling a hidden tool yields a
  * permission denial rather than a fabricated "not found".
@@ -50,68 +47,77 @@ final readonly class FilteredRegistry implements RegistryInterface
     ) {
     }
 
-    public function registerTool(Tool $tool, callable|array|string $handler, bool $isManual = false): void
+    public function registerTool(Tool $tool, callable|array|string $handler): ToolReference
     {
         if (\in_array($tool->name, $this->disabledToolNames, true)) {
-            return;
+            // Detached: the reference is handed back to satisfy the contract but
+            // never stored, so the tool stays unlistable and uncallable. Only
+            // DiscoveryLoader inspects the return value, and it is not in use here.
+            return new ToolReference($tool, $handler);
         }
 
-        $this->inner->registerTool($tool, $handler, $isManual);
+        return $this->inner->registerTool($tool, $handler);
     }
 
-    public function registerResource(Resource $resource, callable|array|string $handler, bool $isManual = false): void
+    public function registerResource(ResourceDefinition $resource, callable|array|string $handler): ResourceReference
     {
-        $this->inner->registerResource($resource, $handler, $isManual);
+        return $this->inner->registerResource($resource, $handler);
     }
 
     public function registerResourceTemplate(
         ResourceTemplate $template,
         callable|array|string $handler,
         array $completionProviders = [],
-        bool $isManual = false,
-    ): void {
-        $this->inner->registerResourceTemplate($template, $handler, $completionProviders, $isManual);
+    ): ResourceTemplateReference {
+        return $this->inner->registerResourceTemplate($template, $handler, $completionProviders);
     }
 
     public function registerPrompt(
         Prompt $prompt,
         callable|array|string $handler,
         array $completionProviders = [],
-        bool $isManual = false,
-    ): void {
-        $this->inner->registerPrompt($prompt, $handler, $completionProviders, $isManual);
+    ): PromptReference {
+        return $this->inner->registerPrompt($prompt, $handler, $completionProviders);
     }
 
-    public function clear(): void
+    public function unregisterTool(string $name): void
     {
-        $this->inner->clear();
+        $this->inner->unregisterTool($name);
     }
 
-    public function getDiscoveryState(): DiscoveryState
+    public function unregisterResource(string $uri): void
     {
-        return $this->inner->getDiscoveryState();
+        $this->inner->unregisterResource($uri);
     }
 
-    public function setDiscoveryState(DiscoveryState $state): void
+    public function unregisterResourceTemplate(string $uriTemplate): void
     {
-        if ([] === $this->disabledToolNames) {
-            $this->inner->setDiscoveryState($state);
+        $this->inner->unregisterResourceTemplate($uriTemplate);
+    }
 
-            return;
-        }
+    public function unregisterPrompt(string $name): void
+    {
+        $this->inner->unregisterPrompt($name);
+    }
 
-        /** @var array<string, ToolReference> $tools */
-        $tools = $state->getTools();
-        foreach ($this->disabledToolNames as $disabled) {
-            unset($tools[$disabled]);
-        }
+    public function hasTool(string $name): bool
+    {
+        return $this->inner->hasTool($name);
+    }
 
-        $this->inner->setDiscoveryState(new DiscoveryState(
-            tools: $tools,
-            resources: $state->getResources(),
-            prompts: $state->getPrompts(),
-            resourceTemplates: $state->getResourceTemplates(),
-        ));
+    public function hasResource(string $uri): bool
+    {
+        return $this->inner->hasResource($uri);
+    }
+
+    public function hasResourceTemplate(string $uriTemplate): bool
+    {
+        return $this->inner->hasResourceTemplate($uriTemplate);
+    }
+
+    public function hasPrompt(string $name): bool
+    {
+        return $this->inner->hasPrompt($name);
     }
 
     public function hasTools(): bool
