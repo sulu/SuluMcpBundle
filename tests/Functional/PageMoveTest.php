@@ -20,6 +20,7 @@ use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Domain\Model\WorkflowInterface;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageMoveTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageReorderTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageTreeTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
 use Sulu\Page\Application\Message\ApplyWorkflowTransitionPageMessage;
 use Sulu\Page\Application\Message\CreatePageMessage;
@@ -109,9 +110,107 @@ final class PageMoveTest extends FunctionalTestCase
         self::assertTrue($result['success'] ?? false, \json_encode($result));
         self::assertSame(1, $result['position']);
 
+        $this->entityManager->clear();
+
+        // Position is 1-based: reorderOneBy() computes its target index as $position - 1.
+        self::assertSame(
+            [$second->getUuid(), $first->getUuid()],
+            $this->childUuids($home->getUuid()),
+            'position 1 puts the page first, not second',
+        );
+
         self::assertSame('/first', $this->slugOfUuid($first->getUuid()), 'reordering rewrites no addresses');
         self::assertSame('/second', $this->slugOfUuid($second->getUuid()));
         self::assertSame([], $this->historySlugs(), 'reordering creates no redirects');
+    }
+
+    public function testTreeReportsThePositionReorderExpects(): void
+    {
+        $this->authenticateEditor();
+
+        $home = $this->createPage('homepage', 'Home', '/');
+        $first = $this->createPage($home->getUuid(), 'First', '/first');
+        $second = $this->createPage($home->getUuid(), 'Second', '/second');
+        $third = $this->createPage($home->getUuid(), 'Third', '/third');
+
+        $positions = $this->treePositions($home->getUuid());
+        self::assertSame(3, $positions[$third->getUuid()], 'the third child reports position 3');
+
+        // Feeding a reported position straight back must be a no-op.
+        $this->reorderTool()->reorderPage($third->getUuid(), $positions[$third->getUuid()], 'en');
+        $this->entityManager->clear();
+
+        self::assertSame(
+            [$first->getUuid(), $second->getUuid(), $third->getUuid()],
+            $this->childUuids($home->getUuid()),
+        );
+    }
+
+    public function testMoveRefusesATargetParentThatIsAlreadyTheCurrentParent(): void
+    {
+        $this->authenticateEditor();
+
+        $home = $this->createPage('homepage', 'Home', '/');
+        $first = $this->createPage($home->getUuid(), 'First', '/first');
+        $second = $this->createPage($home->getUuid(), 'Second', '/second');
+
+        $result = $this->moveTool()->movePage($first->getUuid(), $home->getUuid(), 'en');
+
+        self::assertArrayHasKey('error', $result);
+        self::assertStringContainsString('already a child', $result['error']);
+
+        $this->entityManager->clear();
+        self::assertSame(
+            [$first->getUuid(), $second->getUuid()],
+            $this->childUuids($home->getUuid()),
+            'the refused move must not re-append the page as last child',
+        );
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function childUuids(string $parentUuid): array
+    {
+        $parent = self::getContainer()->get('sulu_page.page_repository')->getOneBy(['uuid' => $parentUuid]);
+
+        return \array_map(
+            static fn (PageInterface $child): string => $child->getUuid(),
+            $parent->getChildren()->toArray(),
+        );
+    }
+
+    /**
+     * @return array<string, int> child uuid => reported position
+     */
+    private function treePositions(string $parentUuid): array
+    {
+        /** @var PageTreeTool $tool */
+        $tool = self::getContainer()->get(PageTreeTool::class);
+        $tree = $tool->getPageTree('website', 'en');
+
+        $positions = [];
+        foreach ($this->flatten($tree['tree']) as $node) {
+            $positions[$node['uuid']] = $node['position'];
+        }
+
+        return $positions;
+    }
+
+    /**
+     * @param list<array<string, mixed>> $nodes
+     *
+     * @return list<array<string, mixed>>
+     */
+    private function flatten(array $nodes): array
+    {
+        $flat = [];
+        foreach ($nodes as $node) {
+            $flat[] = $node;
+            $flat = \array_merge($flat, $this->flatten($node['children']));
+        }
+
+        return $flat;
     }
 
     private function authenticateEditor(): void

@@ -95,6 +95,13 @@ class PageMoveTool
                 ];
             }
 
+            if ($targetParentId === $previousParent->getUuid()) {
+                return [
+                    'error' => \sprintf('Page %s is already a child of %s.', $uuid, $targetParentId),
+                    'hint' => 'moveOneBy() would re-append the page as the last child. Use sulu_page_reorder to change its position under the same parent.',
+                ];
+            }
+
             $targetParent = $this->loadPage($targetParentId, $locale);
             if (null === $targetParent) {
                 return [

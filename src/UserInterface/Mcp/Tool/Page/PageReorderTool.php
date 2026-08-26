@@ -96,6 +96,16 @@ class PageReorderTool
                 ];
             }
 
+            // Before the sibling count, whose out-of-range message would otherwise report
+            // the size of the branch to a caller without edit rights.
+            $this->permissionChecker->check(
+                'sulu.webspaces.' . $page->getWebspaceKey(),
+                PermissionTypes::EDIT,
+                $locale,
+                Page::class,
+                $uuid,
+            );
+
             // Not $parent->getChildren(): a managed parent's collection can predate the
             // children this call is about to order.
             $siblingCount = $this->pageRepository->countBy(['parentId' => $parent->getUuid()]);
@@ -105,14 +115,6 @@ class PageReorderTool
                     'hint' => \sprintf('Pass a position between 1 and %d.', $siblingCount),
                 ];
             }
-
-            $this->permissionChecker->check(
-                'sulu.webspaces.' . $page->getWebspaceKey(),
-                PermissionTypes::EDIT,
-                $locale,
-                Page::class,
-                $uuid,
-            );
 
             $message = new OrderPageMessage(['uuid' => $uuid], $position, $locale);
 

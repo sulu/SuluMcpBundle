@@ -136,6 +136,20 @@ final class PageMoveToolTest extends TestCase
         $this->messageBus->dispatch(Argument::cetera())->shouldNotHaveBeenCalled();
     }
 
+    public function testMovePageRefusesATargetParentThatIsAlreadyTheCurrentParent(): void
+    {
+        // moveOneBy() would persist the page as the target's last child, silently
+        // reordering it under a tool documented as changing parents.
+        $page = $this->givenTree();
+        $this->givenPage(self::OLD_PARENT_UUID, $page->getParent());
+
+        $result = $this->tool()->movePage(self::PAGE_UUID, self::OLD_PARENT_UUID, 'en');
+
+        self::assertArrayHasKey('error', $result);
+        self::assertStringContainsString('already a child', $result['error']);
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotHaveBeenCalled();
+    }
+
     public function testMovePageRefusesAMoveBelowItsOwnDescendant(): void
     {
         $page = $this->givenTree();

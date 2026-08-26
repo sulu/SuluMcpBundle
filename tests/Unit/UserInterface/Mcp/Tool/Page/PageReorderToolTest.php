@@ -138,6 +138,23 @@ final class PageReorderToolTest extends TestCase
         $this->tool()->reorderPage(self::PAGE_UUID, 2, 'en');
     }
 
+    public function testReorderPageDoesNotRevealTheSiblingCountToACallerWithoutEditRights(): void
+    {
+        $parent = new Page(self::PARENT_UUID);
+        $parent->setWebspaceKey('example');
+        $page = new Page(self::PAGE_UUID);
+        $page->setWebspaceKey('example');
+        $page->setParent($parent);
+        $this->pageRepository->findOneBy(Argument::cetera())->willReturn($page);
+        $this->pageRepository->countBy(Argument::cetera())->shouldNotBeCalled();
+
+        $this->permissionChecker = FakeToolPermissionChecker::grantingAll()->denyContext('sulu.webspaces.example');
+
+        $this->expectException(ToolCallException::class);
+
+        $this->tool()->reorderPage(self::PAGE_UUID, 99, 'en');
+    }
+
     private function tool(): PageReorderTool
     {
         return new PageReorderTool(

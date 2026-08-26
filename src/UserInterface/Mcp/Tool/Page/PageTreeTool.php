@@ -83,10 +83,8 @@ class PageTreeTool
         );
 
         $tree = [];
-        $position = 1;
         foreach ($pages as $page) {
-            $tree[] = $this->buildTreeNode($page, $locale, 0, $maxDepth, $position);
-            ++$position;
+            $tree[] = $this->buildTreeNode($page, $locale, 0, $maxDepth);
         }
 
         return [
@@ -97,9 +95,33 @@ class PageTreeTool
     }
 
     /**
+     * Counted over the parent's own children (mapped `ORDER BY lft`), not over the nodes
+     * in this response: the query is ACL-filtered, and sulu_page_reorder needs the
+     * absolute ordinal that reorderOneBy() counts against.
+     */
+    private function siblingPosition(PageInterface $page): int
+    {
+        $parent = $page->getParent();
+        if (null === $parent) {
+            return 1;
+        }
+
+        $position = 1;
+        foreach ($parent->getChildren() as $sibling) {
+            if ($sibling->getUuid() === $page->getUuid()) {
+                break;
+            }
+
+            ++$position;
+        }
+
+        return $position;
+    }
+
+    /**
      * @return array<string, mixed>
      */
-    private function buildTreeNode(PageInterface $page, string $locale, int $depth = 0, ?int $maxDepth = null, int $position = 1): array
+    private function buildTreeNode(PageInterface $page, string $locale, int $depth = 0, ?int $maxDepth = null): array
     {
         /** @var PageDimensionContentInterface $dimensionContent */
         $dimensionContent = $this->contentManager->resolve($page, [
@@ -111,10 +133,8 @@ class PageTreeTool
         $childNodes = [];
 
         if (null === $maxDepth || $depth < $maxDepth) {
-            $childPosition = 1;
             foreach ($children as $child) {
-                $childNodes[] = $this->buildTreeNode($child, $locale, $depth + 1, $maxDepth, $childPosition);
-                ++$childPosition;
+                $childNodes[] = $this->buildTreeNode($child, $locale, $depth + 1, $maxDepth);
             }
         }
 
@@ -126,7 +146,7 @@ class PageTreeTool
             'hasChildren' => !$children->isEmpty(),
             'parentUuid' => $page->getParent()?->getUuid(),
             'depth' => $depth,
-            'position' => $position,
+            'position' => $this->siblingPosition($page),
             'workflowPlace' => $dimensionContent->getWorkflowPlace(),
             'availableLocales' => $dimensionContent->getAvailableLocales(),
             'children' => $childNodes,
