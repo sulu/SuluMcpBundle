@@ -65,6 +65,7 @@ final class ProductFamilyListToolTest extends TestCase
         $this->listBuilder->limit(Argument::cetera())->willReturn($this->listBuilder->reveal());
         $this->listBuilder->setCurrentPage(Argument::cetera())->willReturn(null);
         $this->listBuilder->addSelectField(Argument::cetera())->willReturn($this->listBuilder->reveal());
+        $this->listBuilder->sort(Argument::cetera())->willReturn($this->listBuilder->reveal());
 
         $this->tool = new ProductFamilyListTool(
             $this->productFamilyRepository->reveal(),
@@ -105,6 +106,23 @@ final class ProductFamilyListToolTest extends TestCase
         $this->listBuilder->setCurrentPage(3)->shouldBeCalledOnce()->willReturn(null);
 
         $this->tool->listProductFamilies('en', page: 3, limit: 5);
+    }
+
+    public function testListFamiliesPassesTheSortToTheListBuilder(): void
+    {
+        $this->listBuilder->execute()->willReturn([]);
+        $this->listBuilder->count()->willReturn(0);
+
+        $this->listBuilder->sort(Argument::cetera(), 'desc')->shouldBeCalledOnce()->willReturn($this->listBuilder->reveal());
+
+        $this->tool->listProductFamilies('en', sortBy: 'name', sortOrder: 'desc');
+    }
+
+    public function testListFamiliesRejectsAnUnsupportedSortField(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->tool->listProductFamilies('en', sortBy: 'uuid');
     }
 
     public function testListFamiliesReturnsErrorOnFailure(): void

@@ -117,7 +117,7 @@ final readonly class ContentTypeResolver
             'article' => new ModifyArticleMessage(['uuid' => $uuid], $data),
             'snippet' => new ModifySnippetMessage(['uuid' => $uuid], $data),
             self::PRODUCT_TYPE => new ModifyProductMessage(['uuid' => $uuid], $data), // @phpstan-ignore argument.type (message shape is validated by its own handler)
-            default => throw new \InvalidArgumentException(\sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', $this->supportedTypes()))),
+            default => throw new \LogicException('Unreachable: assertSupported() rejects every other type.'),
         };
     }
 
@@ -134,7 +134,7 @@ final readonly class ContentTypeResolver
             'article' => new RemoveArticleMessage(['uuid' => $uuid], $locale),
             'snippet' => new RemoveSnippetMessage(['uuid' => $uuid], $locale),
             self::PRODUCT_TYPE => new RemoveProductMessage(['uuid' => $uuid], $locale),
-            default => throw new \InvalidArgumentException(\sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', $this->supportedTypes()))),
+            default => throw new \LogicException('Unreachable: assertSupported() rejects every other type.'),
         };
     }
 
@@ -150,7 +150,7 @@ final readonly class ContentTypeResolver
             'article' => new ApplyWorkflowTransitionArticleMessage(['uuid' => $uuid], $locale, $transition),
             'snippet' => new ApplyWorkflowTransitionSnippetMessage(['uuid' => $uuid], $locale, $transition),
             self::PRODUCT_TYPE => new ApplyWorkflowTransitionProductMessage(['uuid' => $uuid], $locale, $transition),
-            default => throw new \InvalidArgumentException(\sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', $this->supportedTypes()))),
+            default => throw new \LogicException('Unreachable: assertSupported() rejects every other type.'),
         };
     }
 

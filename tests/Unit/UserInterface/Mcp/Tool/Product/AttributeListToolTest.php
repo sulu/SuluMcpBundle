@@ -56,9 +56,9 @@ final class AttributeListToolTest extends TestCase
         $result = $this->tool->listAttributes('en');
 
         $this->assertSame(1, $result['total']);
-        $this->assertSame('Appearance', $result['groups'][0]['name']);
 
-        $attribute = $result['groups'][0]['attributes'][0];
+        $attribute = $result['attributes'][0];
+        $this->assertSame('Appearance', $attribute['group']);
         $this->assertSame(12, $attribute['id']);
         $this->assertSame('colour', $attribute['key']);
         $this->assertSame(AttributeInterface::TYPE_TEXT, $attribute['type']);
@@ -79,7 +79,7 @@ final class AttributeListToolTest extends TestCase
 
         $result = $this->tool->listAttributes('en');
 
-        $this->assertSame([['key' => 'xl', 'name' => 'Extra Large']], $result['groups'][0]['attributes'][0]['options']);
+        $this->assertSame([['key' => 'xl', 'name' => 'Extra Large']], $result['attributes'][0]['options']);
     }
 
     public function testListAttributesFallsBackToTheKeyWhenALocaleIsMissing(): void
@@ -91,7 +91,35 @@ final class AttributeListToolTest extends TestCase
 
         $result = $this->tool->listAttributes('de');
 
-        $this->assertSame('material', $result['groups'][0]['attributes'][0]['name']);
+        $this->assertSame('material', $result['attributes'][0]['name']);
+    }
+
+    public function testListAttributesSortsAndPagesTheFlattenedList(): void
+    {
+        $group = new AttributeGroup();
+        $this->addAttribute($group, 30, 'alpha', AttributeInterface::TYPE_TEXT, 'Alpha');
+        $this->addAttribute($group, 31, 'bravo', AttributeInterface::TYPE_TEXT, 'Bravo');
+        $this->addAttribute($group, 32, 'charlie', AttributeInterface::TYPE_TEXT, 'Charlie');
+
+        $this->attributeGroupRepository->findAll()->willReturn([$group]);
+
+        $descending = $this->tool->listAttributes('en', sortBy: 'key', sortOrder: 'desc');
+        $this->assertSame(
+            ['charlie', 'bravo', 'alpha'],
+            \array_column($descending['attributes'], 'key'),
+            'A sort field the tool advertises must actually reorder the result.',
+        );
+
+        $secondPage = $this->tool->listAttributes('en', page: 2, limit: 2);
+        $this->assertSame(3, $secondPage['total']);
+        $this->assertSame(['charlie'], \array_column($secondPage['attributes'], 'key'));
+    }
+
+    public function testListAttributesRejectsAnUnsupportedSortField(): void
+    {
+        $this->expectException(\InvalidArgumentException::class);
+
+        $this->tool->listAttributes('en', sortBy: 'name');
     }
 
     public function testListAttributesReturnsErrorOnFailure(): void

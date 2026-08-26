@@ -26,6 +26,10 @@ use Sulu\Page\Domain\Model\PageInterface;
  * RESOLVED dimension content's template key — NOT the aggregate),
  * snippet → sulu.snippet.snippets, product → sulu.product.products.
  *
+ * The product context is spelled out here and in the unified tools' discoveryContexts rather
+ * than taken from ProductAdmin::SECURITY_CONTEXT, because those files are loaded whether or
+ * not SuluProductBundle is installed. The product tools themselves do use the constant.
+ *
  * @internal
  */
 final readonly class ContentSecurityContextResolver

@@ -15,17 +15,20 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Product;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
+use Sulu\Bundle\AdminBundle\Application\BlockIdGenerator\BlockIdGeneratorInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
+use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
 use Sulu\Product\Application\Message\CreateProductMessage;
 use Sulu\Product\Domain\Model\ProductInterface;
+use Sulu\Product\Infrastructure\Sulu\Admin\ProductAdmin;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\HandleTrait;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -53,12 +56,15 @@ class ProductCreateTool
         MessageBusInterface $messageBus,
         private readonly ContentManagerInterface $contentManager,
         private readonly ContentMetadataMapper $contentMetadataMapper,
+        private readonly BlockDataValidator $blockDataValidator,
+        private readonly BlockIdGeneratorInterface $blockIdGenerator,
         private readonly AdminLinkGeneratorInterface $adminLinkGenerator,
     ) {
         $this->messageBus = $messageBus;
     }
 
     /**
+     * @param array<string, mixed>|null $content
      * @param array<string, mixed>|null $attributes
      * @param array<string, mixed>|null $details
      * @param array<string, mixed>|null $excerpt
@@ -69,11 +75,11 @@ class ProductCreateTool
     #[McpTool(
         name: 'sulu_product_create',
         title: 'Create Product',
-        description: 'Create a new product (draft). Workflow: 1) Call sulu_product_family_list to pick a family — "productFamily" is its UUID and is mandatory, because the family decides which attributes the product has. 2) Pass attribute values in "attributes" as a map keyed by the INTEGER attribute id, e.g. attributes={"12": "red", "15": 42} — get those ids from sulu_attribute_list. Attributes the family marks required must be present or the save is rejected. Set type="product_with_variants" when the product should hold variants; its variant-specific attributes then belong on the variants, not here. To create the variants themselves use sulu_product_variant_create — this tool cannot create them. The product is created as a draft: call sulu_content_publish (type: product) to make it live.',
+        description: 'Create a new product (draft). Workflow: 1) Call sulu_product_family_list to pick a family — "productFamily" is its UUID and is mandatory, because the family decides which attributes the product has. 2) Pass attribute values in "attributes" as a map keyed by the INTEGER attribute id, e.g. attributes={"12": "red", "15": 42} — get those ids from sulu_attribute_list. Attributes the family marks required must be present or the save is rejected. Template fields go in "content" as a flat object — call sulu_get_context for the product templates. Set type="product_with_variants" when the product should hold variants; its variant-specific attributes then belong on the variants, not here. To create the variants themselves use sulu_product_variant_create — this tool cannot create them. The product is created as a draft: call sulu_content_publish (type: product) to make it live.',
     )]
     #[RequiresPermission(requirements: [
-        new PermissionRequirement('sulu.product.products', PermissionTypes::EDIT),
-        new PermissionRequirement('sulu.product.products', PermissionTypes::ADD),
+        new PermissionRequirement(ProductAdmin::SECURITY_CONTEXT, PermissionTypes::EDIT),
+        new PermissionRequirement(ProductAdmin::SECURITY_CONTEXT, PermissionTypes::ADD),
     ])]
     public function createProduct(
         string $locale,
@@ -88,6 +94,8 @@ class ProductCreateTool
         ?string $type = null,
         #[Schema(description: 'Template key. Defaults to the bundle default ("product") when omitted.')]
         ?string $template = null,
+        #[Schema(type: 'object', description: 'Template field values as a flat object, e.g. {"description": "<p>…</p>"}. Call sulu_get_context to see the product templates and their fields. May include a "blocks" tree; block _ids are assigned automatically.', additionalProperties: true)]
+        ?array $content = null,
         #[Schema(type: 'object', description: 'Attribute values keyed by the INTEGER attribute id from sulu_attribute_list, e.g. {"12": "red", "15": 42}. Keys that are not numeric are ignored by Sulu.', additionalProperties: true)]
         ?array $attributes = null,
         #[Schema(type: 'object', description: 'Detail fields, e.g. {"shortDescription": "<p>…</p>", "image": {"id": 12}}. Media fields take {"id": <mediaId>}.', additionalProperties: true)]
@@ -108,11 +116,19 @@ class ProductCreateTool
         }
 
         try {
-            $data = [
+            $normalizedContent = null !== $content ? self::normalizeContent($content) : [];
+
+            if ($validationError = $this->blockDataValidator->validateContentTree($normalizedContent, 'product', $template)) {
+                return $validationError;
+            }
+
+            $normalizedContent = $this->stringifyKeys($this->assignBlockIds($normalizedContent, $this->blockIdGenerator));
+
+            $data = \array_merge($normalizedContent, [
                 'locale' => $locale,
                 'productFamily' => $productFamily,
                 'title' => $title,
-            ];
+            ]);
 
             if (null !== $code) {
                 $data['code'] = $code;

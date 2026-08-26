@@ -151,13 +151,12 @@ class SuluMcpBundle extends AbstractBundle
     private static function isProductBundleLoaded(ContainerBuilder $builder): bool
     {
         if (!$builder->hasParameter('kernel.bundles')) {
-            return \class_exists(SuluProductBundle::class);
+            return false;
         }
 
         $bundles = $builder->getParameter('kernel.bundles');
 
-        return \is_array($bundles)
-            && (\in_array(SuluProductBundle::class, $bundles, true) || isset($bundles['SuluProductBundle']));
+        return \is_array($bundles) && \in_array(SuluProductBundle::class, $bundles, true);
     }
 
     public function build(ContainerBuilder $container): void

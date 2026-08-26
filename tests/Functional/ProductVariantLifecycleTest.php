@@ -22,11 +22,15 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockReorderTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockUpdateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentPublishTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\AttributeListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductFamilyListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductGetTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductUpdateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantUpdateTool;
@@ -67,7 +71,7 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         $familyUuid = (string) $family->getUuid();
 
         $attributeList = $this->tool(AttributeListTool::class)->listAttributes(self::LOCALE);
-        $listedIds = \array_column(\array_merge(...\array_column($attributeList['groups'], 'attributes')), 'id');
+        $listedIds = \array_column($attributeList['attributes'], 'id');
         self::assertContains($sharedAttribute->getId(), $listedIds);
         self::assertContains($variantAttribute->getId(), $listedIds);
 
@@ -107,6 +111,8 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         $published = $this->tool(ContentPublishTool::class)->publishContent('product', $parentUuid, self::LOCALE);
         self::assertTrue($published['success'] ?? false, \json_encode($published));
 
+        $this->entityManager->clear();
+
         foreach ($variants['variants'] as $variant) {
             $reloaded = $this->tool(ProductGetTool::class)->getProduct(self::LOCALE, $variant['uuid']);
             self::assertSame(
@@ -115,6 +121,94 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
                 'Publishing the parent must cascade to its variants.',
             );
         }
+    }
+
+    public function testListPagingBoundsProductsRatherThanFetchJoinedRows(): void
+    {
+        [$family] = $this->createFamilyWithSharedAndVariantAttribute();
+        $familyUuid = (string) $family->getUuid();
+
+        for ($i = 1; $i <= 6; ++$i) {
+            $created = $this->tool(ProductCreateTool::class)->createProduct(
+                self::LOCALE,
+                $familyUuid,
+                \sprintf('Probe %02d', $i),
+                code: \sprintf('PROBE-%02d', $i),
+            );
+            self::assertTrue($created['success'] ?? false, \json_encode($created));
+        }
+
+        $firstPage = $this->tool(ProductListTool::class)->listProducts(self::LOCALE, limit: 3);
+
+        self::assertSame(6, $firstPage['total']);
+        self::assertCount(
+            3,
+            $firstPage['products'],
+            'limit must bound products; a limit on the admin select truncates fetch-joined dimension-content rows instead.',
+        );
+
+        $secondPage = $this->tool(ProductListTool::class)->listProducts(self::LOCALE, page: 2, limit: 3);
+        self::assertCount(3, $secondPage['products']);
+
+        $firstTitles = \array_column(\array_column($firstPage['products'], 'data'), 'title');
+        $secondTitles = \array_column(\array_column($secondPage['products'], 'data'), 'title');
+        self::assertSame([], \array_intersect($firstTitles, $secondTitles), 'Pages must not overlap.');
+        self::assertSame(['Probe 01', 'Probe 02', 'Probe 03'], $firstTitles);
+    }
+
+    public function testListSortingActuallyReordersProducts(): void
+    {
+        [$family] = $this->createFamilyWithSharedAndVariantAttribute();
+        $familyUuid = (string) $family->getUuid();
+
+        foreach (['Alpha', 'Bravo', 'Charlie'] as $i => $title) {
+            $this->tool(ProductCreateTool::class)->createProduct(
+                self::LOCALE,
+                $familyUuid,
+                $title,
+                code: 'SORT-' . $i,
+            );
+        }
+
+        $descending = $this->tool(ProductListTool::class)->listProducts(self::LOCALE, sortBy: 'title', sortOrder: 'desc');
+
+        self::assertSame(
+            ['Charlie', 'Bravo', 'Alpha'],
+            \array_column(\array_column($descending['products'], 'data'), 'title'),
+            'A sort field the tool advertises must actually reorder the result.',
+        );
+    }
+
+    public function testTemplateFieldsAndBlocksCanBeWrittenThroughContent(): void
+    {
+        [$family] = $this->createFamilyWithSharedAndVariantAttribute();
+
+        $created = $this->tool(ProductCreateTool::class)->createProduct(
+            self::LOCALE,
+            (string) $family->getUuid(),
+            'Content Carrier',
+            code: 'CONTENT-1',
+            content: [
+                'description' => 'From the content parameter',
+                'blocks' => [['type' => 'text', 'content' => '<p>Seeded</p>']],
+            ],
+        );
+        self::assertTrue($created['success'] ?? false, \json_encode($created));
+
+        $listed = $this->tool(BlockListTool::class)->listBlocks('product', $created['uuid'], self::LOCALE, 'blocks');
+        self::assertSame(
+            1,
+            $listed['total'] ?? null,
+            'A blocks tree passed through "content" must persist, otherwise the template is unusable.',
+        );
+
+        $updated = $this->tool(ProductUpdateTool::class)->updateProduct(
+            $created['uuid'],
+            self::LOCALE,
+            content: ['description' => 'Rewritten'],
+        );
+        self::assertTrue($updated['success'] ?? false, \json_encode($updated));
+        self::assertSame('Rewritten', $updated['data']['description'] ?? null);
     }
 
     public function testBlockToolsOperateOnAProductThroughTheTypeParameter(): void
@@ -183,6 +277,44 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
             'A block write must not drop the product-specific fields it round-trips.',
         );
         self::assertSame('BLOCKS-1', $reloaded['data']['code'] ?? null);
+    }
+
+    public function testUnpublishingTheParentCascadesToItsVariants(): void
+    {
+        [$parentUuid, $variantUuids] = $this->createPublishedParentWithVariants();
+
+        $unpublished = $this->tool(ContentUnpublishTool::class)->unpublishContent('product', $parentUuid, self::LOCALE);
+        self::assertTrue($unpublished['success'] ?? false, \json_encode($unpublished));
+
+        $this->entityManager->clear();
+
+        foreach ($variantUuids as $uuid) {
+            $reloaded = $this->tool(ProductGetTool::class)->getProduct(self::LOCALE, $uuid);
+            self::assertNotSame(
+                WorkflowInterface::WORKFLOW_PLACE_PUBLISHED,
+                $reloaded['data']['workflowPlace'] ?? null,
+                'VariantWorkflowCascader cascades unpublish as well as publish.',
+            );
+        }
+    }
+
+    public function testDeletingTheParentTakesItsVariantsWithIt(): void
+    {
+        [$parentUuid, $variantUuids] = $this->createPublishedParentWithVariants();
+
+        $deleted = $this->tool(ContentDeleteTool::class)->deleteContent('product', $parentUuid, self::LOCALE);
+        self::assertTrue($deleted['success'] ?? false, \json_encode($deleted));
+
+        $this->entityManager->clear();
+
+        foreach ($variantUuids as $uuid) {
+            $reloaded = $this->tool(ProductGetTool::class)->getProduct(self::LOCALE, $uuid);
+            self::assertArrayHasKey(
+                'error',
+                $reloaded,
+                'Deleting a product_with_variants removes its variants too, which the tool description has to warn about.',
+            );
+        }
     }
 
     public function testAVariantCannotBeCreatedUnderAPlainProductOrAnotherVariant(): void
@@ -374,5 +506,41 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         ]);
 
         $builder->authenticate($builder->user('product-author', $role));
+    }
+
+    /**
+     * @return array{0: string, 1: list<string>}
+     */
+    private function createPublishedParentWithVariants(): array
+    {
+        [$family, , $variantAttribute] = $this->createFamilyWithSharedAndVariantAttribute();
+        $familyUuid = (string) $family->getUuid();
+
+        $parent = $this->tool(ProductCreateTool::class)->createProduct(
+            self::LOCALE,
+            $familyUuid,
+            'Cascade Parent',
+            code: 'CASCADE',
+            type: ProductInterface::TYPE_PRODUCT_WITH_VARIANTS,
+        );
+        self::assertTrue($parent['success'] ?? false, \json_encode($parent));
+
+        $variantUuids = [];
+        foreach (['red', 'blue'] as $colour) {
+            $variant = $this->tool(ProductVariantCreateTool::class)->createProductVariant(
+                self::LOCALE,
+                $parent['uuid'],
+                'Cascade ' . $colour,
+                code: 'CASCADE-' . $colour,
+                attributes: [(string) $variantAttribute->getId() => $colour],
+            );
+            self::assertTrue($variant['success'] ?? false, \json_encode($variant));
+            $variantUuids[] = $variant['uuid'];
+        }
+
+        $published = $this->tool(ContentPublishTool::class)->publishContent('product', $parent['uuid'], self::LOCALE);
+        self::assertTrue($published['success'] ?? false, \json_encode($published));
+
+        return [$parent['uuid'], $variantUuids];
     }
 }

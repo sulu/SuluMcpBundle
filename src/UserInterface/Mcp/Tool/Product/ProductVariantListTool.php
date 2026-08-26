@@ -21,6 +21,7 @@ use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Product\Domain\Model\ProductInterface;
 use Sulu\Product\Domain\Repository\ProductRepositoryInterface;
+use Sulu\Product\Infrastructure\Sulu\Admin\ProductAdmin;
 
 /**
  * @internal
@@ -48,7 +49,7 @@ class ProductVariantListTool
         description: 'List the variants of one product. Pass the UUID of a product of type "product_with_variants". Each entry includes its "attributes" map keyed by the integer attribute id, which is where the variant axes (the attributes the family marks variantSpecific) carry their distinguishing values. Returns an empty list for a product that has no variants.',
     )]
     #[RequiresPermission(requirements: [
-        new PermissionRequirement('sulu.product.products', PermissionTypes::VIEW),
+        new PermissionRequirement(ProductAdmin::SECURITY_CONTEXT, PermissionTypes::VIEW),
     ])]
     public function listProductVariants(
         string $locale,
@@ -65,13 +66,21 @@ class ProductVariantListTool
                 'limit' => $limit,
             ];
 
+            $sortBys = ['title' => 'asc'];
+            $total = $this->productRepository->countBy($filters);
+
+            // Two-step paging; see PageListTool. A limit on the admin select truncates
+            // fetch-joined SQL rows rather than variants.
+            $uuids = [...$this->productRepository->findIdentifiersBy($filters, $sortBys)];
+            if ([] === $uuids) {
+                return ['variants' => [], 'parent' => $parentUuid, 'total' => $total, 'page' => $page, 'limit' => $limit];
+            }
+
             $variants = $this->productRepository->findBy(
-                $filters,
-                ['title' => 'asc'],
+                ['uuids' => $uuids, 'locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT],
+                $sortBys,
                 [ProductRepositoryInterface::GROUP_SELECT_PRODUCT_ADMIN => true],
             );
-
-            $total = $this->productRepository->countBy($filters);
 
             $results = [];
             foreach ($variants as $variant) {

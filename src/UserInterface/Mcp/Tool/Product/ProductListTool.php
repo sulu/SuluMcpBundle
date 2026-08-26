@@ -22,6 +22,7 @@ use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Product\Domain\Model\ProductInterface;
 use Sulu\Product\Domain\Repository\ProductRepositoryInterface;
+use Sulu\Product\Infrastructure\Sulu\Admin\ProductAdmin;
 
 /**
  * @internal
@@ -36,7 +37,7 @@ class ProductListTool
         'availableLocales', 'contentLocales', 'ghostLocale',
     ];
 
-    private const ALLOWED_SORT_FIELDS = ['title', 'id'];
+    private const ALLOWED_SORT_FIELDS = ['title', 'created', 'changed'];
     private const ALLOWED_SORT_ORDERS = ['asc', 'desc'];
 
     public function __construct(
@@ -54,7 +55,7 @@ class ProductListTool
         description: 'List products with optional filters. Returns lightweight summaries (title, code, status, family, workflow state) — use sulu_product_get for a single product\'s full data. Variants are excluded by default because they belong to their parent; set includeVariants=true to list them too, or use sulu_product_variant_list for one parent\'s variants. Results are paginated via "page" and "limit".',
     )]
     #[RequiresPermission(requirements: [
-        new PermissionRequirement('sulu.product.products', PermissionTypes::VIEW),
+        new PermissionRequirement(ProductAdmin::SECURITY_CONTEXT, PermissionTypes::VIEW),
     ])]
     public function listProducts(
         string $locale,
@@ -64,7 +65,7 @@ class ProductListTool
         bool $includeVariants = false,
         int $page = 1,
         int $limit = 20,
-        #[Schema(description: 'Field to sort by. The product repository supports only "title" and "id". Defaults to "title".', enum: ['title', 'id'])]
+        #[Schema(description: 'Field to sort by. Defaults to "title".', enum: ['title', 'created', 'changed'])]
         string $sortBy = 'title',
         #[Schema(description: 'Sort direction, "asc" or "desc". Defaults to "asc".', enum: ['asc', 'desc'])]
         string $sortOrder = 'asc',
@@ -91,13 +92,21 @@ class ProductListTool
                 $filters['excludeTypes'] = [ProductInterface::TYPE_VARIANT];
             }
 
+            $sortBys = [$sortBy => $sortOrder];
+            $total = $this->productRepository->countBy($filters);
+
+            // Two-step paging; see PageListTool. A limit on the admin select truncates
+            // fetch-joined SQL rows rather than products.
+            $uuids = [...$this->productRepository->findIdentifiersBy($filters, $sortBys)];
+            if ([] === $uuids) {
+                return ['products' => [], 'total' => $total, 'page' => $page, 'limit' => $limit];
+            }
+
             $products = $this->productRepository->findBy(
-                $filters,
-                [$sortBy => $sortOrder],
+                ['uuids' => $uuids, 'locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT],
+                $sortBys,
                 [ProductRepositoryInterface::GROUP_SELECT_PRODUCT_ADMIN => true],
             );
-
-            $total = $this->productRepository->countBy($filters);
 
             return [
                 'products' => $this->summarize($products, $locale),

@@ -157,7 +157,7 @@ sulu_mcp:
 
 ### Available tools
 
-46 tools spanning the core Sulu domains:
+39 tools spanning the core Sulu domains, plus 9 more when `sulu/product-bundle` is installed:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
@@ -171,7 +171,7 @@ sulu_mcp:
 | Preview | 2 | `sulu_preview_link_generate`, `sulu_preview_link_revoke` |
 | Navigation | 1 | `sulu_navigation_get` |
 | Contact | 1 | `sulu_contact_list` |
-| Products | 9 | `sulu_product_create`, `sulu_product_update`, `sulu_product_get`, `sulu_product_list`, `sulu_product_variant_*`, `sulu_product_family_list`, `sulu_attribute_list` — require [`sulu/product-bundle`](https://github.com/sulu/SuluProductBundle) |
+| Products *(optional)* | 9 | `sulu_product_create`, `sulu_product_update`, `sulu_product_get`, `sulu_product_list`, `sulu_product_variant_*`, `sulu_product_family_list`, `sulu_attribute_list` — require [`sulu/product-bundle`](https://github.com/sulu/SuluProductBundle) |
 | Misc | 3 | `sulu_content_search`, `sulu_get_context`, `sulu_ping` |
 
 The block and unified content tools operate on pages, articles, snippets — and products, when

@@ -44,7 +44,7 @@ class TemplatesResource
         $locale = $this->localeResolver->resolve();
 
         $result = [];
-        foreach (['page', 'article', 'snippet'] as $contentType) {
+        foreach (['page', 'article', 'snippet', 'product'] as $contentType) {
             $templates = $this->loadTemplatesByType($contentType, $locale);
             if ([] !== $templates) {
                 $result[$contentType] = $templates;

@@ -19,10 +19,14 @@ use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
+use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\FixedBlockIdGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductUpdateTool;
 use Sulu\Product\Application\Message\ModifyProductMessage;
 use Sulu\Product\Domain\Exception\ProductNotFoundException;
@@ -34,6 +38,7 @@ use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\RouterInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(ProductUpdateTool::class)]
 final class ProductUpdateToolTest extends TestCase
@@ -59,6 +64,8 @@ final class ProductUpdateToolTest extends TestCase
             $this->contentManager->reveal(),
             $this->productRepository->reveal(),
             new ContentMetadataMapper(new ArrayMetadataProvider()),
+            new BlockDataValidator($this->formMetadataProvider(), new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            FixedBlockIdGenerator::returning('b1', 'b2', 'b3'),
             new AdminLinkGenerator($this->prophesize(RouterInterface::class)->reveal(), []),
         );
     }
@@ -169,5 +176,13 @@ final class ProductUpdateToolTest extends TestCase
         return static function() use (&$captured): ?object {
             return $captured;
         };
+    }
+
+    private function formMetadataProvider(): ArrayMetadataProvider
+    {
+        $provider = new ArrayMetadataProvider();
+        $provider->setDefault(new FormMetadata());
+
+        return $provider;
     }
 }

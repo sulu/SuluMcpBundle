@@ -22,6 +22,7 @@ use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Product\Domain\Exception\ProductNotFoundException;
 use Sulu\Product\Domain\Repository\ProductRepositoryInterface;
+use Sulu\Product\Infrastructure\Sulu\Admin\ProductAdmin;
 
 /**
  * @internal
@@ -45,7 +46,7 @@ class ProductGetTool
         description: 'Get a product by UUID, including its attribute values. Returns "productFamily" as the family UUID and "attributes" as a map keyed by the integer attribute id (e.g. {"12": "red"}) — resolve those ids to readable keys with sulu_attribute_list. Number attributes that carry a measurement unit also return a "<id>_unit" entry. Works for plain products, variant parents, and variants alike; use sulu_product_variant_list to see a parent\'s variants.',
     )]
     #[RequiresPermission(requirements: [
-        new PermissionRequirement('sulu.product.products', PermissionTypes::VIEW),
+        new PermissionRequirement(ProductAdmin::SECURITY_CONTEXT, PermissionTypes::VIEW),
     ])]
     public function getProduct(string $locale, string $uuid): array
     {

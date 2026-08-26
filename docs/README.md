@@ -6,6 +6,7 @@ Sulu MCP Bundle is a Symfony bundle that turns a Sulu 3.x installation into an [
 
 - [Configuration](configuration.md) — all bundle config options with examples.
 - [Content Assistant Prompt](CONTENT_ASSISTANT_PROMPT.md) — recommended system prompt for AI clients.
+- [Product Assistant Prompt](PRODUCT_ASSISTANT_PROMPT.md) — additional prompt for installations with `sulu/product-bundle`.
 - Client setup:
   - [Claude.ai](clients/claude-ai.md) — hosted web/desktop app, OAuth connector.
   - [Claude Code](clients/claude-code.md) — CLI, configured via `.mcp.json`.
@@ -15,7 +16,7 @@ Sulu MCP Bundle is a Symfony bundle that turns a Sulu 3.x installation into an [
 
 ## What it exposes
 
-The bundle ships **46 tools** spanning the core Sulu domains:
+The bundle ships **39 tools** spanning the core Sulu domains, plus **9 product tools** when the optional `sulu/product-bundle` is installed:
 
 - Pages, articles, snippets — full lifecycle (CRUD, publish/unpublish, blocks, SEO, excerpt).
 - Media, taxonomy (tags, categories), contacts.

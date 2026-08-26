@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Product;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Capability\Attribute\Schema;
 use Sulu\Component\Rest\ListBuilder\Doctrine\DoctrineListBuilder;
 use Sulu\Component\Rest\ListBuilder\Doctrine\DoctrineListBuilderFactoryInterface;
 use Sulu\Component\Rest\ListBuilder\Doctrine\FieldDescriptor\DoctrineFieldDescriptorInterface;
@@ -23,12 +24,20 @@ use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Product\Domain\Model\ProductFamilyInterface;
 use Sulu\Product\Domain\Repository\ProductFamilyRepositoryInterface;
+use Sulu\Product\Infrastructure\Sulu\Admin\ProductFamilyAdmin;
 
 /**
+ * Uses Sulu's list builder rather than the repository, because
+ * ProductFamilyRepositoryInterface exposes no findBy/countBy -- only single-family
+ * lookups. ProductFamilyController lists the same way.
+ *
  * @internal
  */
 class ProductFamilyListTool
 {
+    private const ALLOWED_SORT_FIELDS = ['name', 'created', 'changed'];
+    private const ALLOWED_SORT_ORDERS = ['asc', 'desc'];
+
     public function __construct(
         private readonly ProductFamilyRepositoryInterface $productFamilyRepository,
         private readonly FieldDescriptorFactoryInterface $fieldDescriptorFactory,
@@ -45,10 +54,25 @@ class ProductFamilyListTool
         description: 'List product families. A family decides which attributes a product can carry, and its UUID is the mandatory "productFamily" argument of sulu_product_create. Each family lists its attributes with three flags that determine where a value belongs: "required" means a value must be supplied, and "variantSpecific" means the attribute is a variant axis — required variant-specific attributes are set on the variant (sulu_product_variant_create), all other required attributes on the product itself. Use "attributeId" as the key in any "attributes" map.',
     )]
     #[RequiresPermission(requirements: [
-        new PermissionRequirement('sulu.product.product_families', PermissionTypes::VIEW),
+        new PermissionRequirement(ProductFamilyAdmin::SECURITY_CONTEXT, PermissionTypes::VIEW),
     ])]
-    public function listProductFamilies(string $locale, int $page = 1, int $limit = 20): array
-    {
+    public function listProductFamilies(
+        string $locale,
+        int $page = 1,
+        int $limit = 20,
+        #[Schema(description: 'Field to sort by. Defaults to "name".', enum: ['name', 'created', 'changed'])]
+        string $sortBy = 'name',
+        #[Schema(description: 'Sort direction, "asc" or "desc". Defaults to "asc".', enum: ['asc', 'desc'])]
+        string $sortOrder = 'asc',
+    ): array {
+        if (!\in_array($sortBy, self::ALLOWED_SORT_FIELDS, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unsupported sortBy "%s". Supported: %s.', $sortBy, \implode(', ', self::ALLOWED_SORT_FIELDS)));
+        }
+
+        if (!\in_array($sortOrder, self::ALLOWED_SORT_ORDERS, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unsupported sortOrder "%s". Supported: %s.', $sortOrder, \implode(', ', self::ALLOWED_SORT_ORDERS)));
+        }
+
         try {
             /** @var DoctrineFieldDescriptorInterface[] $fieldDescriptors */
             $fieldDescriptors = $this->fieldDescriptorFactory->getFieldDescriptors(ProductFamilyInterface::RESOURCE_KEY);
@@ -61,6 +85,10 @@ class ProductFamilyListTool
             // here is the MCP transport request.
             $listBuilder->limit($limit);
             $listBuilder->setCurrentPage($page);
+
+            if (isset($fieldDescriptors[$sortBy])) {
+                $listBuilder->sort($fieldDescriptors[$sortBy], $sortOrder);
+            }
 
             foreach (['id', 'name'] as $field) {
                 if (isset($fieldDescriptors[$field])) {

@@ -14,17 +14,22 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Product;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Capability\Attribute\Schema;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Product\Domain\Model\AttributeInterface;
 use Sulu\Product\Domain\Repository\AttributeGroupRepositoryInterface;
+use Sulu\Product\Infrastructure\Sulu\Admin\AttributeAdmin;
 
 /**
  * @internal
  */
 class AttributeListTool
 {
+    private const ALLOWED_SORT_FIELDS = ['key', 'id'];
+    private const ALLOWED_SORT_ORDERS = ['asc', 'desc'];
+
     public function __construct(
         private readonly AttributeGroupRepositoryInterface $attributeGroupRepository,
     ) {
@@ -36,35 +41,57 @@ class AttributeListTool
     #[McpTool(
         name: 'sulu_attribute_list',
         title: 'List Product Attributes',
-        description: 'List every product attribute, grouped by attribute group. The "id" of each attribute is the key to use in the "attributes" map of sulu_product_create, sulu_product_update and the variant tools — e.g. an attribute with id 12 is written as {"12": "red"}. "type" tells you what a value looks like: "text" a string, "number" a number, "date" an ISO-8601 date, "options" one of the listed option keys. Which attributes actually apply to a given product, and which are required or variant axes, depends on its family — see sulu_product_family_list.',
+        description: 'List product attributes, paginated. Each entry names its attribute group. The "id" of each attribute is the key to use in the "attributes" map of sulu_product_create, sulu_product_update and the variant tools — e.g. an attribute with id 12 is written as {"12": "red"}. "type" tells you what a value looks like: "text" a string, "number" a number, "date" an ISO-8601 date, "options" one of the listed option keys. Which attributes actually apply to a given product, and which are required or variant axes, depends on its family — see sulu_product_family_list.',
     )]
     #[RequiresPermission(requirements: [
-        new PermissionRequirement('sulu.product.attributes', PermissionTypes::VIEW),
+        new PermissionRequirement(AttributeAdmin::SECURITY_CONTEXT, PermissionTypes::VIEW),
     ])]
-    public function listAttributes(string $locale): array
-    {
+    public function listAttributes(
+        string $locale,
+        int $page = 1,
+        int $limit = 50,
+        #[Schema(description: 'Field to sort by. Defaults to "key".', enum: ['key', 'id'])]
+        string $sortBy = 'key',
+        #[Schema(description: 'Sort direction, "asc" or "desc". Defaults to "asc".', enum: ['asc', 'desc'])]
+        string $sortOrder = 'asc',
+    ): array {
+        if (!\in_array($sortBy, self::ALLOWED_SORT_FIELDS, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unsupported sortBy "%s". Supported: %s.', $sortBy, \implode(', ', self::ALLOWED_SORT_FIELDS)));
+        }
+
+        if (!\in_array($sortOrder, self::ALLOWED_SORT_ORDERS, true)) {
+            throw new \InvalidArgumentException(\sprintf('Unsupported sortOrder "%s". Supported: %s.', $sortOrder, \implode(', ', self::ALLOWED_SORT_ORDERS)));
+        }
+
         try {
-            $groups = [];
-            $total = 0;
+            $attributes = [];
 
             foreach ($this->attributeGroupRepository->findAll() as $group) {
-                $attributes = [];
+                $groupName = $group->getTranslation($locale)?->getName();
 
                 foreach ($group->getGroupAttributes() as $groupAttribute) {
-                    $attributes[] = $this->describeAttribute($groupAttribute->getAttribute(), $locale);
-                    ++$total;
+                    $attributes[] = $this->describeAttribute($groupAttribute->getAttribute(), $locale) + [
+                        'group' => $groupName,
+                        'groupUuid' => $group->getUuid(),
+                    ];
                 }
-
-                $groups[] = [
-                    'uuid' => $group->getUuid(),
-                    'name' => $group->getTranslation($locale)?->getName(),
-                    'attributes' => $attributes,
-                ];
             }
 
+            \usort($attributes, static function(array $a, array $b) use ($sortBy, $sortOrder): int {
+                $comparison = $a[$sortBy] <=> $b[$sortBy];
+
+                return 'desc' === $sortOrder ? -$comparison : $comparison;
+            });
+
+            $total = \count($attributes);
+
             return [
-                'groups' => $groups,
+                // AttributeRepositoryInterface exposes no paginated query, so the page is cut
+                // in PHP: this bounds the response, not the rows read from the database.
+                'attributes' => \array_slice($attributes, ($page - 1) * $limit, $limit),
                 'total' => $total,
+                'page' => $page,
+                'limit' => $limit,
             ];
         } catch (\Throwable $e) {
             return [

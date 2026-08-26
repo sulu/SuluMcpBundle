@@ -29,6 +29,7 @@ use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushS
 use Sulu\Product\Application\Message\ModifyProductMessage;
 use Sulu\Product\Domain\Model\ProductInterface;
 use Sulu\Product\Domain\Repository\ProductRepositoryInterface;
+use Sulu\Product\Infrastructure\Sulu\Admin\ProductAdmin;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\HandleTrait;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -64,7 +65,7 @@ class ProductVariantUpdateTool
         description: 'Update a variant of a product. Both the parent UUID and the variant UUID are required, and the variant must actually belong to that parent. The family stays inherited from the parent and cannot be changed here. In "attributes" pass only variant axes (the attributes the family marks variantSpecific), keyed by their INTEGER attribute id; they are merged into the existing values and shared attributes are dropped. The variant stays a draft — publishing the PARENT with sulu_content_publish (type: product) publishes its variants too.',
     )]
     #[RequiresPermission(requirements: [
-        new PermissionRequirement('sulu.product.products', PermissionTypes::EDIT),
+        new PermissionRequirement(ProductAdmin::SECURITY_CONTEXT, PermissionTypes::EDIT),
     ])]
     public function updateProductVariant(
         string $locale,

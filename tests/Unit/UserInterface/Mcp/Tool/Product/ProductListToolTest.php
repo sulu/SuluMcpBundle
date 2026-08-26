@@ -50,6 +50,7 @@ final class ProductListToolTest extends TestCase
 
     public function testListProductsReturnsSummaries(): void
     {
+        $this->productRepository->findIdentifiersBy(Argument::cetera())->willReturn(['uuid-1']);
         $this->productRepository->findBy(Argument::cetera())->willReturn([new Product('uuid-1')]);
         $this->productRepository->countBy(Argument::cetera())->willReturn(1);
         $this->contentManager->resolve(Argument::cetera())->willReturn(new ProductDimensionContent(new Product()));
@@ -71,7 +72,7 @@ final class ProductListToolTest extends TestCase
 
     public function testListProductsExcludesVariantsByDefault(): void
     {
-        $this->productRepository->findBy(
+        $this->productRepository->findIdentifiersBy(
             Argument::that(static fn (array $filters): bool => [ProductInterface::TYPE_VARIANT] === ($filters['excludeTypes'] ?? null)),
             Argument::cetera(),
         )->shouldBeCalledOnce()->willReturn([]);
@@ -82,7 +83,7 @@ final class ProductListToolTest extends TestCase
 
     public function testListProductsCanIncludeVariants(): void
     {
-        $this->productRepository->findBy(
+        $this->productRepository->findIdentifiersBy(
             Argument::that(static fn (array $filters): bool => !isset($filters['excludeTypes'])),
             Argument::cetera(),
         )->shouldBeCalledOnce()->willReturn([]);
@@ -93,7 +94,7 @@ final class ProductListToolTest extends TestCase
 
     public function testListProductsFiltersByExplicitType(): void
     {
-        $this->productRepository->findBy(
+        $this->productRepository->findIdentifiersBy(
             Argument::that(static fn (array $filters): bool => [ProductInterface::TYPE_VARIANT] === ($filters['types'] ?? null)
                 && !isset($filters['excludeTypes'])),
             Argument::cetera(),
@@ -107,12 +108,43 @@ final class ProductListToolTest extends TestCase
     {
         $this->expectException(\InvalidArgumentException::class);
 
-        $this->tool->listProducts('en', sortBy: 'authored');
+        // The product repository sorts on uuid/created plus the dimension-content fields;
+        // "id" is advertised by its phpdoc but silently ignored.
+        $this->tool->listProducts('en', sortBy: 'id');
+    }
+
+    public function testListProductsResolvesThePageBeforeLoadingSoTheLimitCountsProducts(): void
+    {
+        $this->productRepository->countBy(Argument::cetera())->willReturn(6);
+
+        $this->productRepository->findIdentifiersBy(
+            Argument::that(static fn (array $filters): bool => 3 === ($filters['limit'] ?? null)),
+            Argument::cetera(),
+        )->shouldBeCalledOnce()->willReturn(['a', 'b', 'c']);
+
+        $this->productRepository->findBy(
+            Argument::that(static fn (array $filters): bool => ['a', 'b', 'c'] === ($filters['uuids'] ?? null)
+                && !isset($filters['limit'], $filters['page'])),
+            Argument::cetera(),
+        )->shouldBeCalledOnce()->willReturn([new Product('a'), new Product('b'), new Product('c')]);
+
+        $this->contentManager->resolve(Argument::cetera())->willReturn(new ProductDimensionContent(new Product()));
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'x']);
+
+        $result = $this->tool->listProducts('en', limit: 3);
+
+        self::assertCount(
+            3,
+            $result['products'],
+            'limit must bound products, not the fetch-joined dimension-content rows.',
+        );
+        self::assertSame(6, $result['total']);
     }
 
     public function testListProductsReturnsErrorOnFailure(): void
     {
-        $this->productRepository->findBy(Argument::cetera())->willThrow(new \RuntimeException('DB gone'));
+        $this->productRepository->countBy(Argument::cetera())->willReturn(1);
+        $this->productRepository->findIdentifiersBy(Argument::cetera())->willThrow(new \RuntimeException('DB gone'));
 
         $result = $this->tool->listProducts('en');
 

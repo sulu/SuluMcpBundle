@@ -84,7 +84,7 @@ class BlockUpdateTool
         array $blockData,
     ): array {
         if (!$this->contentTypeResolver->supports($type)) {
-            return ['error' => \sprintf('Unsupported content type "%s". Use "page", "article" or "snippet".', $type)];
+            return ['error' => \sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', $this->contentTypeResolver->supportedTypes()))];
         }
 
         try {

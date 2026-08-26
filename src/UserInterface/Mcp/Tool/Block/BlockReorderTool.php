@@ -63,7 +63,7 @@ class BlockReorderTool
     #[McpTool(
         name: 'sulu_block_reorder',
         title: 'Reorder Blocks',
-        description: 'Reorder blocks on a page, article, or snippet. Pass "type" ("page", "article" or "snippet") and the entity "uuid", plus EITHER "newOrder" (every current 0-based index exactly once, e.g. [2,0,1]) OR "blockIds" (the block _id values in the desired order, e.g. ["c6c22b89","76541424"]). Prefer blockIds — it is robust because ids do not shift as blocks are added/removed. Get the current order/ids from sulu_block_list (or sulu_page_get / sulu_article_get / sulu_snippet_get). The entity must be re-published after reordering.',
+        description: 'Reorder blocks on a page, article, or snippet. Pass "type" ("page", "article", "snippet", or "product" when SuluProductBundle is installed) and the entity "uuid", plus EITHER "newOrder" (every current 0-based index exactly once, e.g. [2,0,1]) OR "blockIds" (the block _id values in the desired order, e.g. ["c6c22b89","76541424"]). Prefer blockIds — it is robust because ids do not shift as blocks are added/removed. Get the current order/ids from sulu_block_list (or sulu_page_get / sulu_article_get / sulu_snippet_get). The entity must be re-published after reordering.',
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('#context#', PermissionTypes::EDIT)],
@@ -82,7 +82,7 @@ class BlockReorderTool
     ): array {
         try {
             if (!$this->contentTypeResolver->supports($type)) {
-                return ['error' => \sprintf('Unsupported content type "%s". Use "page", "article" or "snippet".', $type)];
+                return ['error' => \sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', $this->contentTypeResolver->supportedTypes()))];
             }
 
             if (null === $newOrder && null === $blockIds) {

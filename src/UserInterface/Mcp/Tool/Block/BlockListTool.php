@@ -52,7 +52,7 @@ class BlockListTool
     #[McpTool(
         name: 'sulu_block_list',
         title: 'List Blocks',
-        description: 'Get paginated block content for a page, article, or snippet. Use this after sulu_page_get / sulu_article_get / sulu_snippet_get which return block summaries (index, _id, type, title). Pass the "blockProperty" name (e.g. "blocks", "homeBlocks") and paginate with "page" and "limit". To list blocks inside a parent block (nested blocks), pass parentBlockId with the _id of the parent block — blockProperty is still required to locate the top-level blocks. Returns full block content including HTML for the requested range.',
+        description: 'Get paginated block content for a page, article, or snippet. Pass "type" ("page", "article", "snippet", or "product" when SuluProductBundle is installed) and the entity "uuid". Use this after sulu_page_get / sulu_article_get / sulu_snippet_get which return block summaries (index, _id, type, title). Pass the "blockProperty" name (e.g. "blocks", "homeBlocks") and paginate with "page" and "limit". To list blocks inside a parent block (nested blocks), pass parentBlockId with the _id of the parent block — blockProperty is still required to locate the top-level blocks. Returns full block content including HTML for the requested range.',
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('#context#', PermissionTypes::VIEW)],

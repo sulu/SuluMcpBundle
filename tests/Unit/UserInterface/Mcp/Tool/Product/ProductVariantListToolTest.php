@@ -49,10 +49,14 @@ final class ProductVariantListToolTest extends TestCase
 
     public function testListVariantsFiltersByParent(): void
     {
-        $this->productRepository->findBy(
+        $this->productRepository->findIdentifiersBy(
             Argument::that(static fn (array $filters): bool => 'parent-uuid' === ($filters['parent'] ?? null)),
             Argument::cetera(),
-        )->shouldBeCalledOnce()->willReturn([new Product('variant-1')]);
+        )->shouldBeCalledOnce()->willReturn(['variant-1']);
+        $this->productRepository->findBy(
+            Argument::that(static fn (array $filters): bool => ['variant-1'] === ($filters['uuids'] ?? null)),
+            Argument::cetera(),
+        )->willReturn([new Product('variant-1')]);
         $this->productRepository->countBy(Argument::cetera())->willReturn(1);
 
         $this->contentManager->resolve(Argument::cetera())->willReturn(new ProductDimensionContent(new Product()));
@@ -71,7 +75,8 @@ final class ProductVariantListToolTest extends TestCase
 
     public function testListVariantsReturnsAnEmptyListForAProductWithoutVariants(): void
     {
-        $this->productRepository->findBy(Argument::cetera())->willReturn([]);
+        $this->productRepository->findIdentifiersBy(Argument::cetera())->willReturn([]);
+        $this->productRepository->findBy(Argument::cetera())->shouldNotBeCalled();
         $this->productRepository->countBy(Argument::cetera())->willReturn(0);
 
         $result = $this->tool->listProductVariants('en', 'parent-uuid');
@@ -82,7 +87,8 @@ final class ProductVariantListToolTest extends TestCase
 
     public function testListVariantsReturnsErrorOnFailure(): void
     {
-        $this->productRepository->findBy(Argument::cetera())->willThrow(new \RuntimeException('DB gone'));
+        $this->productRepository->countBy(Argument::cetera())->willReturn(1);
+        $this->productRepository->findIdentifiersBy(Argument::cetera())->willThrow(new \RuntimeException('DB gone'));
 
         $result = $this->tool->listProductVariants('en', 'parent-uuid');
 

@@ -15,11 +15,13 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Product;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
+use Sulu\Bundle\AdminBundle\Application\BlockIdGenerator\BlockIdGeneratorInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
+use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -29,6 +31,7 @@ use Sulu\Product\Application\Message\ModifyProductMessage;
 use Sulu\Product\Domain\Exception\ProductNotFoundException;
 use Sulu\Product\Domain\Model\ProductInterface;
 use Sulu\Product\Domain\Repository\ProductRepositoryInterface;
+use Sulu\Product\Infrastructure\Sulu\Admin\ProductAdmin;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\HandleTrait;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -47,12 +50,15 @@ class ProductUpdateTool
         private readonly ContentManagerInterface $contentManager,
         private readonly ProductRepositoryInterface $productRepository,
         private readonly ContentMetadataMapper $contentMetadataMapper,
+        private readonly BlockDataValidator $blockDataValidator,
+        private readonly BlockIdGeneratorInterface $blockIdGenerator,
         private readonly AdminLinkGeneratorInterface $adminLinkGenerator,
     ) {
         $this->messageBus = $messageBus;
     }
 
     /**
+     * @param array<string, mixed>|null $content
      * @param array<string, mixed>|null $attributes
      * @param array<string, mixed>|null $details
      * @param array<string, mixed>|null $excerpt
@@ -66,7 +72,7 @@ class ProductUpdateTool
         description: 'Update an existing product. Reads the current state, merges your changes and writes back, so pass only what should change. "attributes" is a map keyed by the INTEGER attribute id (sulu_attribute_list) and is merged into the existing values — pass null for an id to clear it. Changing "productFamily" changes which attributes the product may carry. This tool does not change a product\'s type or parent: use sulu_product_variant_update for variants. The product stays a draft — call sulu_content_publish (type: product) to make changes live.',
     )]
     #[RequiresPermission(requirements: [
-        new PermissionRequirement('sulu.product.products', PermissionTypes::EDIT),
+        new PermissionRequirement(ProductAdmin::SECURITY_CONTEXT, PermissionTypes::EDIT),
     ])]
     public function updateProduct(
         string $uuid,
@@ -78,6 +84,8 @@ class ProductUpdateTool
         #[Schema(description: 'UUID of a different product family. Changing it changes which attributes apply.')]
         ?string $productFamily = null,
         ?string $template = null,
+        #[Schema(type: 'object', description: 'Template field values as a flat object, e.g. {"description": "<p>…</p>"}. Merged into the current content. May include a "blocks" tree; block _ids are assigned automatically.', additionalProperties: true)]
+        ?array $content = null,
         #[Schema(type: 'object', description: 'Attribute values keyed by the INTEGER attribute id, e.g. {"12": "red"}. Merged into the existing values; pass null for an id to clear that attribute.', additionalProperties: true)]
         ?array $attributes = null,
         #[Schema(type: 'object', description: 'Detail fields, e.g. {"shortDescription": "<p>…</p>"}. Media fields take {"id": <mediaId>}.', additionalProperties: true)]
@@ -128,6 +136,14 @@ class ProductUpdateTool
             }
             if (null !== $template) {
                 $data['template'] = $template;
+            }
+            if (null !== $content) {
+                $normalizedContent = self::normalizeContent($content);
+                $templateKey = \is_string($data['template'] ?? null) ? $data['template'] : null;
+                if ($validationError = $this->blockDataValidator->validateContentTree($normalizedContent, 'product', $templateKey)) {
+                    return $validationError;
+                }
+                $data = \array_merge($data, $this->assignBlockIds($normalizedContent, $this->blockIdGenerator));
             }
             if (null !== $attributes) {
                 $current = \is_array($data['attributes'] ?? null) ? $data['attributes'] : [];
