@@ -146,9 +146,10 @@ final class PageMoveToolTest extends TestCase
 
         self::assertArrayHasKey('error', $result);
         self::assertStringContainsString('own descendant', $result['error']);
-        // The permission check runs first, so the tree shape is never disclosed to a
-        // caller who could not have edited it anyway.
-        self::assertNotEmpty($this->permissionChecker->calls());
+        self::assertNotEmpty(
+            $this->permissionChecker->calls(),
+            'permission is checked before the descendant lookup, so the tree is not disclosed to a caller without edit rights',
+        );
         $this->messageBus->dispatch(Argument::cetera())->shouldNotHaveBeenCalled();
     }
 
@@ -158,7 +159,6 @@ final class PageMoveToolTest extends TestCase
         $this->pageRepository->findDescendantIdsById(self::PAGE_UUID)->willReturn([]);
         $this->givenTranslation($page->getParent(), ['en']);
 
-        // EDIT everywhere except on the page the caller wants to move into.
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll()->grantWhen(
             static fn (string $context, string $permission, ?string $locale, ?string $objectType, mixed $objectId): bool => self::NEW_PARENT_UUID !== $objectId
         );
@@ -188,8 +188,7 @@ final class PageMoveToolTest extends TestCase
 
     public function testMovePageRefusesWhenTheCurrentParentHasNoTranslationInTheGivenLocale(): void
     {
-        // MovePageMessageHandler reads the previous parent's title in this locale
-        // without a null check, so the tool has to stop before dispatching.
+        // MovePageMessageHandler dereferences the previous parent's title without a null check.
         $page = $this->givenTree();
         $this->pageRepository->findDescendantIdsById(self::PAGE_UUID)->willReturn([]);
         $this->givenTranslation($page->getParent(), ['de']);
@@ -222,9 +221,6 @@ final class PageMoveToolTest extends TestCase
         );
     }
 
-    /**
-     * Page under an old parent, plus a target parent, all in "example" unless told otherwise.
-     */
     private function givenTree(string $targetWebspace = 'example'): PageInterface
     {
         $oldParent = new Page(self::OLD_PARENT_UUID);

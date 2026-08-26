@@ -158,8 +158,7 @@ final class PageTreeToolTest extends TestCase
 
     public function testGetPageTreeNumbersSiblingsFromOneAtEveryLevel(): void
     {
-        // sulu_page_reorder takes a 1-based position, so the tree has to hand the
-        // model the number it is expected to compute the new position from.
+        // The number sulu_page_reorder takes as input.
         $firstChild = $this->createPage('uuid-child-1', 'First', '/first');
         $secondChild = $this->createPage('uuid-child-2', 'Second', '/second');
 

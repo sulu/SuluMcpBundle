@@ -31,10 +31,8 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 /**
- * The move tool against the real page tree, the real route table and the real
- * RouteChangedUpdater -- the three claims the tool description makes about a move
- * (descendants follow, old addresses become history, no re-publish is involved)
- * are only true if Sulu behaves this way, so they are pinned here rather than trusted.
+ * Pins the three claims the move tool's description makes -- descendants follow, old
+ * addresses become history, no re-publish is involved -- against real Sulu.
  */
 #[CoversClass(PageMoveTool::class)]
 #[CoversClass(PageReorderTool::class)]
@@ -57,9 +55,8 @@ final class PageMoveTest extends FunctionalTestCase
 
         $result = $this->moveTool()->movePage($alpha->getUuid(), $beta->getUuid(), 'en');
 
-        // RouteChangedUpdater rewrites descendants and writes history rows in raw SQL after
-        // the flush, so the identity map still holds the pre-move slugs. Read from the
-        // database, which is also the state the website router would resolve against.
+        // RouteChangedUpdater rewrites descendants in raw SQL after the flush, so the
+        // identity map still holds the pre-move slugs.
         $alphaUuid = $alpha->getUuid();
         $leafUuid = $leaf->getUuid();
         $this->entityManager->clear();
@@ -70,12 +67,11 @@ final class PageMoveTest extends FunctionalTestCase
         self::assertSame(1, $result['affectedDescendants'], 'the leaf below alpha is the one affected descendant');
         self::assertSame('/beta/alpha', $result['url'], 'the caller is told the new address, not the old one');
 
-        // Descendants follow the moved page, and the whole subtree is re-anchored.
         self::assertSame('/beta/alpha', $this->slugOfUuid($alphaUuid));
-        self::assertSame('/beta/alpha/leaf', $this->slugOfUuid($leafUuid));
+        self::assertSame('/beta/alpha/leaf', $this->slugOfUuid($leafUuid), 'the subtree is re-anchored, not just the moved page');
 
-        // No publish transition ran between the move and these assertions: Route rows are
-        // not stage-scoped, so the address the website resolves changed on flush.
+        // No publish transition ran: Route rows are not stage-scoped, so the address the
+        // website resolves changed on flush.
         $histories = $this->historySlugs();
         self::assertContains('/alpha', $histories, 'the moved page keeps its old address as a redirect');
         self::assertContains('/alpha/leaf', $histories, 'every descendant keeps its old address as a redirect');

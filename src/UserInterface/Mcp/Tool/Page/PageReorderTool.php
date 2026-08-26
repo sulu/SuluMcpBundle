@@ -67,8 +67,8 @@ class PageReorderTool
         string $locale,
     ): array {
         try {
-            // Sibling order is language-independent; loadGhost keeps a page that has no
-            // content in this locale yet reorderable. Nothing localized is read here.
+            // loadGhost: sibling order is language-independent, so a page with no content
+            // in this locale is still reorderable.
             $page = $this->pageRepository->findOneBy(
                 [
                     'uuid' => $uuid,
@@ -96,9 +96,8 @@ class PageReorderTool
                 ];
             }
 
-            // Counted through the repository, not $parent->getChildren(): the parent may be
-            // an already-managed instance whose children collection predates the sibling
-            // this call is about to order, and reorderOneBy() queries the database too.
+            // Not $parent->getChildren(): a managed parent's collection can predate the
+            // children this call is about to order.
             $siblingCount = $this->pageRepository->countBy(['parentId' => $parent->getUuid()]);
             if ($position < 1 || $position > $siblingCount) {
                 return [

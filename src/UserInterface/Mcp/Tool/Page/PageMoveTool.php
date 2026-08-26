@@ -77,9 +77,8 @@ class PageMoveTool
                 ];
             }
 
-            // Tree position is language-independent, so loadGhost keeps a page that has no
-            // content in this locale yet movable; only the webspace and the parent are read
-            // off the entity here.
+            // loadGhost: tree position is language-independent, so a page with no content
+            // in this locale is still movable.
             $page = $this->loadPage($uuid, $locale);
             if (null === $page) {
                 return [
@@ -104,8 +103,8 @@ class PageMoveTool
                 ];
             }
 
-            // moveOneBy() re-parents the nested set but never rewrites webspaceKey, so a
-            // cross-webspace move would leave the whole subtree claiming its old webspace.
+            // moveOneBy() never rewrites webspaceKey, so a cross-webspace move would leave
+            // the subtree claiming its old webspace.
             if ($page->getWebspaceKey() !== $targetParent->getWebspaceKey()) {
                 throw new PermissionDeniedException(
                     'sulu.webspaces.' . $targetParent->getWebspaceKey(),
@@ -114,10 +113,9 @@ class PageMoveTool
                 );
             }
 
-            // A move writes into two branches: the one the page leaves and the one it joins.
-            // The admin only checks the source page; requiring both is deliberate. Checked
-            // before the descendant lookup below, so the shape of the tree stays invisible
-            // to a caller without edit rights.
+            // The admin checks only the source page; a move writes into both branches, so
+            // both are required. Before the descendant lookup, which would otherwise
+            // disclose the tree to a caller without edit rights.
             $context = 'sulu.webspaces.' . $page->getWebspaceKey();
             $this->permissionChecker->check($context, PermissionTypes::EDIT, $locale, Page::class, $uuid);
             $this->permissionChecker->check($context, PermissionTypes::EDIT, $locale, Page::class, $targetParentId);
@@ -131,8 +129,8 @@ class PageMoveTool
                 ];
             }
 
-            // MovePageMessageHandler reads the previous parent's title in this locale to
-            // build the activity entry, without a null check. Fail readably instead.
+            // MovePageMessageHandler dereferences the previous parent's title in this
+            // locale without a null check.
             if (!$this->hasTranslation($previousParent, $locale)) {
                 return [
                     'error' => \sprintf('The current parent page %s has no "%s" translation.', $previousParent->getUuid(), $locale),
