@@ -29,10 +29,12 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
+use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ArticleAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
@@ -104,6 +106,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleGroupResolver,
             $this->permissionChecker,
             $this->articleContextResolver,
+            new ContentSecurityContextResolver($this->articleContextResolver, $this->contentManager->reveal()),
         );
     }
 
@@ -234,6 +237,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleGroupResolver,
             $this->permissionChecker,
             $contextResolver,
+            new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),
         );
 
         $currentArticle = new Article();
@@ -275,6 +279,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleGroupResolver,
             $this->permissionChecker,
             $contextResolver,
+            new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),
         );
 
         $currentArticle = new Article();
@@ -322,6 +327,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleGroupResolver,
             $this->permissionChecker,
             $contextResolver,
+            new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),
         );
 
         $currentArticle = new Article();
@@ -378,6 +384,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleGroupResolver,
             $this->permissionChecker,
             $contextResolver,
+            new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),
         );
 
         $currentArticle = new Article();
@@ -458,6 +465,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleGroupResolver,
             $this->permissionChecker,
             $contextResolver,
+            new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),
         );
 
         $currentArticle = new Article();
@@ -657,6 +665,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleGroupResolver,
             $this->permissionChecker,
             $this->articleContextResolver,
+            new ContentSecurityContextResolver($this->articleContextResolver, $this->contentManager->reveal()),
         );
 
         $currentArticle = new Article();
@@ -752,21 +761,33 @@ final class ArticleUpdateToolTest extends TestCase
     }
 
     /**
-     * A locale the article has no content in yet: Sulu merges the unlocalized dimension
-     * only, so the resolved locale stays null and availableLocales lists the locales
-     * that do exist.
+     * A ghost resolves to the unlocalized dimension, so its locale stays null while
+     * ghostLocale and availableLocales name the locales that do exist.
+     *
+     * @param non-empty-list<string> $translatedLocales
      */
-    private function setUpGhostLocale(array $translatedLocales = ['de']): void
+    private function setUpGhostLocale(array $translatedLocales = ['de'], string $sourceTemplateKey = 'article'): void
     {
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn(new Article('uuid-1'));
 
         $ghostDimensionContent = new ArticleDimensionContent(new Article());
+        $ghostDimensionContent->setGhostLocale($translatedLocales[0]);
         foreach ($translatedLocales as $translatedLocale) {
             $ghostDimensionContent->addAvailableLocale($translatedLocale);
         }
+
+        $sourceDimensionContent = new ArticleDimensionContent(new Article());
+        $sourceDimensionContent->setLocale($translatedLocales[0]);
+        $sourceDimensionContent->setTemplateKey($sourceTemplateKey);
+
         $this->contentManager->resolve(Argument::cetera())->willReturn($ghostDimensionContent);
+        $this->contentManager->resolve(
+            Argument::any(),
+            ['locale' => $translatedLocales[0], 'stage' => DimensionContentInterface::STAGE_DRAFT],
+        )->willReturn($sourceDimensionContent);
+        // url: the route the post-dispatch normalize reports for the new locale.
         $this->contentManager->normalize(Argument::cetera())
-            ->willReturn(['locale' => null, 'availableLocales' => $translatedLocales]);
+            ->willReturn(['locale' => null, 'availableLocales' => $translatedLocales, 'url' => '/english-article']);
     }
 
     public function testUpdateArticleCreatesMissingLocale(): void
@@ -824,5 +845,59 @@ final class ArticleUpdateToolTest extends TestCase
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('routing data', $result['error']);
+    }
+
+    public function testUpdateArticleDeniesCreatingALocaleWithoutTheSourceGroup(): void
+    {
+        $tool = $this->multiGroupTool();
+        $this->setUpGhostLocale(['de'], 'blog_article');
+
+        $this->permissionChecker->denyContext('sulu.article.articles_blog');
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $this->expectException(ToolCallException::class);
+
+        $tool->updateArticle('uuid-1', 'en', 'English Title', 'article', ['url' => '/english-article']);
+    }
+
+    public function testUpdateArticleCreatesALocaleWhenTheSourceGroupIsPermitted(): void
+    {
+        $tool = $this->multiGroupTool();
+        $this->setUpGhostLocale(['de'], 'blog_article');
+
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(fn (array $args) => $args[0]->with(new HandledStamp(new Article('uuid-1'), 'handler')));
+
+        $result = $tool->updateArticle('uuid-1', 'en', 'English Title', 'blog_article', ['url' => '/english-article']);
+
+        $this->assertTrue($result['created_locale']);
+        $this->assertContains('sulu.article.articles_blog', $this->permissionChecker->checkedContexts());
+    }
+
+    private function multiGroupTool(): ArticleUpdateTool
+    {
+        $contextResolver = new ArticleSecurityContextResolver(new TestGroupProvider([
+            (new FormGroup('default', 'Default'))->withTemplate('article'),
+            (new FormGroup('blog', 'Blog'))->withTemplate('blog_article'),
+        ]));
+
+        $router = $this->prophesize(RouterInterface::class);
+        $router->generate(Argument::cetera())->willReturn('https://example.com/admin/');
+
+        return new ArticleUpdateTool(
+            $this->messageBus->reveal(),
+            $this->contentManager->reveal(),
+            $this->articleRepository->reveal(),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            $this->blockIdGenerator,
+            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
+            $this->articleGroupResolver,
+            $this->permissionChecker,
+            $contextResolver,
+            new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),
+        );
     }
 }

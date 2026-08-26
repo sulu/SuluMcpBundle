@@ -31,6 +31,7 @@ use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
+use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -62,6 +63,7 @@ class ArticleUpdateTool
         private readonly ArticleGroupResolver $articleGroupResolver,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
         private readonly ArticleSecurityContextResolver $articleContextResolver,
+        private readonly ContentSecurityContextResolver $contentSecurityContextResolver,
     ) {
         $this->messageBus = $messageBus;
     }
@@ -96,10 +98,8 @@ class ArticleUpdateTool
         ?array $seo = null,
     ): array {
         try {
-            // Read current article state to get template and existing content. loadGhost
-            // keeps the article findable in a locale it has not been translated to yet --
-            // without it the locale filter is strict and the article looks like it does
-            // not exist at all.
+            // Read current article state to get template and existing content.
+            // loadGhost also matches a locale the article has no content in yet.
             $article = $this->articleRepository->getOneBy(
                 [
                     'uuid' => $uuid,
@@ -117,11 +117,22 @@ class ArticleUpdateTool
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
 
-            // A not-yet-translated locale is created purely from what the caller passes.
-            // The resolve above never reaches into the source locale, so there is nothing to
-            // inherit -- dropping its result only keeps the unlocalized dimension's own fields
-            // (availableLocales, ghostLocale) out of the write.
             $createsLocale = self::isMissingTranslation($currentDimensionContent, $locale);
+
+            // Gate the source group before anything leaks the article's locales: a ghost has
+            // no template key of its own, so the group comes from the locale it is a ghost of.
+            $sourceContext = $this->contentSecurityContextResolver->forEntityInLocale(
+                'article',
+                $article,
+                $currentDimensionContent,
+                $locale,
+            );
+            $this->permissionChecker->check(
+                $sourceContext,
+                PermissionTypes::EDIT,
+                $locale,
+            );
+
             if ($createsLocale && \in_array(null, [$title, $template, $content], true)) {
                 return self::missingTranslationError(
                     'Article',
@@ -132,19 +143,8 @@ class ArticleUpdateTool
                 );
             }
 
+            // A new locale must not inherit the source locale's template.
             $currentTemplateKey = $createsLocale ? '' : ($currentDimensionContent->getTemplateKey() ?? '');
-
-            // The article has no content in this locale, so there is no source template and
-            // no source group to check -- like a create, only the target group is gated.
-            $sourceContext = null;
-            if (!$createsLocale) {
-                $sourceContext = $this->articleContextResolver->forTemplateKey($currentTemplateKey);
-                $this->permissionChecker->check(
-                    $sourceContext,
-                    PermissionTypes::EDIT,
-                    $locale,
-                );
-            }
 
             // Trusted template: the `template` arg, else the current one. content/excerpt/seo
             // below must not smuggle a different value past this point (not even content.template).
@@ -162,6 +162,8 @@ class ArticleUpdateTool
                 );
             }
 
+            // A new locale is built from the caller's input alone -- the ghost resolve carries no
+            // source content, only the unlocalized dimension's availableLocales/ghostLocale.
             $currentData = $createsLocale ? [] : $this->contentManager->normalize($currentDimensionContent);
 
             // Build update data: start with current state, overlay user changes
@@ -173,6 +175,7 @@ class ArticleUpdateTool
             if (null !== $title) {
                 $data['title'] = $title;
             }
+            $normalizedContent = [];
             if (null !== $content) {
                 $normalizedContent = self::normalizeContent($content);
                 if ($validationError = ArticleRouteValidator::validate($normalizedContent, required: $createsLocale)) {
@@ -213,6 +216,14 @@ class ArticleUpdateTool
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
             $normalized = $this->contentManager->normalize($dimensionContent);
+
+            // A new locale is a create as far as routing goes: Sulu answers a routing form the
+            // template does not accept with url: null instead of an error.
+            if ($createsLocale && $routingError = ArticleRouteValidator::assertRoutingResolved($normalized, $normalizedContent)) {
+                $routingError['uuid'] = $updatedArticle->getUuid();
+
+                return $routingError;
+            }
 
             $result = [
                 'success' => true,

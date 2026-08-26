@@ -13,16 +13,22 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Tests\Functional;
 
+use Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\Attributes\CoversNothing;
+use Sulu\Article\Application\Message\CreateArticleMessage;
+use Sulu\Article\Domain\Model\ArticleInterface;
+use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleUpdateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageUpdateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetUpdateTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
 use Sulu\Page\Application\Message\CreatePageMessage;
+use Sulu\Page\Application\Message\ModifyPageMessage;
 use Sulu\Page\Domain\Model\PageInterface;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Sulu\Snippet\Application\Message\CreateSnippetMessage;
@@ -85,8 +91,7 @@ final class ContentLocaleCreationTest extends FunctionalTestCase
         self::assertSame('<p>English body</p>', $normalized['article'] ?? null);
         self::assertTrue($result['created_locale'] ?? false);
 
-        // The locale it was translated from must be untouched. Clear first: the page is
-        // already managed with the dimension contents the "en" query hydrated.
+        // Clear first: the page is already managed with the dimension contents the "en" query hydrated.
         $this->entityManager->clear();
 
         $germanPage = $pageRepository->getOneBy(
@@ -163,6 +168,138 @@ final class ContentLocaleCreationTest extends FunctionalTestCase
         self::assertSame('English Snippet', $result['data']['title'] ?? null);
     }
 
+    public function testArticleUpdateCreatesMissingLocale(): void
+    {
+        $this->authenticateEditor(['sulu.webspaces.website', 'sulu.article.articles_blog']);
+        $pageUuid = $this->createGermanPage();
+        $this->translatePageToEnglish($pageUuid);
+        $uuid = $this->createGermanArticle($pageUuid);
+
+        /** @var ArticleUpdateTool $tool */
+        $tool = self::getContainer()->get(ArticleUpdateTool::class);
+
+        $result = $tool->updateArticle(
+            $uuid,
+            'en',
+            title: 'English Article',
+            template: 'blog',
+            content: [
+                'page' => ['uuid' => $pageUuid, 'path' => '/english-page', 'suffix' => 'english-article'],
+                'article' => '<p>English body</p>',
+            ],
+        );
+
+        self::assertArrayNotHasKey('error', $result, (string) ($result['error'] ?? ''));
+        self::assertTrue($result['created_locale'] ?? false);
+
+        $this->entityManager->clear();
+
+        /** @var ArticleRepositoryInterface $articleRepository */
+        $articleRepository = self::getContainer()->get('sulu_article.article_repository');
+        $article = $articleRepository->getOneBy(
+            ['uuid' => $uuid, 'locale' => 'en', 'stage' => DimensionContentInterface::STAGE_DRAFT],
+            [ArticleRepositoryInterface::GROUP_SELECT_ARTICLE_ADMIN => true],
+        );
+
+        /** @var ContentManagerInterface $contentManager */
+        $contentManager = self::getContainer()->get(ContentManagerInterface::class);
+        $normalized = $contentManager->normalize($contentManager->resolve($article, [
+            'locale' => 'en',
+            'stage' => DimensionContentInterface::STAGE_DRAFT,
+        ]));
+
+        self::assertSame('English Article', $normalized['title'] ?? null);
+        self::assertSame('<p>English body</p>', $normalized['article'] ?? null);
+        self::assertSame('/english-article', $normalized['url']['suffix'] ?? null);
+    }
+
+    public function testArticleUpdateDeniesCreatingALocaleForAnotherGroup(): void
+    {
+        $this->authenticateEditor(['sulu.webspaces.website', 'sulu.article.articles']);
+        $pageUuid = $this->createGermanPage();
+        $uuid = $this->createGermanArticle($pageUuid);
+
+        /** @var ArticleUpdateTool $tool */
+        $tool = self::getContainer()->get(ArticleUpdateTool::class);
+
+        $this->expectException(ToolCallException::class);
+
+        $tool->updateArticle(
+            $uuid,
+            'en',
+            title: 'English Article',
+            template: 'article',
+            content: [
+                'page' => ['uuid' => $pageUuid, 'path' => '/', 'suffix' => '/english-article'],
+            ],
+        );
+    }
+
+    public function testArticleUpdateReportsRoutingThatDidNotResolve(): void
+    {
+        $this->authenticateEditor(['sulu.webspaces.website', 'sulu.article.articles_blog']);
+        $pageUuid = $this->createGermanPage();
+        $uuid = $this->createGermanArticle($pageUuid);
+
+        /** @var ArticleUpdateTool $tool */
+        $tool = self::getContainer()->get(ArticleUpdateTool::class);
+
+        // The parent page has no "en" route, so Sulu resolves the article's url to null.
+        $result = $tool->updateArticle(
+            $uuid,
+            'en',
+            title: 'English Article',
+            template: 'blog',
+            content: ['page' => ['uuid' => $pageUuid, 'path' => '/', 'suffix' => 'english-article']],
+        );
+
+        self::assertArrayHasKey('error', $result);
+        self::assertArrayNotHasKey('created_locale', $result);
+    }
+
+    private function translatePageToEnglish(string $pageUuid): void
+    {
+        /** @var MessageBusInterface $messageBus */
+        $messageBus = self::getContainer()->get(MessageBusInterface::class);
+
+        $messageBus->dispatch(new Envelope(
+            new ModifyPageMessage(['uuid' => $pageUuid], [
+                'locale' => 'en',
+                'template' => 'default',
+                'title' => 'English Page',
+                'url' => '/english-page',
+            ]),
+            [new EnableFlushStamp()],
+        ));
+    }
+
+    private function createGermanArticle(string $pageUuid): string
+    {
+        /** @var MessageBusInterface $messageBus */
+        $messageBus = self::getContainer()->get(MessageBusInterface::class);
+
+        $envelope = $messageBus->dispatch(new Envelope(
+            new CreateArticleMessage([
+                'locale' => 'de',
+                'template' => 'blog',
+                'title' => 'Deutscher Artikel',
+                'url' => [
+                    'page' => ['uuid' => $pageUuid, 'path' => '/'],
+                    'suffix' => '/deutscher-artikel',
+                ],
+                'article' => '<p>Deutscher Text</p>',
+            ]),
+            [new EnableFlushStamp()],
+        ));
+
+        /** @var HandledStamp $stamp */
+        $stamp = $envelope->last(HandledStamp::class);
+        /** @var ArticleInterface $article */
+        $article = $stamp->getResult();
+
+        return $article->getUuid();
+    }
+
     private function createGermanSnippet(): string
     {
         /** @var MessageBusInterface $messageBus */
@@ -209,7 +346,10 @@ final class ContentLocaleCreationTest extends FunctionalTestCase
         return $page->getUuid();
     }
 
-    private function authenticateEditor(): void
+    /**
+     * @param list<string> $contexts
+     */
+    private function authenticateEditor(array $contexts = ['sulu.webspaces.website']): void
     {
         $container = self::getContainer();
 
@@ -220,7 +360,7 @@ final class ContentLocaleCreationTest extends FunctionalTestCase
             $container->get(SystemStoreInterface::class),
         );
 
-        $role = $builder->role('LocaleEditor', ['sulu.webspaces.website' => self::ALL_GRANTED]);
+        $role = $builder->role('LocaleEditor', \array_fill_keys($contexts, self::ALL_GRANTED));
         $builder->authenticate($builder->user('locale-editor', $role, 'en', ['en', 'de']));
     }
 }
