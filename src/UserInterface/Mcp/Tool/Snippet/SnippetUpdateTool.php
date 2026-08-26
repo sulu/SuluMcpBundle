@@ -89,10 +89,6 @@ class SnippetUpdateTool
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
-            // A not-yet-translated locale is created purely from what the caller passes.
-            // The resolve above never reaches into the source locale, so there is nothing to
-            // inherit -- dropping its result only keeps the unlocalized dimension's own fields
-            // (availableLocales, ghostLocale) out of the write.
             $createsLocale = self::isMissingTranslation($currentDimensionContent, $locale);
             if ($createsLocale && (null === $title || null === $template)) {
                 return self::missingTranslationError(
@@ -104,6 +100,8 @@ class SnippetUpdateTool
                 );
             }
 
+            // A new locale is built from the caller's input alone -- the ghost resolve carries no
+            // source content, only the unlocalized dimension's availableLocales/ghostLocale.
             $currentData = $createsLocale ? [] : $this->contentManager->normalize($currentDimensionContent);
 
             // Trusted template: the `template` arg, else the current one. Snippets have no

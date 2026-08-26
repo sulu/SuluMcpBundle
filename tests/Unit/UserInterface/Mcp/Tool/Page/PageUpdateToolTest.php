@@ -548,9 +548,8 @@ final class PageUpdateToolTest extends TestCase
     }
 
     /**
-     * A locale the page has no content in yet: Sulu merges the unlocalized dimension
-     * only, so the resolved locale stays null and availableLocales lists the locales
-     * that do exist.
+     * A ghost resolves to the unlocalized dimension, so its locale stays null while
+     * availableLocales names the locales that do exist.
      */
     private function setUpGhostLocale(string $uuid, array $translatedLocales = ['de']): Page
     {

@@ -227,8 +227,7 @@ final class BlockListToolTest extends TestCase
         $page->setWebspaceKey('example');
         $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
 
-        // A locale the page has not been translated to yet resolves to the unlocalized
-        // dimension, so the merged locale stays null.
+        // A ghost resolves to the unlocalized dimension, so its locale stays null.
         $ghostDimensionContent = new PageDimensionContent(new Page());
         $ghostDimensionContent->addAvailableLocale('de');
         $this->contentManager->resolve(Argument::cetera())->willReturn($ghostDimensionContent);
@@ -246,9 +245,8 @@ final class BlockListToolTest extends TestCase
         $article = new Article('article-uuid');
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($article);
 
-        // The ghost carries no template key of its own, so the article's group has to
-        // come from the locale it is a ghost of -- otherwise the context is unresolvable
-        // and the caller gets a denial instead of the missing-translation hint.
+        // A ghost carries no template key, so the article's group comes from the locale it
+        // is a ghost of -- otherwise the context is unresolvable and fails closed.
         $ghost = new ArticleDimensionContent(new Article());
         $ghost->setGhostLocale('de');
         $ghost->addAvailableLocale('de');

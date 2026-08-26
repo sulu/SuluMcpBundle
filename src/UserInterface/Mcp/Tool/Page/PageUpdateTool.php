@@ -94,10 +94,8 @@ class PageUpdateTool
         ?array $seo = null,
     ): array {
         try {
-            // Read current page state to get template and existing content. loadGhost
-            // keeps the page findable in a locale it has not been translated to yet --
-            // without it the locale filter is strict and the page looks like it does
-            // not exist at all.
+            // Read current page state to get template and existing content.
+            // loadGhost also matches a locale the page has no content in yet.
             $page = $this->pageRepository->getOneBy(
                 [
                     'uuid' => $uuid,
@@ -124,10 +122,6 @@ class PageUpdateTool
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
 
-            // A not-yet-translated locale is created purely from what the caller passes.
-            // The resolve above never reaches into the source locale, so there is nothing to
-            // inherit -- dropping its result only keeps the unlocalized dimension's own fields
-            // (availableLocales, ghostLocale, the webspace default template) out of the write.
             $createsLocale = self::isMissingTranslation($currentDimensionContent, $locale);
             if ($createsLocale && \in_array(null, [$title, $url, $template], true)) {
                 return self::missingTranslationError(
@@ -139,6 +133,8 @@ class PageUpdateTool
                 );
             }
 
+            // A new locale is built from the caller's input alone -- the ghost resolve carries no
+            // source content, only availableLocales, ghostLocale and the webspace default template.
             $currentData = $createsLocale ? [] : $this->contentManager->normalize($currentDimensionContent);
 
             // Trusted template: the `template` arg, else the current one. content/excerpt/seo

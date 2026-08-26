@@ -68,11 +68,9 @@ final readonly class ContentTypeResolver
      * Load the draft aggregate for the given content type, or null when the type
      * is unsupported or no matching entity exists.
      *
-     * $loadGhost keeps the entity findable in a locale it has not been translated to
-     * yet -- without it the locale filter is strict and the entity looks like it does
-     * not exist at all. Only callers that tell the two apart with ContentLocaleTrait
-     * may opt in; for everyone else an untranslated locale must stay "not found",
-     * because acting on the returned aggregate would act on all its locales.
+     * $loadGhost also matches an entity in a locale it has no content in. It is opt-in:
+     * the returned aggregate spans every locale, so a caller that does not check for a
+     * missing translation with ContentLocaleTrait would act on all of them.
      */
     public function loadDraft(string $type, string $uuid, string $locale, bool $loadGhost = false): ?object
     {

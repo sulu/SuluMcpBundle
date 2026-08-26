@@ -51,10 +51,8 @@ final readonly class ContentSecurityContextResolver
     }
 
     /**
-     * Same mapping for the loadGhost callers: a ghost carries no template key of its
-     * own, so an article's group can only come from a locale the article does have
-     * content in. loadGhost drops the locale filter, so every locale is loaded
-     * already and resolving the source one costs no query.
+     * Same mapping for the loadGhost callers: a ghost carries no template key of its own,
+     * so an article's group comes from the locale it is a ghost of.
      *
      * @template T of ContentRichEntityInterface
      *

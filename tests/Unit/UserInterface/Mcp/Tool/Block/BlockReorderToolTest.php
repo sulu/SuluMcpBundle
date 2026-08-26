@@ -373,8 +373,7 @@ final class BlockReorderToolTest extends TestCase
         $page->setWebspaceKey('example');
         $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
 
-        // A locale the page has not been translated to yet resolves to the unlocalized
-        // dimension, so the merged locale stays null.
+        // A ghost resolves to the unlocalized dimension, so its locale stays null.
         $ghostDimensionContent = new PageDimensionContent(new Page());
         $ghostDimensionContent->addAvailableLocale('de');
         $this->contentManager->resolve(Argument::cetera())->willReturn($ghostDimensionContent);

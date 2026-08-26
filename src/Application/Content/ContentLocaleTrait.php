@@ -19,11 +19,8 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 /**
  * Tells a not-yet-translated locale apart from one that has content of its own.
  *
- * Sulu calls an entity viewed in a locale it has no content in a "ghost"; the
- * persisted `ghostLocale` on the unlocalized dimension names the locale it is a
- * ghost of. `loadGhost` is what makes such an entity findable at all -- a plain
- * locale filter does not match it. The merge then covers the unlocalized
- * dimension only, so the resolved locale stays null; that is the signal used here.
+ * A loadGhost query also returns the entity in a locale it has no content in. The
+ * merge then covers the unlocalized dimension only, so the resolved locale stays null.
  *
  * @internal
  */
@@ -66,9 +63,6 @@ trait ContentLocaleTrait
     }
 
     /**
-     * Blocks live inside a translation, so every block tool refuses the same way when
-     * the requested locale has none yet.
-     *
      * @template T of ContentRichEntityInterface
      *
      * @param DimensionContentInterface<T> $dimensionContent
