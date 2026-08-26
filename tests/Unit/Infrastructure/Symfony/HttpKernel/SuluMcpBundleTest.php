@@ -91,7 +91,7 @@ final class SuluMcpBundleTest extends TestCase
         ], $container);
 
         self::assertSame(
-            ['sulu_content_publish', 'sulu_content_unpublish', 'sulu_preview_link_revoke'],
+            ['sulu_content_publish', 'sulu_content_unpublish', 'sulu_preview_link_revoke', 'sulu_page_move', 'sulu_page_reorder'],
             $container->getParameter('sulu_mcp.disabled_tool_names'),
         );
     }

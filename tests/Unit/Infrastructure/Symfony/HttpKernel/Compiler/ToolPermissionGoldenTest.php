@@ -41,6 +41,8 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Navigation\NavigationGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageMoveTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageReorderTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageTreeTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageUpdateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\PingTool;
@@ -92,6 +94,8 @@ final class ToolPermissionGoldenTest extends TestCase
         PageCreateTool::class => ['sulu_page_create', [['sulu.webspaces.#context#', PermissionTypes::EDIT], ['sulu.webspaces.#context#', PermissionTypes::ADD]]],
         PageGetTool::class => ['sulu_page_get', [['sulu.webspaces.#context#', PermissionTypes::VIEW]]],
         PageListTool::class => ['sulu_page_list', [['sulu.webspaces.#context#', PermissionTypes::VIEW]]],
+        PageMoveTool::class => ['sulu_page_move', [['sulu.webspaces.#context#', PermissionTypes::EDIT]]],
+        PageReorderTool::class => ['sulu_page_reorder', [['sulu.webspaces.#context#', PermissionTypes::EDIT]]],
         PageTreeTool::class => ['sulu_page_tree', [['sulu.webspaces.#context#', PermissionTypes::VIEW]]],
         PageUpdateTool::class => ['sulu_page_update', [['sulu.webspaces.#context#', PermissionTypes::EDIT]]],
         PreviewLinkGenerateTool::class => ['sulu_preview_link_generate', [['#context#', PermissionTypes::EDIT]]],

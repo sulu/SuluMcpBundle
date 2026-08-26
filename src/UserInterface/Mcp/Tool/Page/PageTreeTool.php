@@ -45,7 +45,7 @@ class PageTreeTool
     #[McpTool(
         name: 'sulu_page_tree',
         title: 'Get Page Tree',
-        description: 'Get the page tree as a nested hierarchy for a webspace. Each node contains uuid, title, url, template, and a "children" array with the same structure. Shows the site structure — use this to find the parentId when creating new pages, or to understand the site navigation. Root-level pages are direct children of the webspace root. Accepts an optional maxDepth to limit response size on deep site trees; when a node has hasChildren:true but children:[] the branch was depth-truncated — request again with a higher maxDepth or fetch that branch separately.',
+        description: 'Get the page tree as a nested hierarchy for a webspace. Each node contains uuid, title, url, template, a 1-based "position" among its siblings (what sulu_page_reorder expects), and a "children" array with the same structure. Shows the site structure — use this to find the parentId when creating new pages, or to understand the site navigation. Root-level pages are direct children of the webspace root. Accepts an optional maxDepth to limit response size on deep site trees; when a node has hasChildren:true but children:[] the branch was depth-truncated — request again with a higher maxDepth or fetch that branch separately.',
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.webspaces.#context#', PermissionTypes::VIEW)],
@@ -83,8 +83,10 @@ class PageTreeTool
         );
 
         $tree = [];
+        $position = 1;
         foreach ($pages as $page) {
-            $tree[] = $this->buildTreeNode($page, $locale, 0, $maxDepth);
+            $tree[] = $this->buildTreeNode($page, $locale, 0, $maxDepth, $position);
+            ++$position;
         }
 
         return [
@@ -97,7 +99,7 @@ class PageTreeTool
     /**
      * @return array<string, mixed>
      */
-    private function buildTreeNode(PageInterface $page, string $locale, int $depth = 0, ?int $maxDepth = null): array
+    private function buildTreeNode(PageInterface $page, string $locale, int $depth = 0, ?int $maxDepth = null, int $position = 1): array
     {
         /** @var PageDimensionContentInterface $dimensionContent */
         $dimensionContent = $this->contentManager->resolve($page, [
@@ -109,8 +111,10 @@ class PageTreeTool
         $childNodes = [];
 
         if (null === $maxDepth || $depth < $maxDepth) {
+            $childPosition = 1;
             foreach ($children as $child) {
-                $childNodes[] = $this->buildTreeNode($child, $locale, $depth + 1, $maxDepth);
+                $childNodes[] = $this->buildTreeNode($child, $locale, $depth + 1, $maxDepth, $childPosition);
+                ++$childPosition;
             }
         }
 
@@ -122,6 +126,7 @@ class PageTreeTool
             'hasChildren' => !$children->isEmpty(),
             'parentUuid' => $page->getParent()?->getUuid(),
             'depth' => $depth,
+            'position' => $position,
             'workflowPlace' => $dimensionContent->getWorkflowPlace(),
             'availableLocales' => $dimensionContent->getAvailableLocales(),
             'children' => $childNodes,

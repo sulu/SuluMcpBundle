@@ -20,6 +20,8 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentPublishTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageMoveTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageReorderTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryDeleteTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
@@ -39,6 +41,8 @@ final class DangerousToolsPassTest extends TestCase
         ContentPublishTool::class,
         ContentUnpublishTool::class,
         PreviewLinkRevokeTool::class,
+        PageMoveTool::class,
+        PageReorderTool::class,
         BlockRemoveTool::class,
     ];
 
@@ -60,6 +64,8 @@ final class DangerousToolsPassTest extends TestCase
             ContentPublishTool::class,
             ContentUnpublishTool::class,
             PreviewLinkRevokeTool::class,
+            PageMoveTool::class,
+            PageReorderTool::class,
             BlockRemoveTool::class,
         ]);
     }
@@ -77,6 +83,8 @@ final class DangerousToolsPassTest extends TestCase
             ContentPublishTool::class,
             ContentUnpublishTool::class,
             PreviewLinkRevokeTool::class,
+            PageMoveTool::class,
+            PageReorderTool::class,
         ]);
         $this->assertDefinitionsPresent($container, [
             ContentDeleteTool::class,
@@ -105,6 +113,8 @@ final class DangerousToolsPassTest extends TestCase
             ContentPublishTool::class,
             ContentUnpublishTool::class,
             PreviewLinkRevokeTool::class,
+            PageMoveTool::class,
+            PageReorderTool::class,
         ]);
     }
 
@@ -144,6 +154,8 @@ final class DangerousToolsPassTest extends TestCase
             'sulu_content_publish',
             'sulu_content_unpublish',
             'sulu_preview_link_revoke',
+            'sulu_page_move',
+            'sulu_page_reorder',
             'sulu_block_remove',
         ], $names);
     }
@@ -171,6 +183,8 @@ final class DangerousToolsPassTest extends TestCase
             'sulu_content_publish',
             'sulu_content_unpublish',
             'sulu_preview_link_revoke',
+            'sulu_page_move',
+            'sulu_page_reorder',
         ], $names);
     }
 
@@ -185,6 +199,8 @@ final class DangerousToolsPassTest extends TestCase
             'sulu_content_publish',
             'sulu_content_unpublish',
             'sulu_preview_link_revoke',
+            'sulu_page_move',
+            'sulu_page_reorder',
             'sulu_block_remove',
         ], $names);
     }

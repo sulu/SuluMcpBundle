@@ -156,6 +156,36 @@ final class PageTreeToolTest extends TestCase
         $this->assertSame('uuid-parent', $childNode['parentUuid']);
     }
 
+    public function testGetPageTreeNumbersSiblingsFromOneAtEveryLevel(): void
+    {
+        // sulu_page_reorder takes a 1-based position, so the tree has to hand the
+        // model the number it is expected to compute the new position from.
+        $firstChild = $this->createPage('uuid-child-1', 'First', '/first');
+        $secondChild = $this->createPage('uuid-child-2', 'Second', '/second');
+
+        $parent = $this->createPage('uuid-parent', 'Homepage', '/');
+        foreach ([$firstChild, $secondChild] as $child) {
+            $parent->addChild($child);
+            $child->setParent($parent);
+        }
+
+        $this->pageRepository->findByAsTree(Argument::cetera())->willReturn([$parent]);
+
+        $this->contentManager->resolve($parent, Argument::cetera())
+            ->willReturn($this->createDimensionContent($parent, 'Homepage', '/', 'homepage', 'published'));
+        $this->contentManager->resolve($firstChild, Argument::cetera())
+            ->willReturn($this->createDimensionContent($firstChild, 'First', '/first', 'default', 'draft'));
+        $this->contentManager->resolve($secondChild, Argument::cetera())
+            ->willReturn($this->createDimensionContent($secondChild, 'Second', '/second', 'default', 'draft'));
+
+        $result = $this->tool->getPageTree('example', 'en');
+
+        $parentNode = $result['tree'][0];
+        $this->assertSame(1, $parentNode['position'], 'the first root page is position 1, not 0');
+        $this->assertSame(1, $parentNode['children'][0]['position']);
+        $this->assertSame(2, $parentNode['children'][1]['position']);
+    }
+
     public function testGetPageTreeReturnsEmptyTreeForEmptyWebspace(): void
     {
         $this->pageRepository->findByAsTree(Argument::cetera())->willReturn([]);

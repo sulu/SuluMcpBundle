@@ -78,7 +78,7 @@ class SuluMcpBundle extends AbstractBundle
                         ->end()
                         ->booleanNode('publish')
                             ->defaultFalse()
-                            ->info('Enable sulu_content_publish, sulu_content_unpublish, and sulu_preview_link_revoke')
+                            ->info('Enable sulu_content_publish, sulu_content_unpublish, sulu_preview_link_revoke, sulu_page_move, and sulu_page_reorder')
                         ->end()
                         ->booleanNode('block_remove')
                             ->defaultFalse()

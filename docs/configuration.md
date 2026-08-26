@@ -17,7 +17,7 @@ sulu_mcp:
     # All categories default to false.
     dangerous_tools:
         delete: false        # sulu_content_delete, sulu_tag_delete, sulu_category_delete
-        publish: false       # sulu_content_publish, sulu_content_unpublish, sulu_preview_link_revoke
+        publish: false       # sulu_content_publish, sulu_content_unpublish, sulu_preview_link_revoke, sulu_page_move, sulu_page_reorder
         block_remove: false  # sulu_block_remove
 ```
 
@@ -138,14 +138,14 @@ Three booleans gating high-impact tools. Each flag is independent — enable onl
 | Flag | Tools enabled when `true` |
 |------|---------------------------|
 | `delete` | `sulu_content_delete` (page/article/snippet via `type`), `sulu_tag_delete`, `sulu_category_delete` |
-| `publish` | `sulu_content_publish` (page/article/snippet via `type`), `sulu_content_unpublish` (page/article/snippet via `type`), `sulu_preview_link_revoke` |
+| `publish` | `sulu_content_publish` (page/article/snippet via `type`), `sulu_content_unpublish` (page/article/snippet via `type`), `sulu_preview_link_revoke`, `sulu_page_move`, `sulu_page_reorder` |
 | `block_remove` | `sulu_block_remove` |
 
 When a flag is `false`, the corresponding tool services are removed from the container at compile time — they don't appear in MCP `tools/list` and calls fail with "unknown tool" rather than running with an error. To change a flag, edit the YAML and clear the cache (`bin/console cache:clear`).
 
 ## Recommended profiles
 
-**Read-only / staging** — leave `dangerous_tools` at defaults. The AI can read everything and create drafts, but cannot publish or delete.
+**Read-only / staging** — leave `dangerous_tools` at defaults. The AI can read everything and create drafts, but cannot publish, delete or restructure the page tree.
 
 ```yaml
 sulu_mcp:

@@ -60,6 +60,8 @@ Do NOT rely on assumptions about available templates or block types — the CMS 
 | `sulu_page_get` | Get full page content. Returns block summaries — use `sulu_block_list` for full blocks. |
 | `sulu_page_create` | Create a new page (as draft). |
 | `sulu_page_update` | Update page fields. Only pass changed fields. |
+| `sulu_page_move` | Move a page (with its whole subtree) under a different parent in the same webspace. |
+| `sulu_page_reorder` | Change a page's 1-based position among its siblings. |
 | `sulu_content_publish` | Publish a draft page/article/snippet. Pass `type="page"`. **Ask user first.** |
 | `sulu_content_unpublish` | Take a page offline (keeps draft). Pass `type="page"`. |
 | `sulu_content_delete` | Permanently delete a page. Pass `type="page"`. **Cannot be undone.** |
@@ -291,6 +293,18 @@ Pages form the site structure — homepage, about, services, contact, etc. They 
 3. **Update fields:** `sulu_page_update(uuid, locale, title="New Title")` — only changed fields
 4. **Update a single block:** `sulu_block_update(type="page", uuid, locale, blockId, blockData)`
 5. **Re-publish:** After edits, publish again to make changes live
+
+### Restructuring the Page Tree
+
+1. **Read the current structure:** `sulu_page_tree(webspace, locale)` — every node carries `parentUuid` and a 1-based `position` among its siblings
+2. **Change a parent:** `sulu_page_move(uuid, targetParentId, locale)` — the whole subtree moves with the page
+3. **Change a position:** `sulu_page_reorder(uuid, position, locale)` — same parent, different order
+
+**Tell the user the cost before you move anything.** A move rewrites the address of the page *and* of every page beneath it. Old addresses keep working as redirects, but they change for real, and the change is live immediately — no publish call is involved. The `affectedDescendants` count in the response is how many extra pages a single move touched, so use it to report what happened. Reordering changes no addresses.
+
+A move is not per language: one call moves the page in every language it exists in.
+
+Never delete and recreate a page to "move" it — that loses the page's identity and breaks every reference to it, along with its history and its redirects.
 
 ---
 

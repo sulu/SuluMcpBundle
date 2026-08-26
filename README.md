@@ -151,7 +151,7 @@ sulu_mcp:
     server_url: '%env(SULU_MCP_SERVER_URL)%'
     dangerous_tools:
         delete: false        # sulu_content_delete, sulu_tag_delete, sulu_category_delete
-        publish: false       # sulu_content_publish, sulu_content_unpublish, sulu_preview_link_revoke
+        publish: false       # sulu_content_publish, sulu_content_unpublish, sulu_preview_link_revoke, sulu_page_move, sulu_page_reorder
         block_remove: false  # sulu_block_remove
 ```
 
@@ -161,7 +161,7 @@ sulu_mcp:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
-| Pages | 5 | `sulu_page_create`, `sulu_page_get`, `sulu_page_list`, `sulu_page_tree`, `sulu_page_update` |
+| Pages | 7 | `sulu_page_create`, `sulu_page_get`, `sulu_page_list`, `sulu_page_move`, `sulu_page_reorder`, `sulu_page_tree`, `sulu_page_update` |
 | Blocks | 5 | `sulu_block_add`, `sulu_block_update`, `sulu_block_reorder`, `sulu_block_list`, `sulu_block_remove` |
 | Articles | 4 | `sulu_article_create`, `sulu_article_update`, `sulu_article_get`, `sulu_article_list` |
 | Snippets | 4 | `sulu_snippet_create`, `sulu_snippet_update`, `sulu_snippet_get`, `sulu_snippet_list` |

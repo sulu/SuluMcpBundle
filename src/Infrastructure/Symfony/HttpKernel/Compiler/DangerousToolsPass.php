@@ -17,6 +17,8 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentPublishTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageMoveTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageReorderTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryDeleteTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
@@ -52,6 +54,8 @@ final class DangerousToolsPass implements CompilerPassInterface
             ContentPublishTool::class => 'sulu_content_publish',
             ContentUnpublishTool::class => 'sulu_content_unpublish',
             PreviewLinkRevokeTool::class => 'sulu_preview_link_revoke',
+            PageMoveTool::class => 'sulu_page_move',
+            PageReorderTool::class => 'sulu_page_reorder',
         ],
         'block_remove' => [
             BlockRemoveTool::class => 'sulu_block_remove',

@@ -216,6 +216,8 @@ services:
     # Page write tools
     Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageCreateTool: ~
     Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageUpdateTool: ~
+    Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageMoveTool: ~  # gated by dangerous_tools.publish
+    Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageReorderTool: ~  # gated by dangerous_tools.publish
 
     # Unified content tools (page | article | snippet via `type`)
     Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentDeleteTool: ~  # gated by dangerous_tools.delete
