@@ -37,14 +37,14 @@ composer require sulu/mcp-bundle
 
 A [Flex recipe](https://github.com/symfony/recipes-contrib/pull/2034) is proposed for `symfony/recipes-contrib`. Once
 it is merged, enabling contrib recipes before requiring the bundle takes care of the bundle registrations, the routes,
-`config/packages/sulu_mcp.yaml`, the allowed hosts and the `SULU_MCP_SERVER_URL` entry in `.env`:
+`config/packages/sulu_mcp.yaml` and the `SULU_MCP_SERVER_URL` entry in `.env`:
 
 ```bash
 composer config extra.symfony.allow-contrib true
 ```
 
-The OAuth key pair, the `league/oauth2-server-bundle` configuration, the migration and the security setup stay manual
-either way, because no Flex configurator can express them. Until the recipe is merged, follow every step below.
+The OAuth key pair, the `league/oauth2-server-bundle` configuration, the migration, the security setup and the allowed
+hosts stay manual either way. Until the recipe is merged, follow every step below.
 
 Register the bundle in `config/bundles.php`, along with its two required dependencies. `league/oauth2-server-bundle`
 registers itself automatically if you use Symfony Flex, while `symfony/mcp-bundle` has no Flex recipe of its own and
