@@ -38,9 +38,9 @@ composer require sulu/mcp-bundle
 
 The first command enables the [contrib recipes](https://github.com/symfony/recipes-contrib), where this bundle's
 [Flex recipe](https://github.com/symfony/recipes-contrib/tree/main/sulu/mcp-bundle) lives. The recipe registers the
-bundles, writes the routes and the bundle configuration, and adds `SULU_MCP_SERVER_URL` to `.env`. The OAuth key
-pair, the `league/oauth2-server-bundle` grants, the migration and the security setup have no Flex configurator and
-stay manual.
+bundles, writes the routes and the configuration, including the allowed hosts of the transport and the default OAuth
+scopes, and adds `SULU_MCP_SERVER_URL` to `.env`. The OAuth key pair, the `league/oauth2-server-bundle` grants, the
+migration and the security setup have no Flex configurator and stay manual.
 
 The steps below spell out everything, both for installations without Flex and for reading back what the recipe put
 into your project. Start by registering the bundle in `config/bundles.php`, along with its two required
@@ -99,9 +99,9 @@ OAUTH_ENCRYPTION_KEY=<random-string>
 ```
 
 Configure `league/oauth2-server-bundle` in `config/packages/league_oauth2_server.yaml`. Its Flex recipe generates most
-of the file; make sure the authorization-code and refresh-token grants MCP uses are enabled, the password and
-implicit grants are explicitly off, and `scopes.default` is set, because league requires it and this bundle
-deliberately leaves it to your project:
+of the file; make sure the authorization-code and refresh-token grants MCP uses are enabled and the password and
+implicit grants are explicitly off. `scopes.default` is required by league and comes from this bundle's recipe, which
+appends the MCP scopes to the ones the league recipe wrote; set it yourself when you install without Flex:
 
 ```yaml
 league_oauth2_server:
@@ -125,9 +125,10 @@ league_oauth2_server:
         doctrine: ~
 ```
 
-Name the public host on the MCP transport in `config/packages/mcp.yaml`. The transport ships with DNS rebinding
-protection that accepts only localhost, so a server on its own domain rejects every client with
-`Forbidden: Invalid Host header.` once the OAuth handshake is through:
+Name the public host on the MCP transport. The transport ships with DNS rebinding protection that accepts only
+localhost, so a server on its own domain rejects every client with `Forbidden: Invalid Host header.` once the OAuth
+handshake is through. This bundle's recipe writes the setting into `config/packages/sulu_mcp.yaml`; without Flex, put
+it in `config/packages/mcp.yaml` yourself:
 
 ```yaml
 mcp:
