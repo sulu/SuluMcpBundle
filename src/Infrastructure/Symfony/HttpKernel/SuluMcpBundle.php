@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Infrastructure\Symfony\HttpKernel;
 
+use Composer\InstalledVersions;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
@@ -40,6 +41,11 @@ class SuluMcpBundle extends AbstractBundle
      * @var list<string>
      */
     public const SCOPES = ['mcp:tools', 'mcp:resources'];
+
+    /**
+     * Reported by sulu_ping when Composer cannot name the installed version.
+     */
+    private const FALLBACK_VERSION = 'unknown';
 
     protected string $extensionAlias = 'sulu_mcp';
 
@@ -123,6 +129,7 @@ class SuluMcpBundle extends AbstractBundle
      */
     public function loadExtension(array $config, ContainerConfigurator $container, ContainerBuilder $builder): void
     {
+        $builder->setParameter('sulu_mcp.version', self::resolveVersion());
         $builder->setParameter('sulu_mcp.server_url', $config['server_url']);
         $builder->setParameter('sulu_mcp.mcp_path', $config['mcp_path']);
         $builder->setParameter('sulu_mcp.oauth.scopes', self::SCOPES);
@@ -142,6 +149,18 @@ class SuluMcpBundle extends AbstractBundle
         if (self::isProductBundleLoaded($builder)) {
             $container->import(\dirname(__DIR__, 4) . '/config/services_product.yaml');
         }
+    }
+
+    /**
+     * The installed version of this package, as Composer recorded it.
+     */
+    private static function resolveVersion(): string
+    {
+        if (!InstalledVersions::isInstalled('sulu/mcp-bundle')) {
+            return self::FALLBACK_VERSION;
+        }
+
+        return InstalledVersions::getPrettyVersion('sulu/mcp-bundle') ?? self::FALLBACK_VERSION;
     }
 
     /**

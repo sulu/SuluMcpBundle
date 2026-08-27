@@ -107,7 +107,9 @@ services:
         tags:
             - { name: mcp.request_handler, priority: 100 }
 
-    Sulu\Mcp\UserInterface\Mcp\Tool\PingTool: ~
+    Sulu\Mcp\UserInterface\Mcp\Tool\PingTool:
+        arguments:
+            $version: '%sulu_mcp.version%'
     Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool: ~
     Sulu\Mcp\UserInterface\Mcp\Tool\ContentSearchTool:
         arguments:

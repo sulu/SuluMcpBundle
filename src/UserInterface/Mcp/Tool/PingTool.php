@@ -28,6 +28,7 @@ class PingTool
         private readonly WebspaceManagerInterface $webspaceManager,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly WebspacePermissionResolver $webspacePermissionResolver,
+        private readonly string $version,
     ) {
     }
 
@@ -47,7 +48,7 @@ class PingTool
         $result = [
             'status' => 'ok',
             'server' => 'sulu-mcp-server',
-            'version' => '0.1.0',
+            'version' => $this->version,
             'user' => $username,
             'webspaces' => [],
         ];

@@ -50,7 +50,7 @@ final class PingToolTest extends TestCase
 
         // Real WebspacePermissionResolver granting EDIT everywhere, so existing tests see
         // every webspace unless they build their own PingTool with a narrower resolver.
-        $this->pingTool = new PingTool($this->webspaceManager->reveal(), $this->tokenStorage, $this->grantAllResolver());
+        $this->pingTool = new PingTool($this->webspaceManager->reveal(), $this->tokenStorage, $this->grantAllResolver(), '1.2.3');
     }
 
     public function testPingReturnsStatusOkWithWebspaceList(): void
@@ -62,6 +62,7 @@ final class PingToolTest extends TestCase
 
         $this->assertSame('ok', $result['status']);
         $this->assertSame('sulu-mcp-server', $result['server']);
+        $this->assertSame('1.2.3', $result['version']);
         $this->assertSame('admin', $result['user']);
         $this->assertCount(1, $result['webspaces']);
         $this->assertSame('example', $result['webspaces'][0]['key']);
@@ -104,7 +105,7 @@ final class PingToolTest extends TestCase
             new ToolPermissionChecker($securityChecker->reveal(), $tokenStorage),
         );
 
-        $pingTool = new PingTool($this->webspaceManager->reveal(), $this->tokenStorage, $resolver);
+        $pingTool = new PingTool($this->webspaceManager->reveal(), $this->tokenStorage, $resolver, '1.2.3');
 
         $result = $pingTool->ping();
 
