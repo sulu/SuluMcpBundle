@@ -32,23 +32,20 @@ escalation.
 ## 🚀&nbsp; Installation and Documentation
 
 ```bash
+composer config extra.symfony.allow-contrib true
 composer require sulu/mcp-bundle
 ```
 
-A [Flex recipe](https://github.com/symfony/recipes-contrib/pull/2034) is proposed for `symfony/recipes-contrib`. Once
-it is merged, enabling contrib recipes before requiring the bundle takes care of the bundle registrations, the routes,
-`config/packages/sulu_mcp.yaml` and the `SULU_MCP_SERVER_URL` entry in `.env`:
+The first command enables the [contrib recipes](https://github.com/symfony/recipes-contrib), where this bundle's
+[Flex recipe](https://github.com/symfony/recipes-contrib/tree/main/sulu/mcp-bundle) lives. The recipe registers the
+bundles, writes the routes and the bundle configuration, and adds `SULU_MCP_SERVER_URL` to `.env`. The OAuth key
+pair, the `league/oauth2-server-bundle` grants, the migration and the security setup have no Flex configurator and
+stay manual.
 
-```bash
-composer config extra.symfony.allow-contrib true
-```
-
-The OAuth key pair, the `league/oauth2-server-bundle` configuration, the migration, the security setup and the allowed
-hosts stay manual either way. Until the recipe is merged, follow every step below.
-
-Register the bundle in `config/bundles.php`, along with its two required dependencies. `league/oauth2-server-bundle`
-registers itself automatically if you use Symfony Flex, while `symfony/mcp-bundle` has no Flex recipe of its own and
-always needs the manual entry:
+The steps below spell out everything, both for installations without Flex and for reading back what the recipe put
+into your project. Start by registering the bundle in `config/bundles.php`, along with its two required
+dependencies. `league/oauth2-server-bundle` registers itself through its own recipe, while `symfony/mcp-bundle` has
+none and is registered by ours:
 
 ```php
 return [
