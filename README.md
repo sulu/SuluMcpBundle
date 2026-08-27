@@ -117,6 +117,20 @@ league_oauth2_server:
         doctrine: ~
 ```
 
+Name the public host on the MCP transport in `config/packages/mcp.yaml`. The transport ships with DNS rebinding
+protection that accepts only localhost, so a server on its own domain rejects every client with
+`Forbidden: Invalid Host header.` once the OAuth handshake is through:
+
+```yaml
+mcp:
+    http:
+        allowed_hosts:
+            - '%env(key:host:url:SULU_MCP_SERVER_URL)%'
+            - localhost
+            - 127.0.0.1
+            - '[::1]'
+```
+
 Create the database tables. `league/oauth2-server-bundle` persists clients, authorization codes, access tokens and
 refresh tokens through Doctrine:
 

@@ -143,6 +143,24 @@ Three booleans gating high-impact tools. Each flag is independent — enable onl
 
 When a flag is `false`, the corresponding tool services are removed from the container at compile time — they don't appear in MCP `tools/list` and calls fail with "unknown tool" rather than running with an error. To change a flag, edit the YAML and clear the cache (`bin/console cache:clear`).
 
+### Allowed hosts
+
+`symfony/mcp-bundle` wraps the transport in the MCP SDK's DNS rebinding protection. Left unconfigured it keeps the SDK default, which accepts only `localhost`, `127.0.0.1` and `[::1]`. A server reachable under its own domain therefore answers every client request with `403 Forbidden: Invalid Host header.` -- after the OAuth handshake has already succeeded, and without writing anything to the Symfony log. Clients report this as rejected credentials. Name the public host in `config/packages/mcp.yaml`:
+
+```yaml
+mcp:
+    http:
+        allowed_hosts:
+            - '%env(key:host:url:SULU_MCP_SERVER_URL)%'
+            - localhost
+            - 127.0.0.1
+            - '[::1]'
+```
+
+Deriving the first entry from `SULU_MCP_SERVER_URL` keeps it correct per environment, and the loopback entries keep local development working. A request that carries an `Origin` header is checked against the same list and rejected with `Forbidden: Invalid Origin header.` instead.
+
+`allowed_hosts: false` switches the protection off entirely. Prefer naming the host: the protection is what stops a page in a developer's browser from steering that browser into a local MCP server.
+
 ## Recommended profiles
 
 **Read-only / staging** — leave `dangerous_tools` at defaults. The AI can read everything and create drafts, but cannot publish, delete or restructure the page tree.
