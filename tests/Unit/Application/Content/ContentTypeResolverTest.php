@@ -24,6 +24,7 @@ use Sulu\Article\Application\Message\RemoveArticleMessage;
 use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Content\Infrastructure\Doctrine\DimensionContentQueryEnhancer;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Page\Application\Message\ApplyWorkflowTransitionPageMessage;
 use Sulu\Page\Application\Message\ModifyPageMessage;
@@ -104,6 +105,55 @@ final class ContentTypeResolverTest extends TestCase
         $this->articleRepository->getOneBy(Argument::cetera())->shouldNotBeCalled();
 
         $this->assertSame($snippet, $this->resolver->loadDraft('snippet', 'uuid-1', 'en'));
+    }
+
+    public function testLoadForTransitionHydratesDraftAndLiveDimensionContents(): void
+    {
+        $page = new Page();
+        $page->setWebspaceKey('example');
+
+        $this->pageRepository->getOneBy(
+            [
+                'uuid' => 'uuid-1',
+                'locale' => 'en',
+                'stage' => DimensionContentInterface::STAGE_DRAFT,
+            ],
+            [
+                PageRepositoryInterface::SELECT_PAGE_CONTENT => [
+                    'selects' => [DimensionContentQueryEnhancer::GROUP_SELECT_CONTENT_ADMIN => true],
+                    'dimensionAttributes' => [
+                        'locale' => 'en',
+                        'stage' => [DimensionContentInterface::STAGE_DRAFT, DimensionContentInterface::STAGE_LIVE],
+                    ],
+                ],
+            ],
+        )->shouldBeCalledOnce()->willReturn($page);
+
+        $this->assertSame(
+            $page,
+            $this->resolver->loadForTransition('page', 'uuid-1', 'en'),
+            'a transition aggregate hydrated with draft rows only makes the publish copy duplicate the live rows instead of updating them',
+        );
+    }
+
+    public function testLoadForTransitionRoutesToTheRepositoryOfTheType(): void
+    {
+        $article = new Article();
+        $snippet = new Snippet();
+        $this->articleRepository->getOneBy(Argument::cetera())->shouldBeCalledOnce()->willReturn($article);
+        $this->snippetRepository->getOneBy(Argument::cetera())->shouldBeCalledOnce()->willReturn($snippet);
+        $this->pageRepository->getOneBy(Argument::cetera())->shouldNotBeCalled();
+
+        $this->assertSame($article, $this->resolver->loadForTransition('article', 'uuid-1', 'en'));
+        $this->assertSame($snippet, $this->resolver->loadForTransition('snippet', 'uuid-1', 'en'));
+    }
+
+    public function testLoadForTransitionReturnsNullForUnsupportedTypeAndOnRepositoryErrors(): void
+    {
+        $this->pageRepository->getOneBy(Argument::cetera())->willThrow(new \RuntimeException('not found'));
+
+        $this->assertNull($this->resolver->loadForTransition('media', 'uuid-1', 'en'));
+        $this->assertNull($this->resolver->loadForTransition('page', 'missing', 'en'));
     }
 
     public function testLoadDraftReturnsNullForUnsupportedType(): void

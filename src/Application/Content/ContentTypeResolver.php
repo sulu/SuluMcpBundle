@@ -18,6 +18,7 @@ use Sulu\Article\Application\Message\ModifyArticleMessage;
 use Sulu\Article\Application\Message\RemoveArticleMessage;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Content\Infrastructure\Doctrine\DimensionContentQueryEnhancer;
 use Sulu\Page\Application\Message\ApplyWorkflowTransitionPageMessage;
 use Sulu\Page\Application\Message\ModifyPageMessage;
 use Sulu\Page\Application\Message\RemovePageMessage;
@@ -98,6 +99,40 @@ final readonly class ContentTypeResolver
                 'article' => $this->articleRepository->getOneBy($filters, [ArticleRepositoryInterface::GROUP_SELECT_ARTICLE_ADMIN => true]),
                 'snippet' => $this->snippetRepository->getOneBy($filters, [SnippetRepositoryInterface::GROUP_SELECT_SNIPPET_ADMIN => true]),
                 self::PRODUCT_TYPE => $this->productRepository?->getOneBy($filters, [ProductRepositoryInterface::GROUP_SELECT_PRODUCT_ADMIN => true]),
+                default => null,
+            };
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * Load the aggregate for a workflow transition, dimension contents hydrated for draft *and*
+     * live: the handler re-queries this same instance from the identity map, and Doctrine leaves
+     * an initialized collection alone, so a draft-only aggregate duplicates the live rows.
+     */
+    public function loadForTransition(string $type, string $uuid, string $locale): ?object
+    {
+        $filters = [
+            'uuid' => $uuid,
+            'locale' => $locale,
+            'stage' => DimensionContentInterface::STAGE_DRAFT,
+        ];
+
+        $contentSelect = [
+            'selects' => [DimensionContentQueryEnhancer::GROUP_SELECT_CONTENT_ADMIN => true],
+            'dimensionAttributes' => [
+                'locale' => $locale,
+                'stage' => [DimensionContentInterface::STAGE_DRAFT, DimensionContentInterface::STAGE_LIVE],
+            ],
+        ];
+
+        try {
+            return match ($type) {
+                'page' => $this->pageRepository->getOneBy($filters, [PageRepositoryInterface::SELECT_PAGE_CONTENT => $contentSelect]),
+                'article' => $this->articleRepository->getOneBy($filters, [ArticleRepositoryInterface::SELECT_ARTICLE_CONTENT => $contentSelect]),
+                'snippet' => $this->snippetRepository->getOneBy($filters, [SnippetRepositoryInterface::SELECT_SNIPPET_CONTENT => $contentSelect]),
+                self::PRODUCT_TYPE => $this->productRepository?->getOneBy($filters, [ProductRepositoryInterface::SELECT_PRODUCT_CONTENT => $contentSelect]),
                 default => null,
             };
         } catch (\Throwable) {

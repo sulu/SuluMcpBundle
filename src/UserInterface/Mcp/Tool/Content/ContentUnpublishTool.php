@@ -76,7 +76,7 @@ class ContentUnpublishTool
         }
 
         try {
-            $entity = $this->contentTypeResolver->loadDraft($type, $uuid, $locale);
+            $entity = $this->contentTypeResolver->loadForTransition($type, $uuid, $locale);
             if (null === $entity) {
                 return [
                     'error' => \sprintf('%s not found: %s', \ucfirst($type), $uuid),
@@ -85,7 +85,7 @@ class ContentUnpublishTool
             }
 
             $dimensionContent = 'article' === $type
-                ? $this->contentManager->resolve($entity, ['locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT]) // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
+                ? $this->contentManager->resolve($entity, ['locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT]) // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadForTransition() returns a bare object)
                 : null;
             $context = $this->contentSecurityContextResolver->forEntity(
                 $type,
