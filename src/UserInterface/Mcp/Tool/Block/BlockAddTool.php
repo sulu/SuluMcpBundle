@@ -144,7 +144,7 @@ class BlockAddTool
                 ? $currentData['template']
                 : null;
             $blockPath = $this->newBlockTypePath($currentData, $blockProperty, $blockType, $parentPath);
-            if ($validationError = $this->blockDataValidator->validate($type, $templateKey, $blockPath, $blockData)) {
+            if ($validationError = $this->blockDataValidator->validate($type, $templateKey, $blockType, $blockPath, $blockData)) {
                 return $validationError;
             }
 

@@ -482,6 +482,31 @@ final class BlockAddToolTest extends TestCase
         $this->assertStringContainsString('eyebrow', $result['error']);
     }
 
+    public function testNestedAddRejectsNameValueShapeEvenWhenTheTargetPropertyIsUnknown(): void
+    {
+        // The parent has no nested block list yet, so the property the block would land
+        // in cannot be inferred and the schema stays unresolved -- the storage-shape
+        // guard does not depend on metadata and must still fire.
+        $this->setupEntityWithBlocks('page', [
+            ['_id' => 'cards-1', 'type' => 'feature_cards', 'headline' => 'Cards'],
+        ]);
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->addBlock(
+            'page',
+            'test-uuid',
+            'en',
+            'item',
+            'blocks',
+            ['name' => 'title', 'value' => 'X'],
+            parentBlockId: 'cards-1',
+        );
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('storage shape', $result['error']);
+    }
+
     /**
      * A page holding a "feature_cards" block, with a template whose "trust_bar" declares
      * a differently shaped nested type of the same name "item" -- and declares it first.

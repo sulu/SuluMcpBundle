@@ -135,11 +135,17 @@ class BlockUpdateTool
             // Merge new data over existing block (partial update)
             $blockData = $this->normalizeBlockData($blockData);
 
+            /** @var list<array<string, mixed>> $blocksAtFoundProperty */
+            $blocksAtFoundProperty = $currentData[$foundProperty];
+            $existingBlock = $this->getBlockAtPath($blocksAtFoundProperty, $foundIndices);
+            $blockType = isset($existingBlock['type']) && \is_string($existingBlock['type'])
+                ? $existingBlock['type']
+                : null;
             $templateKey = isset($currentData['template']) && \is_string($currentData['template'])
                 ? $currentData['template']
                 : null;
             $blockPath = $this->blockTypePath($currentData, $foundProperty, $foundIndices);
-            if ($validationError = $this->blockDataValidator->validate($type, $templateKey, $blockPath, $blockData)) {
+            if (null !== $blockType && $validationError = $this->blockDataValidator->validate($type, $templateKey, $blockType, $blockPath, $blockData)) {
                 return $validationError;
             }
 

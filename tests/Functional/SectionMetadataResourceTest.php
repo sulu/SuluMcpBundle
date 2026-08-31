@@ -71,11 +71,11 @@ final class SectionMetadataResourceTest extends FunctionalTestCase
         ];
 
         self::assertNull(
-            $validator->validate('page', 'default', $path, ['boxTitle' => 'T']),
+            $validator->validate('page', 'default', 'box', $path, ['boxTitle' => 'T']),
             'a field declared inside a <section> of a block form is a valid key',
         );
 
-        $error = $validator->validate('page', 'default', $path, ['bogus' => 'x']);
+        $error = $validator->validate('page', 'default', 'box', $path, ['bogus' => 'x']);
         self::assertNotNull($error);
         self::assertStringContainsString('boxTitle', $error['error'], 'section fields are listed among the valid keys');
     }

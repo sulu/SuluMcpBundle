@@ -515,9 +515,9 @@ final class BlockDataValidatorTest extends TestCase
             ['property' => 'items', 'type' => 'item'],
         ];
 
-        $this->assertNull($validator->validate('page', 'default', $path, ['eyebrow' => 'A']));
+        $this->assertNull($validator->validate('page', 'default', 'item', $path, ['eyebrow' => 'A']));
 
-        $error = $validator->validate('page', 'default', $path, ['value' => '15']);
+        $error = $validator->validate('page', 'default', 'item', $path, ['value' => '15']);
 
         $this->assertNotNull($error);
         $this->assertStringContainsString('value', $error['error']);
@@ -532,19 +532,29 @@ final class BlockDataValidatorTest extends TestCase
             ['property' => 'stages', 'type' => 'stage'],
         ];
 
-        $this->assertNull($validator->validate('page', 'default', $path, ['title' => 'Kickoff']));
+        $this->assertNull($validator->validate('page', 'default', 'stage', $path, ['title' => 'Kickoff']));
 
-        $error = $validator->validate('page', 'default', $path, ['gibt_es_nicht' => 'test']);
+        $error = $validator->validate('page', 'default', 'stage', $path, ['gibt_es_nicht' => 'test']);
 
         $this->assertNotNull($error);
         $this->assertStringContainsString('gibt_es_nicht', $error['error']);
     }
 
-    public function testEmptyBlockPathSkipsValidation(): void
+    public function testEmptyBlockPathSkipsSchemaValidation(): void
     {
         $validator = $this->validatorWithDuplicateItemTypes();
 
-        $this->assertNull($validator->validate('page', 'default', [], ['whatever' => 'x']));
+        $this->assertNull($validator->validate('page', 'default', 'item', [], ['whatever' => 'x']));
+    }
+
+    public function testEmptyBlockPathStillRejectsTheStorageShape(): void
+    {
+        $validator = $this->validatorWithDuplicateItemTypes();
+
+        $error = $validator->validate('page', 'default', 'item', [], ['name' => 'title', 'value' => 'X']);
+
+        $this->assertNotNull($error, 'the {name, value} guard needs no metadata and must not depend on the block being locatable');
+        $this->assertStringContainsString('storage shape', $error['error']);
     }
 
     /**

@@ -47,7 +47,10 @@ final readonly class BlockDataValidator
     /**
      * @param list<array{property: string, type: string}> $blockPath Chain of (block property, block type)
      *                                                               steps from the template form down to
-     *                                                               and including the block to validate
+     *                                                               and including the block to validate.
+     *                                                               Empty when the caller cannot locate the
+     *                                                               block: schema checks are then skipped,
+     *                                                               the storage-shape guard still runs
      * @param array<string, mixed> $blockData Normalized blockData (flat object form)
      *
      * @return array<string, mixed>|null Error payload, or null when valid
@@ -55,17 +58,16 @@ final readonly class BlockDataValidator
     public function validate(
         string $contentType,
         ?string $templateKey,
+        string $blockType,
         array $blockPath,
         array $blockData,
     ): ?array {
-        if ([] === $blockPath) {
-            return null;
-        }
-
-        $blockType = $blockPath[\array_key_last($blockPath)]['type'];
-
         if ($error = $this->rejectNameValuePattern($blockType, $blockData)) {
             return $error;
+        }
+
+        if ([] === $blockPath) {
+            return null;
         }
 
         $form = $this->resolveBlockPath($contentType, $templateKey, $blockPath);
