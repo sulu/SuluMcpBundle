@@ -56,6 +56,78 @@
                 <type ref="text_with_image"/>
                 <type ref="article_list"/>
                 <type ref="section"/>
+                <type name="trust_bar">
+                    <meta>
+                        <title lang="en">Trust Bar</title>
+                        <title lang="de">Vertrauensleiste</title>
+                    </meta>
+                    <properties>
+                        <block name="items" default-type="item" minOccurs="0">
+                            <meta>
+                                <title lang="en">Items</title>
+                                <title lang="de">Elemente</title>
+                            </meta>
+                            <types>
+                                <type name="item">
+                                    <meta>
+                                        <title lang="en">Item</title>
+                                        <title lang="de">Element</title>
+                                    </meta>
+                                    <properties>
+                                        <property name="value" type="text_line">
+                                            <meta>
+                                                <title lang="en">Value</title>
+                                                <title lang="de">Wert</title>
+                                            </meta>
+                                        </property>
+                                        <property name="label" type="text_line">
+                                            <meta>
+                                                <title lang="en">Label</title>
+                                                <title lang="de">Bezeichnung</title>
+                                            </meta>
+                                        </property>
+                                    </properties>
+                                </type>
+                            </types>
+                        </block>
+                    </properties>
+                </type>
+                <type name="feature_cards">
+                    <meta>
+                        <title lang="en">Feature Cards</title>
+                        <title lang="de">Feature-Karten</title>
+                    </meta>
+                    <properties>
+                        <block name="items" default-type="item" minOccurs="0">
+                            <meta>
+                                <title lang="en">Items</title>
+                                <title lang="de">Elemente</title>
+                            </meta>
+                            <types>
+                                <type name="item">
+                                    <meta>
+                                        <title lang="en">Item</title>
+                                        <title lang="de">Element</title>
+                                    </meta>
+                                    <properties>
+                                        <property name="eyebrow" type="text_line">
+                                            <meta>
+                                                <title lang="en">Eyebrow</title>
+                                                <title lang="de">Dachzeile</title>
+                                            </meta>
+                                        </property>
+                                        <property name="headline" type="text_line">
+                                            <meta>
+                                                <title lang="en">Headline</title>
+                                                <title lang="de">Überschrift</title>
+                                            </meta>
+                                        </property>
+                                    </properties>
+                                </type>
+                            </types>
+                        </block>
+                    </properties>
+                </type>
             </types>
         </block>
     </properties>

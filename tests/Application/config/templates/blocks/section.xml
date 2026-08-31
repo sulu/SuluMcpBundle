@@ -27,6 +27,30 @@
                 <type ref="text"/>
                 <type ref="heading"/>
                 <type ref="quote"/>
+                <type ref="box"/>
+            </types>
+        </block>
+
+        <block name="stages" default-type="stage" minOccurs="0">
+            <meta>
+                <title lang="en">Stages</title>
+                <title lang="de">Stufen</title>
+            </meta>
+            <types>
+                <type name="stage">
+                    <meta>
+                        <title lang="en">Stage</title>
+                        <title lang="de">Stufe</title>
+                    </meta>
+                    <properties>
+                        <property name="label" type="text_line">
+                            <meta>
+                                <title lang="en">Label</title>
+                                <title lang="de">Bezeichnung</title>
+                            </meta>
+                        </property>
+                    </properties>
+                </type>
             </types>
         </block>
     </properties>

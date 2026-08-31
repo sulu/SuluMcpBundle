@@ -127,17 +127,10 @@ class BlockAddTool
             // Normalize blockData: [{"content": "..."}] -> {"content": "..."} or pass through if already flat
             $blockData = $this->normalizeBlockData($blockData);
 
-            $templateKey = isset($currentData['template']) && \is_string($currentData['template'])
-                ? $currentData['template']
-                : null;
-            if ($validationError = $this->blockDataValidator->validate($type, $templateKey, $blockType, $blockData)) {
-                return $validationError;
-            }
-
-            $newBlock = $this->stringifyKeys($this->assignBlockIds(\array_merge(['type' => $blockType], $blockData), $this->blockIdGenerator));
-
+            // Nested insert: locate the parent before validating, so the new block is
+            // validated against the type its target property actually declares.
+            $parentPath = null;
             if (null !== $parentBlockId) {
-                // Nested insert: find the parent block and add inside it
                 $parentPath = $this->findBlockPath($currentData, $parentBlockId);
                 if (null === $parentPath) {
                     return [
@@ -145,6 +138,19 @@ class BlockAddTool
                         'hint' => 'Use sulu_page_get, sulu_article_get, or sulu_snippet_get to see block summaries with _id values.',
                     ];
                 }
+            }
+
+            $templateKey = isset($currentData['template']) && \is_string($currentData['template'])
+                ? $currentData['template']
+                : null;
+            $blockPath = $this->newBlockTypePath($currentData, $blockProperty, $blockType, $parentPath);
+            if ($validationError = $this->blockDataValidator->validate($type, $templateKey, $blockPath, $blockData)) {
+                return $validationError;
+            }
+
+            $newBlock = $this->stringifyKeys($this->assignBlockIds(\array_merge(['type' => $blockType], $blockData), $this->blockIdGenerator));
+
+            if (null !== $parentPath) {
                 $result = $this->insertBlockAtPath($blocks, $parentPath['indices'], $newBlock, $position);
                 if (null === $result) {
                     return ['error' => \sprintf('Could not insert block into parent "%s" — no nested block list found.', $parentBlockId)];
@@ -189,5 +195,38 @@ class BlockAddTool
                 'hint' => 'Verify the UUID exists (use sulu_page_get, sulu_article_get, or sulu_snippet_get), the blockProperty matches a block field in the template, and blockType is a valid block type (use sulu_get_context to see available types).',
             ];
         }
+    }
+
+    /**
+     * The (block property, block type) chain the added block will sit at: the target
+     * property of the entity, or the nested block list of the parent block.
+     *
+     * @param array<string, mixed> $currentData
+     * @param array{property: string, indices: list<int>}|null $parentPath
+     *
+     * @return list<array{property: string, type: string}>
+     */
+    private function newBlockTypePath(array $currentData, string $blockProperty, string $blockType, ?array $parentPath): array
+    {
+        if (null === $parentPath) {
+            return [['property' => $blockProperty, 'type' => $blockType]];
+        }
+
+        $parentChain = $this->blockTypePath($currentData, $parentPath['property'], $parentPath['indices']);
+        if ([] === $parentChain) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $parentBlocks */
+        $parentBlocks = $currentData[$parentPath['property']];
+        $nestedKey = $this->findNestedBlockKey($this->getBlockAtPath($parentBlocks, $parentPath['indices']));
+        if (null === $nestedKey) {
+            // The insert falls back to "blocks" for a parent with no nested list yet;
+            // that is a guess, so leave the chain unresolved instead of validating
+            // against whatever schema the guessed property happens to declare.
+            return [];
+        }
+
+        return [...$parentChain, ['property' => $nestedKey, 'type' => $blockType]];
     }
 }

@@ -24,7 +24,10 @@ use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Application\Message\ModifyArticleMessage;
 use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TagMetadata;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
@@ -355,5 +358,95 @@ final class BlockUpdateToolTest extends TestCase
         $this->assertStringContainsString('has no "en" content yet', $result['error']);
         $this->assertStringContainsString('sulu_page_update', $result['hint']);
         $this->assertStringContainsString('de', $result['hint']);
+    }
+
+    public function testRejectsUnknownKeysOfBlockNestedInsideGlobalBlock(): void
+    {
+        $this->setupPageWithTimelineProcess();
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', 'stage-1', ['gibt_es_nicht' => 'test']);
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('gibt_es_nicht', $result['error']);
+    }
+
+    public function testAcceptsKnownKeysOfBlockNestedInsideGlobalBlock(): void
+    {
+        $this->setupPageWithTimelineProcess();
+
+        $updatedPage = new Page('page-uuid');
+        $updatedPage->setWebspaceKey('example');
+        $this->messageBus->dispatch(Argument::cetera())->shouldBeCalledOnce()
+            ->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
+
+        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', 'stage-1', ['title' => 'Rollout']);
+
+        $this->assertTrue($result['success']);
+    }
+
+    /**
+     * A page whose "content" holds the global block "timeline_process" with a nested
+     * "stage" block, plus the metadata that only describes "stage" inside that global
+     * block -- the shape of case 2 in sulu/SuluMcpBundle#31.
+     */
+    private function setupPageWithTimelineProcess(): void
+    {
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
+
+        $dimensionContent = new PageDimensionContent(new Page());
+        $dimensionContent->setLocale('en');
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
+            'template' => 'default',
+            'title' => 'Test Page',
+            'content' => [
+                ['_id' => 'block-1', 'type' => 'timeline_process', 'stages' => [
+                    ['_id' => 'stage-1', 'type' => 'stage', 'title' => 'Kickoff'],
+                ]],
+            ],
+        ]);
+
+        $globalBlockTag = new TagMetadata();
+        $globalBlockTag->setName('sulu.global_block');
+        $globalBlockTag->setAttributes(['global_block' => 'timeline_process']);
+
+        $reference = new FormMetadata();
+        $reference->setKey('timeline_process');
+        $reference->addTag($globalBlockTag);
+
+        $contentField = new FieldMetadata('content');
+        $contentField->setType('block');
+        $contentField->addType($reference);
+
+        $template = new FormMetadata();
+        $template->setKey('default');
+        $template->addItem($contentField);
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('default', $template);
+
+        $stageTitle = new FieldMetadata('title');
+        $stageTitle->setType('text_line');
+        $stage = new FormMetadata();
+        $stage->setKey('stage');
+        $stage->addItem($stageTitle);
+
+        $stagesField = new FieldMetadata('stages');
+        $stagesField->setType('block');
+        $stagesField->addType($stage);
+
+        $globalBlock = new FormMetadata();
+        $globalBlock->setKey('timeline_process');
+        $globalBlock->addItem($stagesField);
+
+        $globalBlocks = new TypedFormMetadata();
+        $globalBlocks->addForm('timeline_process', $globalBlock);
+
+        $this->formMetadataProvider->set('page', $typed);
+        $this->formMetadataProvider->set('block', $globalBlocks);
     }
 }

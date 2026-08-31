@@ -64,13 +64,72 @@ final class SectionMetadataResourceTest extends FunctionalTestCase
         /** @var BlockDataValidator $validator */
         $validator = self::getContainer()->get(BlockDataValidator::class);
 
+        // default.blocks -> section (global block) -> blocks -> box (global block)
+        $path = [
+            ['property' => 'blocks', 'type' => 'section'],
+            ['property' => 'blocks', 'type' => 'box'],
+        ];
+
         self::assertNull(
-            $validator->validate('page', 'default', 'box', ['boxTitle' => 'T']),
+            $validator->validate('page', 'default', $path, ['boxTitle' => 'T']),
             'a field declared inside a <section> of a block form is a valid key',
         );
 
-        $error = $validator->validate('page', 'default', 'box', ['bogus' => 'x']);
+        $error = $validator->validate('page', 'default', $path, ['bogus' => 'x']);
         self::assertNotNull($error);
         self::assertStringContainsString('boxTitle', $error['error'], 'section fields are listed among the valid keys');
+    }
+
+    /**
+     * The "default" template offers two distinct nested types named "item":
+     * trust_bar.items (value, label) and feature_cards.items (eyebrow, headline).
+     */
+    public function testNestedTypesOfTheSameNameAreValidatedAgainstTheirOwnBlockProperty(): void
+    {
+        /** @var BlockDataValidator $validator */
+        $validator = self::getContainer()->get(BlockDataValidator::class);
+
+        $content = ['blocks' => [
+            ['type' => 'trust_bar', 'items' => [['type' => 'item', 'value' => '15', 'label' => 'Years']]],
+            ['type' => 'feature_cards', 'items' => [['type' => 'item', 'eyebrow' => 'A', 'headline' => 'Card A']]],
+        ]];
+
+        self::assertNull($validator->validateContentTree($content, 'page', 'default'));
+    }
+
+    public function testNestedTypeOfTheSameNameStillRejectsKeysOfAForeignSchema(): void
+    {
+        /** @var BlockDataValidator $validator */
+        $validator = self::getContainer()->get(BlockDataValidator::class);
+
+        $content = ['blocks' => [
+            ['type' => 'feature_cards', 'items' => [['type' => 'item', 'value' => '15']]],
+        ]];
+
+        $error = $validator->validateContentTree($content, 'page', 'default');
+
+        self::assertNotNull($error);
+        self::assertStringContainsString('value', $error['error']);
+        self::assertStringContainsString('eyebrow', $error['error']);
+    }
+
+    public function testTypeNestedInsideGlobalBlockIsDiscoverable(): void
+    {
+        /** @var BlockDataValidator $validator */
+        $validator = self::getContainer()->get(BlockDataValidator::class);
+
+        $valid = ['blocks' => [
+            ['type' => 'section', 'title' => 'Sec', 'stages' => [['type' => 'stage', 'label' => 'One']]],
+        ]];
+        self::assertNull($validator->validateContentTree($valid, 'page', 'default'));
+
+        $invalid = ['blocks' => [
+            ['type' => 'section', 'title' => 'Sec', 'stages' => [['type' => 'stage', 'gibt_es_nicht' => 'test']]],
+        ]];
+
+        $error = $validator->validateContentTree($invalid, 'page', 'default');
+
+        self::assertNotNull($error, 'a type declared inside a global block must be validated, not skipped');
+        self::assertStringContainsString('gibt_es_nicht', $error['error']);
     }
 }

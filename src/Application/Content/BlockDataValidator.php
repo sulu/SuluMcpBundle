@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Application\Content;
 
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
@@ -26,10 +27,17 @@ use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
  * expected template field keys and showed empty blocks, while the read-side
  * normalizer flattened bogus `{name, value}` pairs and hid the corruption.
  *
+ * A block type name is only unique within the block property that declares it --
+ * `item` is used by nearly every card list -- so every lookup here walks the chain
+ * of (block property, block type) steps down from the template form instead of
+ * searching the metadata for a matching name.
+ *
  * @internal
  */
 final readonly class BlockDataValidator
 {
+    private const GLOBAL_BLOCK_TAG = 'sulu.global_block';
+
     public function __construct(
         private MetadataProviderInterface $formMetadataProvider,
         private MetadataLocaleResolver $localeResolver,
@@ -37,6 +45,9 @@ final readonly class BlockDataValidator
     }
 
     /**
+     * @param list<array{property: string, type: string}> $blockPath Chain of (block property, block type)
+     *                                                               steps from the template form down to
+     *                                                               and including the block to validate
      * @param array<string, mixed> $blockData Normalized blockData (flat object form)
      *
      * @return array<string, mixed>|null Error payload, or null when valid
@@ -44,14 +55,20 @@ final readonly class BlockDataValidator
     public function validate(
         string $contentType,
         ?string $templateKey,
-        string $blockType,
+        array $blockPath,
         array $blockData,
     ): ?array {
+        if ([] === $blockPath) {
+            return null;
+        }
+
+        $blockType = $blockPath[\array_key_last($blockPath)]['type'];
+
         if ($error = $this->rejectNameValuePattern($blockType, $blockData)) {
             return $error;
         }
 
-        $form = $this->findBlockTypeForm($contentType, $templateKey, $blockType);
+        $form = $this->resolveBlockPath($contentType, $templateKey, $blockPath);
 
         if (!$form instanceof FormMetadata) {
             // Block type not discoverable in metadata: skip strict validation rather
@@ -61,6 +78,21 @@ final readonly class BlockDataValidator
         }
 
         return $this->validateKeys($blockType, $blockData, $form);
+    }
+
+    /**
+     * Recursively validate every block in a content tree (template field values),
+     * descending into nested block lists. Returns the first error payload found,
+     * or null when the whole tree is valid. Used by create/update tools to reject
+     * an invalid one-shot draft before any write.
+     *
+     * @param array<string, mixed> $content
+     *
+     * @return array<string, mixed>|null
+     */
+    public function validateContentTree(array $content, string $contentType, ?string $templateKey): ?array
+    {
+        return $this->validateBlockLists($content, $this->templateForms($contentType, $templateKey));
     }
 
     /**
@@ -101,31 +133,19 @@ final readonly class BlockDataValidator
     }
 
     /**
-     * Recursively validate every block in a content tree (template field values),
-     * descending into nested block lists. Returns the first error payload found,
-     * or null when the whole tree is valid. Used by create/update tools to reject
-     * an invalid one-shot draft before any write.
-     *
-     * @param array<string, mixed> $content
-     *
-     * @return array<string, mixed>|null
-     */
-    public function validateContentTree(array $content, string $contentType, ?string $templateKey): ?array
-    {
-        return $this->validateBlockLists($content, $contentType, $templateKey);
-    }
-
-    /**
-     * Validate every block found in the list-valued entries of $node, recursing
-     * into each block's own list-valued fields (nested blocks).
+     * Validate every block found in the list-valued entries of $node, recursing into
+     * each block's own list-valued fields (nested blocks). $parentForms are the forms
+     * whose fields the keys of $node are looked up in: the candidate template forms at
+     * the root, the single resolved block form below that.
      *
      * @param array<array-key, mixed> $node
+     * @param list<FormMetadata> $parentForms
      *
      * @return array<string, mixed>|null
      */
-    private function validateBlockLists(array $node, string $contentType, ?string $templateKey): ?array
+    private function validateBlockLists(array $node, array $parentForms): ?array
     {
-        foreach ($node as $value) {
+        foreach ($node as $propertyName => $value) {
             if (!\is_array($value) || !\array_is_list($value)) {
                 continue;
             }
@@ -141,9 +161,9 @@ final readonly class BlockDataValidator
                     return $error;
                 }
 
-                // Resolve the block form once and reuse it for both key and
-                // required-field validation, instead of looking it up twice.
-                $form = $this->findBlockTypeForm($contentType, $templateKey, $blockType);
+                // Resolve the block form once and reuse it for key validation, required
+                // field validation, and as the scope of the block's own nested lists.
+                $form = $this->resolveBlockType($parentForms, (string) $propertyName, $blockType);
                 if ($form instanceof FormMetadata) {
                     if ($error = $this->validateKeys($blockType, $item, $form)) {
                         return $error;
@@ -154,7 +174,7 @@ final readonly class BlockDataValidator
                     }
                 }
 
-                if ($error = $this->validateBlockLists($item, $contentType, $templateKey)) {
+                if ($error = $this->validateBlockLists($item, $form instanceof FormMetadata ? [$form] : [])) {
                     return $error;
                 }
             }
@@ -223,88 +243,126 @@ final readonly class BlockDataValidator
     }
 
     /**
-     * Return the FormMetadata describing $blockType inside $contentType templates,
-     * or null when the block type cannot be discovered (caller should skip strict
-     * checks in that case).
+     * Walk $blockPath down from each candidate template form and return the form the
+     * last step resolves to, or null when no candidate resolves the whole chain.
+     *
+     * @param list<array{property: string, type: string}> $blockPath
      */
-    private function findBlockTypeForm(string $contentType, ?string $templateKey, string $blockType): ?FormMetadata
+    private function resolveBlockPath(string $contentType, ?string $templateKey, array $blockPath): ?FormMetadata
     {
-        $form = $this->findInTemplates($contentType, $templateKey, $blockType);
-        if ($form instanceof FormMetadata) {
+        foreach ($this->templateForms($contentType, $templateKey) as $templateForm) {
+            $form = $templateForm;
+
+            foreach ($blockPath as $step) {
+                $resolved = $this->resolveBlockType([$form], $step['property'], $step['type']);
+                if (!$resolved instanceof FormMetadata) {
+                    continue 2;
+                }
+
+                $form = $resolved;
+            }
+
             return $form;
         }
 
-        return $this->findInGlobalBlocks($blockType);
-    }
-
-    private function findInTemplates(string $contentType, ?string $templateKey, string $blockType): ?FormMetadata
-    {
-        try {
-            $typed = $this->formMetadataProvider->getMetadata($contentType, $this->localeResolver->resolve(), []);
-        } catch (\Throwable) {
-            return null;
-        }
-
-        if (!$typed instanceof TypedFormMetadata) {
-            return null;
-        }
-
-        $forms = $typed->getForms();
-        $candidates = null !== $templateKey && isset($forms[$templateKey])
-            ? [$templateKey => $forms[$templateKey]]
-            : $forms;
-
-        foreach ($candidates as $form) {
-            $blockForm = $this->scanFormForBlockType($form, $blockType);
-            if ($blockForm instanceof FormMetadata) {
-                return $blockForm;
-            }
-        }
-
         return null;
     }
 
-    private function scanFormForBlockType(FormMetadata $form, string $blockType): ?FormMetadata
+    /**
+     * Return the form describing $blockType as offered by the $propertyName field of
+     * one of $parentForms, or null when no parent offers that type there.
+     *
+     * @param list<FormMetadata> $parentForms
+     */
+    private function resolveBlockType(array $parentForms, string $propertyName, string $blockType): ?FormMetadata
     {
-        foreach ($form->getFlatFieldMetadata() as $item) {
-            if ('block' !== $item->getType()) {
+        foreach ($parentForms as $parentForm) {
+            $field = $parentForm->getFlatFieldMetadata()[$propertyName] ?? null;
+            if (!$field instanceof FieldMetadata) {
                 continue;
             }
 
-            foreach ($item->getTypes() as $typeName => $blockForm) {
-                if ($typeName === $blockType && [] !== $blockForm->getItems()) {
-                    return $blockForm;
-                }
+            $type = $field->getTypes()[$blockType] ?? null;
+            if (!$type instanceof FormMetadata) {
+                continue;
+            }
 
-                // Recurse into nested block definitions
-                $nested = $this->scanFormForBlockType($blockForm, $blockType);
-                if ($nested instanceof FormMetadata) {
-                    return $nested;
-                }
+            $form = $this->dereferenceGlobalBlock($type);
+            if ($form instanceof FormMetadata) {
+                return $form;
             }
         }
 
         return null;
     }
 
-    private function findInGlobalBlocks(string $blockType): ?FormMetadata
+    /**
+     * A block type referencing a global block carries only a `sulu.global_block` tag;
+     * its fields live in the separate global block metadata. Resolving that reference
+     * is what keeps types nested inside global blocks discoverable.
+     */
+    private function dereferenceGlobalBlock(FormMetadata $type): ?FormMetadata
     {
-        try {
-            $typed = $this->formMetadataProvider->getMetadata('block', $this->localeResolver->resolve(), ['ignore_global_blocks' => true]);
-        } catch (\Throwable) {
+        $tag = $type->findTag(self::GLOBAL_BLOCK_TAG);
+
+        if (null === $tag) {
+            return [] !== $type->getItems() ? $type : null;
+        }
+
+        $name = $tag->getAttribute('global_block');
+        if (!\is_string($name)) {
             return null;
         }
 
-        if (!$typed instanceof TypedFormMetadata) {
-            return null;
-        }
-
-        $form = $typed->getForms()[$blockType] ?? null;
+        $form = $this->globalBlockForms()[$name] ?? null;
         if (!$form instanceof FormMetadata || [] === $form->getItems()) {
             return null;
         }
 
         return $form;
+    }
+
+    /**
+     * The template forms a block path may start from: the addressed template when it
+     * is known, every template of the content type otherwise.
+     *
+     * @return list<FormMetadata>
+     */
+    private function templateForms(string $contentType, ?string $templateKey): array
+    {
+        try {
+            $typed = $this->formMetadataProvider->getMetadata($contentType, $this->localeResolver->resolve(), []);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        if (!$typed instanceof TypedFormMetadata) {
+            return [];
+        }
+
+        $forms = $typed->getForms();
+
+        if (null !== $templateKey && isset($forms[$templateKey])) {
+            return [$forms[$templateKey]];
+        }
+
+        return \array_values($forms);
+    }
+
+    /** @return array<array-key, FormMetadata> */
+    private function globalBlockForms(): array
+    {
+        try {
+            $typed = $this->formMetadataProvider->getMetadata('block', $this->localeResolver->resolve(), ['ignore_global_blocks' => true]);
+        } catch (\Throwable) {
+            return [];
+        }
+
+        if (!$typed instanceof TypedFormMetadata) {
+            return [];
+        }
+
+        return $typed->getForms();
     }
 
     /** @return list<string> */

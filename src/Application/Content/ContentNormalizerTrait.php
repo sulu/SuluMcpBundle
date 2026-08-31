@@ -214,6 +214,54 @@ trait ContentNormalizerTrait
     }
 
     /**
+     * Describe the block at a path as the chain of (block property, block type) steps
+     * leading to it, which is what BlockDataValidator needs to look a block type up in
+     * the template metadata -- a nested type name such as "item" only identifies a
+     * schema together with the property that declares it. Returns an empty chain when
+     * a step cannot be described, which the validator reads as "not discoverable".
+     *
+     * @param array<string, mixed> $data
+     * @param list<int> $indices
+     *
+     * @return list<array{property: string, type: string}>
+     */
+    private function blockTypePath(array $data, string $property, array $indices): array
+    {
+        $blocks = $data[$property] ?? null;
+        if (!\is_array($blocks)) {
+            return [];
+        }
+
+        /** @var list<array<string, mixed>> $blocks */
+        $block = $blocks[$indices[0]] ?? null;
+
+        if (!\is_array($block) || !\is_string($block['type'] ?? null)) {
+            return [];
+        }
+
+        $path = [['property' => $property, 'type' => $block['type']]];
+
+        foreach (\array_slice($indices, 1) as $index) {
+            $nestedKey = $this->findNestedBlockKey($block);
+            if (null === $nestedKey) {
+                return [];
+            }
+
+            /** @var list<array<string, mixed>> $nestedBlocks */
+            $nestedBlocks = $block[$nestedKey];
+            $block = $nestedBlocks[$index] ?? null;
+
+            if (!\is_array($block) || !\is_string($block['type'] ?? null)) {
+                return [];
+            }
+
+            $path[] = ['property' => $nestedKey, 'type' => $block['type']];
+        }
+
+        return $path;
+    }
+
+    /**
      * Return a new blocks array with the block at $indices replaced/merged with $updated.
      *
      * @param list<array<string, mixed>> $blocks

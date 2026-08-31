@@ -18,6 +18,7 @@ use PHPUnit\Framework\TestCase;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\SectionMetadata;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TagMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
@@ -444,6 +445,203 @@ final class BlockDataValidatorTest extends TestCase
 
         $this->assertNotNull($error, 'block field declared inside a template section must still be discovered and validated');
         $this->assertStringContainsString('bogus', $error['error']);
+    }
+
+    public function testNestedTypeOfTheSameNameIsResolvedAgainstItsOwnBlockProperty(): void
+    {
+        $validator = $this->validatorWithDuplicateItemTypes();
+
+        $trustBar = ['content' => [[
+            'type' => 'trust_bar',
+            'items' => [['type' => 'item', 'value' => '15', 'label' => 'Jahre']],
+        ]]];
+        $this->assertNull($validator->validateContentTree($trustBar, 'page', 'default'));
+
+        $featureCards = ['content' => [[
+            'type' => 'feature_cards',
+            'headline' => 'Cards',
+            'items' => [['type' => 'item', 'eyebrow' => 'A', 'headline' => 'Card A', 'text' => '<p>…</p>']],
+        ]]];
+        $this->assertNull(
+            $validator->validateContentTree($featureCards, 'page', 'default'),
+            'a nested "item" must be validated against the schema of the block property it sits in, not against the first "item" declared anywhere in the template',
+        );
+    }
+
+    public function testNestedTypeOfTheSameNameStillRejectsKeysOfTheForeignSchema(): void
+    {
+        $validator = $this->validatorWithDuplicateItemTypes();
+
+        $content = ['content' => [[
+            'type' => 'feature_cards',
+            'headline' => 'Cards',
+            'items' => [['type' => 'item', 'value' => '15', 'label' => 'Jahre']],
+        ]]];
+
+        $error = $validator->validateContentTree($content, 'page', 'default');
+
+        $this->assertNotNull($error, 'keys of the "trust_bar" item schema are not valid for a "feature_cards" item');
+        $this->assertStringContainsString('value', $error['error']);
+        $this->assertStringContainsString('eyebrow', $error['error']);
+    }
+
+    public function testTypeNestedInsideGlobalBlockIsValidated(): void
+    {
+        $validator = $this->validatorWithGlobalTimelineBlock();
+
+        $valid = ['content' => [[
+            'type' => 'timeline_process',
+            'stages' => [['type' => 'stage', 'title' => 'Kickoff']],
+        ]]];
+        $this->assertNull($validator->validateContentTree($valid, 'page', 'default'));
+
+        $invalid = ['content' => [[
+            'type' => 'timeline_process',
+            'stages' => [['type' => 'stage', 'gibt_es_nicht' => 'test']],
+        ]]];
+
+        $error = $validator->validateContentTree($invalid, 'page', 'default');
+
+        $this->assertNotNull($error, 'a type nested inside a global block must be discoverable, otherwise unknown keys are written through to Sulu');
+        $this->assertStringContainsString('gibt_es_nicht', $error['error']);
+    }
+
+    public function testSingleBlockValidationFollowsTheBlockPath(): void
+    {
+        $validator = $this->validatorWithDuplicateItemTypes();
+
+        $path = [
+            ['property' => 'content', 'type' => 'feature_cards'],
+            ['property' => 'items', 'type' => 'item'],
+        ];
+
+        $this->assertNull($validator->validate('page', 'default', $path, ['eyebrow' => 'A']));
+
+        $error = $validator->validate('page', 'default', $path, ['value' => '15']);
+
+        $this->assertNotNull($error);
+        $this->assertStringContainsString('value', $error['error']);
+    }
+
+    public function testSingleBlockValidationOfTypeNestedInsideGlobalBlock(): void
+    {
+        $validator = $this->validatorWithGlobalTimelineBlock();
+
+        $path = [
+            ['property' => 'content', 'type' => 'timeline_process'],
+            ['property' => 'stages', 'type' => 'stage'],
+        ];
+
+        $this->assertNull($validator->validate('page', 'default', $path, ['title' => 'Kickoff']));
+
+        $error = $validator->validate('page', 'default', $path, ['gibt_es_nicht' => 'test']);
+
+        $this->assertNotNull($error);
+        $this->assertStringContainsString('gibt_es_nicht', $error['error']);
+    }
+
+    public function testEmptyBlockPathSkipsValidation(): void
+    {
+        $validator = $this->validatorWithDuplicateItemTypes();
+
+        $this->assertNull($validator->validate('page', 'default', [], ['whatever' => 'x']));
+    }
+
+    /**
+     * Validator whose "default" template offers two block types that each nest a type
+     * named "item" with a different field set -- the shape the issue was reported for.
+     */
+    private function validatorWithDuplicateItemTypes(): BlockDataValidator
+    {
+        $trustBar = new FormMetadata();
+        $trustBar->setKey('trust_bar');
+        $trustBar->addItem($this->blockField('items', $this->blockType('item', ['value', 'label'])));
+
+        $featureCards = new FormMetadata();
+        $featureCards->setKey('feature_cards');
+        $featureCards->addItem($this->field('headline'));
+        $featureCards->addItem($this->blockField('items', $this->blockType('item', ['eyebrow', 'headline', 'text'])));
+
+        $template = new FormMetadata();
+        $template->setKey('default');
+        $template->addItem($this->blockField('content', $trustBar, $featureCards));
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('default', $template);
+
+        $provider = new ArrayMetadataProvider();
+        $provider->set('page', $typed);
+
+        return new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
+    }
+
+    /**
+     * Validator whose "default" template references the global block "timeline_process",
+     * whose fields -- including the nested "stage" type -- only exist in the separate
+     * global block metadata.
+     */
+    private function validatorWithGlobalTimelineBlock(): BlockDataValidator
+    {
+        $globalBlockTag = new TagMetadata();
+        $globalBlockTag->setName('sulu.global_block');
+        $globalBlockTag->setAttributes(['global_block' => 'timeline_process']);
+
+        $reference = new FormMetadata();
+        $reference->setKey('timeline_process');
+        $reference->addTag($globalBlockTag);
+
+        $template = new FormMetadata();
+        $template->setKey('default');
+        $template->addItem($this->blockField('content', $reference));
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('default', $template);
+
+        $globalBlock = new FormMetadata();
+        $globalBlock->setKey('timeline_process');
+        $globalBlock->addItem($this->blockField('stages', $this->blockType('stage', ['title'])));
+
+        $globalBlocks = new TypedFormMetadata();
+        $globalBlocks->addForm('timeline_process', $globalBlock);
+
+        $provider = new ArrayMetadataProvider();
+        $provider->set('page', $typed);
+        $provider->set('block', $globalBlocks);
+
+        return new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
+    }
+
+    private function field(string $name): FieldMetadata
+    {
+        $field = new FieldMetadata($name);
+        $field->setType('text_line');
+
+        return $field;
+    }
+
+    private function blockField(string $name, FormMetadata ...$types): FieldMetadata
+    {
+        $field = new FieldMetadata($name);
+        $field->setType('block');
+        foreach ($types as $type) {
+            $field->addType($type);
+        }
+
+        return $field;
+    }
+
+    /**
+     * @param list<string> $fieldNames
+     */
+    private function blockType(string $key, array $fieldNames): FormMetadata
+    {
+        $type = new FormMetadata();
+        $type->setKey($key);
+        foreach ($fieldNames as $fieldName) {
+            $type->addItem($this->field($fieldName));
+        }
+
+        return $type;
     }
 
     /**

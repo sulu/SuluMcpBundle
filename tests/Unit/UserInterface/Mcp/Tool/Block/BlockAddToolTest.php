@@ -438,4 +438,115 @@ final class BlockAddToolTest extends TestCase
         $this->assertStringContainsString('sulu_page_update', $result['hint']);
         $this->assertStringContainsString('de', $result['hint']);
     }
+
+    public function testNestedAddValidatesAgainstTheItemTypeOfItsParentProperty(): void
+    {
+        $this->setupPageWithDuplicateItemTypes();
+
+        $updatedPage = new Page('test-uuid');
+        $updatedPage->setWebspaceKey('example');
+        $this->messageBus->dispatch(Argument::cetera())->shouldBeCalledOnce()
+            ->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
+
+        $result = $this->tool->addBlock(
+            'page',
+            'test-uuid',
+            'en',
+            'item',
+            'blocks',
+            ['eyebrow' => 'B', 'headline' => 'Card B', 'text' => '<p>…</p>'],
+            parentBlockId: 'cards-1',
+        );
+
+        $this->assertTrue($result['success'], 'a "feature_cards" item must not be validated against the "trust_bar" item schema');
+    }
+
+    public function testNestedAddRejectsKeysOfAForeignItemTypeOfTheSameName(): void
+    {
+        $this->setupPageWithDuplicateItemTypes();
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->addBlock(
+            'page',
+            'test-uuid',
+            'en',
+            'item',
+            'blocks',
+            ['value' => '15', 'label' => 'Jahre'],
+            parentBlockId: 'cards-1',
+        );
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('value', $result['error']);
+        $this->assertStringContainsString('eyebrow', $result['error']);
+    }
+
+    /**
+     * A page holding a "feature_cards" block, with a template whose "trust_bar" declares
+     * a differently shaped nested type of the same name "item" -- and declares it first.
+     */
+    private function setupPageWithDuplicateItemTypes(): void
+    {
+        $this->setupEntityWithBlocks('page', [
+            ['_id' => 'cards-1', 'type' => 'feature_cards', 'headline' => 'Cards', 'items' => [
+                ['_id' => 'item-1', 'type' => 'item', 'eyebrow' => 'A', 'headline' => 'Card A', 'text' => '<p>…</p>'],
+            ]],
+        ]);
+
+        $blocksField = new FieldMetadata('blocks');
+        $blocksField->setType('block');
+        $blocksField->addType($this->blockType('trust_bar', [
+            $this->nestedItemsField(['value', 'label']),
+        ]));
+        $blocksField->addType($this->blockType('feature_cards', [
+            $this->textField('headline'),
+            $this->nestedItemsField(['eyebrow', 'headline', 'text']),
+        ]));
+
+        $template = new FormMetadata();
+        $template->setKey('default');
+        $template->addItem($blocksField);
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('default', $template);
+
+        $this->formMetadataProvider->set('page', $typed);
+    }
+
+    /**
+     * @param list<string> $fieldNames
+     */
+    private function nestedItemsField(array $fieldNames): FieldMetadata
+    {
+        $item = $this->blockType('item', \array_map($this->textField(...), $fieldNames));
+
+        $items = new FieldMetadata('items');
+        $items->setType('block');
+        $items->addType($item);
+
+        return $items;
+    }
+
+    /**
+     * @param list<FieldMetadata> $fields
+     */
+    private function blockType(string $key, array $fields): FormMetadata
+    {
+        $type = new FormMetadata();
+        $type->setKey($key);
+        foreach ($fields as $field) {
+            $type->addItem($field);
+        }
+
+        return $type;
+    }
+
+    private function textField(string $name): FieldMetadata
+    {
+        $field = new FieldMetadata($name);
+        $field->setType('text_line');
+
+        return $field;
+    }
 }
