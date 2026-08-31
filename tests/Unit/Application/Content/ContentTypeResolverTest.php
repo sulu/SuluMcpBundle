@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\Application\Content;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
@@ -43,6 +44,7 @@ use Sulu\Snippet\Domain\Model\Snippet;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
 
 #[CoversClass(ContentTypeResolver::class)]
+#[Group('product')]
 final class ContentTypeResolverTest extends TestCase
 {
     use ProphecyTrait;

@@ -67,6 +67,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagListTool;
+use Sulu\Product\Infrastructure\Symfony\HttpKernel\SuluProductBundle;
 
 /**
  * Golden-table pin for every tool's #[RequiresPermission] declaration, plus a
@@ -206,6 +207,12 @@ final class ToolPermissionGoldenTest extends TestCase
     #[DataProvider('golden')]
     public function testDeclaredRequirementsMatchGoldenRow(string $class, string $name, array $requirements): void
     {
+        // The product tools name their contexts with SuluProductBundle's constants, which
+        // the default dependency set cannot install. The row stays in the table either way.
+        if (\str_contains($class, '\\Tool\\Product\\') && !\class_exists(SuluProductBundle::class)) {
+            self::markTestSkipped('SuluProductBundle is not installed.');
+        }
+
         $extracted = ToolPermissionMapPass::extract($class);
 
         self::assertNotNull($extracted, \sprintf('%s declares no #[RequiresPermission].', $class));

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\Application\Product;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
@@ -32,6 +33,7 @@ use Sulu\Product\Domain\Repository\ProductFamilyRepositoryInterface;
 use Sulu\Product\Domain\Repository\ProductRepositoryInterface;
 
 #[CoversClass(VariantParentResolver::class)]
+#[Group('product')]
 final class VariantParentResolverTest extends TestCase
 {
     use ProphecyTrait;

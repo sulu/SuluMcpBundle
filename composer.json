@@ -51,8 +51,7 @@
         "phpstan/phpstan-symfony": "^2.0",
         "phpstan/phpstan-doctrine": "^2.0",
         "spaze/phpstan-disallowed-calls": "^4.7",
-        "phpspec/prophecy-phpunit": "^2.0",
-        "sulu/product-bundle": "3.0.x-dev"
+        "phpspec/prophecy-phpunit": "^2.0"
     },
     "suggest": {
         "sulu/product-bundle": "Enables the sulu_product_* MCP tools and type=\"product\" on the unified content tools"
@@ -72,6 +71,10 @@
     },
     "scripts": {
         "test": [
+            "Composer\\Config::disableProcessTimeout",
+            "vendor/bin/phpunit --exclude-group product"
+        ],
+        "test-with-product": [
             "Composer\\Config::disableProcessTimeout",
             "vendor/bin/phpunit"
         ],
@@ -98,13 +101,16 @@
         "lint-rector": "@php vendor/bin/rector process --dry-run",
         "lint-php-cs": "@php vendor/bin/php-cs-fixer fix --verbose --diff --dry-run",
         "lint": [
-            "@phpstan",
             "@lint-php-cs",
             "@lint-rector",
             "@lint-composer",
             "@lint-container",
             "@lint-yaml",
             "@lint-doctrine"
+        ],
+        "lint-with-product": [
+            "@lint",
+            "@phpstan"
         ],
         "lint-composer": "@composer validate",
         "rector": "@php vendor/bin/rector process",

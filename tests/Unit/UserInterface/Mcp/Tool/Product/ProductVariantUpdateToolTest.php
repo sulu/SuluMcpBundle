@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Product;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
@@ -39,6 +40,7 @@ use Symfony\Component\Messenger\Stamp\HandledStamp;
 use Symfony\Component\Routing\RouterInterface;
 
 #[CoversClass(ProductVariantUpdateTool::class)]
+#[Group('product')]
 final class ProductVariantUpdateToolTest extends TestCase
 {
     use ProphecyTrait;

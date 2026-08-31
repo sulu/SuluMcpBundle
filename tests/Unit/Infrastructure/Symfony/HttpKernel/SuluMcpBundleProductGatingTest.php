@@ -23,8 +23,8 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\Yaml\Yaml;
 
 /**
- * SuluProductBundle is optional. The functional suite always registers it, so the
- * "absent" branch is only reachable here.
+ * SuluProductBundle is optional, and both branches are asserted from the bundle list
+ * alone, so this runs whether or not the bundle is installed.
  */
 #[CoversClass(SuluMcpBundle::class)]
 final class SuluMcpBundleProductGatingTest extends TestCase

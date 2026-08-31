@@ -14,11 +14,13 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\Infrastructure\Sulu\AdminLink;
 
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ProductVariantAdminLinkProvider;
 use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
 
 #[CoversClass(ProductVariantAdminLinkProvider::class)]
+#[Group('product')]
 final class ProductVariantAdminLinkProviderTest extends TestCase
 {
     private ProductVariantAdminLinkProvider $provider;

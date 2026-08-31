@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\CoversNothing;
+use PHPUnit\Framework\Attributes\Group;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Domain\Model\WorkflowInterface;
@@ -47,6 +48,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 #[CoversNothing]
+#[Group('product')]
 final class ProductVariantLifecycleTest extends FunctionalTestCase
 {
     private const LOCALE = 'en';

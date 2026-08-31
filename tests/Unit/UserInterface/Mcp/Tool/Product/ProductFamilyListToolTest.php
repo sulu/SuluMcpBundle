@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Product;
 
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
@@ -32,6 +33,7 @@ use Sulu\Product\Domain\Model\ProductFamilyAttribute;
 use Sulu\Product\Domain\Repository\ProductFamilyRepositoryInterface;
 
 #[CoversClass(ProductFamilyListTool::class)]
+#[Group('product')]
 final class ProductFamilyListToolTest extends TestCase
 {
     use ProphecyTrait;

@@ -36,7 +36,10 @@ class Kernel extends SuluTestKernel
 
         $bundles[] = new SuluArticleBundle();
         $bundles[] = new SuluSnippetBundle();
-        $bundles[] = new SuluProductBundle();
+        if (\class_exists(SuluProductBundle::class)) {
+            $bundles[] = new SuluProductBundle();
+        }
+
         $bundles[] = new McpBundle();
         $bundles[] = new LeagueOAuth2ServerBundle();
         $bundles[] = new SuluMcpBundle();
@@ -61,6 +64,10 @@ class Kernel extends SuluTestKernel
         $loader->load(SuluTestBundle::getConfigDir() . '/context_' . $this->getContext() . '.yml');
 
         $loader->load(__DIR__ . '/config/config_' . $this->getContext() . '.yml');
+
+        if (\class_exists(SuluProductBundle::class)) {
+            $loader->load(__DIR__ . '/config/config_product.yml');
+        }
     }
 }
 

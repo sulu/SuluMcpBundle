@@ -49,8 +49,11 @@ final class TestViewRegistry extends ViewRegistry
             MediaAdmin::EDIT_FORM_VIEW => '/media/:locale/:id',
             TagAdmin::EDIT_FORM_VIEW => '/tags/:id',
             CategoryAdmin::EDIT_FORM_VIEW => '/categories/:locale/:id',
-            ProductAdmin::EDIT_TABS_VIEW => '/:locale/products/:id',
         ];
+
+        if (\class_exists(ProductAdmin::class)) {
+            $paths[ProductAdmin::EDIT_TABS_VIEW] = '/:locale/products/:id';
+        }
 
         if (isset($paths[$name])) {
             return new View($name, $paths[$name], 'form');

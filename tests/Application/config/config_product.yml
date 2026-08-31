@@ -1,0 +1,9 @@
+# Loaded by the Kernel only when SuluProductBundle is installed, so the default
+# dependency set - which cannot install it, see composer.json - still boots.
+sulu_product:
+    default_main_webspace: website
+
+services:
+    Sulu\Mcp\Tests\Application\DataFixtures\ProductFixtures:
+        autowire: true
+        autoconfigure: true
