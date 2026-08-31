@@ -32,8 +32,8 @@ final class ToolTitleCompletenessTest extends FunctionalTestCase
         $container = self::getContainer();
 
         // Populate the shared registry: Builder::build() runs its loaders only
-        // when the mcp.server service is actually built.
-        $container->get('mcp.server');
+        // when the mcp.server.sulu service is actually built.
+        $container->get('mcp.server.sulu');
 
         // The undecorated registry, because FilteredRegistry::getTools() hides
         // everything the (tokenless) test request is not permitted to see.

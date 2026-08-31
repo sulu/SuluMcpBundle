@@ -14,6 +14,8 @@ return RectorConfig::configure()
     ->withSkip([
         // Generated container/cache artifacts from booting the functional test kernel.
         __DIR__ . '/tests/Application/var',
+        // Config-reference shapes Symfony's DI component dumps on cache warmup.
+        __DIR__ . '/tests/Application/config/reference.php',
     ])
     ->withImportNames(importShortClasses: false)
     ->withSets([

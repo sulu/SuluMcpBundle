@@ -36,6 +36,12 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
 class SuluMcpBundle extends AbstractBundle
 {
     /**
+     * Name of the server prepended into symfony/mcp-bundle. Service ids are derived from it
+     * (`mcp.server.<name>.registry`), so config/services.yaml hardcodes the same value.
+     */
+    public const MCP_SERVER_NAME = 'sulu';
+
+    /**
      * mcp:tools covers the tools/* JSON-RPC methods, mcp:resources the resources/* ones.
      *
      * @var list<string>
@@ -105,11 +111,16 @@ class SuluMcpBundle extends AbstractBundle
 
         if ($builder->hasExtension('mcp')) {
             $builder->prependExtensionConfig('mcp', [
-                'client_transports' => [
-                    'http' => true,
-                ],
-                'http' => [
-                    'path' => $config['mcp_path'],
+                'servers' => [
+                    self::MCP_SERVER_NAME => [
+                        'registry' => '*',
+                        'transports' => [
+                            'http' => true,
+                        ],
+                        'http' => [
+                            'path' => $config['mcp_path'],
+                        ],
+                    ],
                 ],
             ]);
         }

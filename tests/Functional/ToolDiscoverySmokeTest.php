@@ -21,7 +21,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool;
 
 /**
  * Discovery visibility against the real compiled map, for a real
- * view-only role. Requires mcp.server initialized first, else
+ * view-only role. Requires mcp.server.sulu initialized first, else
  * getTools() assertions are meaningless-green. Also grants a real,
  * non-allowlisted permission to prove availability tracks real grants.
  */
@@ -31,7 +31,7 @@ final class ToolDiscoverySmokeTest extends FunctionalTestCase
     public function testViewOnlyRoleSeesDeniedToolsMarkedUnavailableWithReason(): void
     {
         $container = self::getContainer();
-        $container->get('mcp.server'); // populates the registry -- must run first
+        $container->get('mcp.server.sulu'); // populates the registry -- must run first
 
         $builder = new PermissionFixtureBuilder(
             $this->entityManager,
@@ -66,7 +66,7 @@ final class ToolDiscoverySmokeTest extends FunctionalTestCase
         );
 
         /** @var RegistryInterface $registry */
-        $registry = $container->get('mcp.registry');
+        $registry = $container->get('mcp.server.sulu.registry');
         // Page::$references is the public readonly property FilteredRegistry reads
         // off the inner registry to build the filtered set (FilteredRegistry.php:124)
         // -- same name=>Tool map as getArrayCopy(), without the extra call.
@@ -91,7 +91,7 @@ final class ToolDiscoverySmokeTest extends FunctionalTestCase
     public function testAnyWebspaceSentinelToolVisibleWhenGrantedOnOneOfTwoWebspaces(): void
     {
         $container = self::getContainer();
-        $container->get('mcp.server'); // populates the registry -- must run first
+        $container->get('mcp.server.sulu'); // populates the registry -- must run first
 
         $builder = new PermissionFixtureBuilder(
             $this->entityManager,
@@ -124,7 +124,7 @@ final class ToolDiscoverySmokeTest extends FunctionalTestCase
     public function testAnyWebspaceSentinelToolHiddenWhenGrantedOnNoWebspace(): void
     {
         $container = self::getContainer();
-        $container->get('mcp.server'); // populates the registry -- must run first
+        $container->get('mcp.server.sulu'); // populates the registry -- must run first
 
         $builder = new PermissionFixtureBuilder(
             $this->entityManager,

@@ -49,7 +49,7 @@ services:
     # Second layer over DangerousToolsPass: refuses disabled tools at registration
     # time, and hides tools the current user's role does not grant from tools/list.
     Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry:
-        decorates: mcp.registry
+        decorates: mcp.server.sulu.registry
         arguments:
             $inner: '@.inner'
             $visibilityResolver: '@Sulu\Mcp\Application\Security\ToolVisibilityResolver'
@@ -96,7 +96,7 @@ services:
     # Fail-closed gate: checks the compile-time permission map before delegating.
     Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler:
         arguments:
-            $registry: '@mcp.registry'
+            $registry: '@mcp.server.sulu.registry'
             $referenceHandler: '@sulu_mcp.reference_handler'
             $webspacePermissionResolver: '@Sulu\Mcp\Application\Security\WebspacePermissionResolver'
             $permissionMap: '%sulu_mcp.tool_permissions%'

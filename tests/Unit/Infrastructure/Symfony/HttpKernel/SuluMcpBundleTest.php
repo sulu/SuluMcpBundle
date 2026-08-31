@@ -53,8 +53,13 @@ final class SuluMcpBundleTest extends TestCase
         self::assertSame(
             [
                 [
-                    'client_transports' => ['http' => true],
-                    'http' => ['path' => '/admin/custom-mcp'],
+                    'servers' => [
+                        'sulu' => [
+                            'registry' => '*',
+                            'transports' => ['http' => true],
+                            'http' => ['path' => '/admin/custom-mcp'],
+                        ],
+                    ],
                 ],
             ],
             $container->getExtensionConfig('mcp'),

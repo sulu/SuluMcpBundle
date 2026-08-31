@@ -37,8 +37,8 @@ final class ToolPermissionMapCompletenessTest extends FunctionalTestCase
         self::assertNotEmpty($map, 'The compiled tool_permissions map is empty -- ToolPermissionMapPass did not run or found no tagged mcp.tool services.');
 
         // Populate the shared registry: Builder::build() runs its loaders only
-        // when the mcp.server service is actually built.
-        $container->get('mcp.server');
+        // when the mcp.server.sulu service is actually built.
+        $container->get('mcp.server.sulu');
 
         // The undecorated registry, because FilteredRegistry::getTools() hides
         // everything the (tokenless) test request is not permitted to see.

@@ -28,7 +28,9 @@ sulu_mcp:
         block_remove: true
 
 mcp:
-    pagination_limit: 100
+    servers:
+        sulu:
+            pagination_limit: 100
 
 league_oauth2_server:
     authorization_server:

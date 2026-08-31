@@ -222,7 +222,7 @@ final class PermissionHandlerSmokeTest extends FunctionalTestCase
     public function testPageCreateContextArgumentSubstitution(): void
     {
         // Populates the registry lazily so the allow-branch reaches PageCreateTool's body.
-        self::getContainer()->get('mcp.server');
+        self::getContainer()->get('mcp.server.sulu');
 
         $this->grantRole('WebsiteCreator', [
             'sulu.webspaces.website' => [PermissionTypes::EDIT => true, PermissionTypes::ADD => true],
@@ -262,7 +262,7 @@ final class PermissionHandlerSmokeTest extends FunctionalTestCase
     public function testContactListContextResolverDispatch(): void
     {
         // Populates the registry lazily so the allow-branch reaches ContactListTool's body.
-        self::getContainer()->get('mcp.server');
+        self::getContainer()->get('mcp.server.sulu');
 
         $this->grantRole('PeopleEditor', [
             'sulu.contact.people' => [PermissionTypes::VIEW => true],
@@ -338,7 +338,7 @@ final class PermissionHandlerSmokeTest extends FunctionalTestCase
      */
     public function testMediaListDeniedCollectionIdIsRejectedWithoutContent(): void
     {
-        self::getContainer()->get('mcp.server');
+        self::getContainer()->get('mcp.server.sulu');
 
         $container = self::getContainer();
         $builder = new PermissionFixtureBuilder(
@@ -377,7 +377,7 @@ final class PermissionHandlerSmokeTest extends FunctionalTestCase
      */
     public function testMediaListAllowedCollectionIdIsNotDeniedAtObjectAcl(): void
     {
-        self::getContainer()->get('mcp.server');
+        self::getContainer()->get('mcp.server.sulu');
 
         $container = self::getContainer();
         $builder = new PermissionFixtureBuilder(

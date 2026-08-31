@@ -30,7 +30,7 @@ final class RequestHandlerWiringTest extends FunctionalTestCase
 {
     public function testPermissionAwareHandlerDispatchesAheadOfDefaultCallToolHandler(): void
     {
-        $server = self::getContainer()->get('mcp.server');
+        $server = self::getContainer()->get('mcp.server.sulu');
         self::assertInstanceOf(Server::class, $server);
 
         // Both properties are private readonly with no accessor, so a ReflectionException

@@ -21,6 +21,7 @@ use Mcp\Schema\JsonRpc\Request;
 use Mcp\Schema\JsonRpc\Response;
 use Mcp\Schema\Request\CallToolRequest;
 use Mcp\Schema\Result\CallToolResult;
+use Mcp\Schema\Result\InputRequiredResult;
 use Mcp\Server\Handler\Request\CallToolHandler;
 use Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Mcp\Server\Session\SessionInterface;
@@ -37,7 +38,7 @@ use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
  * built-in CallToolHandler. Runs first because tagged handlers precede defaults,
  * and returns an isError result rather than throwing.
  *
- * @implements RequestHandlerInterface<CallToolResult>
+ * @implements RequestHandlerInterface<CallToolResult|InputRequiredResult>
  *
  * @internal
  */
