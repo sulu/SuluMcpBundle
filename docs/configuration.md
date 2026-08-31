@@ -42,6 +42,10 @@ The value has to be a literal path: it starts with a `/`, does not end with one,
 
 If you change `mcp_path`, also update the `pattern` of the `mcp` firewall in your `security.yaml` (see "Required security setup" below) and the URL registered with each MCP client.
 
+## The `symfony/mcp-bundle` server
+
+`symfony/mcp-bundle` serves named MCP servers, each with its own identity, endpoint and set of exposed capabilities. This bundle prepends one called `sulu`, exposing every registered tool and resource over HTTP at `mcp_path`, so everything that bundle leaves to the project is configured under `mcp.servers.sulu` -- `allowed_hosts` below, and the options with a working default (`pagination_limit`, `instructions`, `session`, the protocol revisions the server answers for) that `symfony/mcp-bundle` documents itself.
+
 ## Routes
 
 The bundle ships its routes in two files, because the two halves are mounted differently. `routing_admin.yaml` carries the OAuth endpoints and takes whichever prefix your project already uses for the rest of the Sulu admin, exactly like every other Sulu bundle. `routing_website.yaml` carries the discovery documents, whose paths RFC 8414 and RFC 9728 anchor in the host's `/.well-known/` namespace and which must therefore never take a route prefix.
@@ -145,16 +149,19 @@ When a flag is `false`, the corresponding tool services are removed from the con
 
 ### Allowed hosts
 
-`symfony/mcp-bundle` wraps the transport in the MCP SDK's DNS rebinding protection. Left unconfigured it keeps the SDK default, which accepts only `localhost`, `127.0.0.1` and `[::1]`. A server reachable under its own domain therefore answers every client request with `403 Forbidden: Invalid Host header.` -- after the OAuth handshake has already succeeded, and without writing anything to the Symfony log. Clients report this as rejected credentials. Name the public host in `config/packages/mcp.yaml`:
+`symfony/mcp-bundle` wraps the transport in the MCP SDK's DNS rebinding protection. Left unconfigured it keeps the SDK default, which accepts only `localhost`, `127.0.0.1` and `[::1]`. A server reachable under its own domain therefore answers every client request with `403 Forbidden: Invalid Host header.` -- after the OAuth handshake has already succeeded, and without writing anything to the Symfony log. Clients report this as rejected credentials. Name the public host on the `sulu` server:
 
 ```yaml
+# config/packages/sulu_mcp.yaml
 mcp:
-    http:
-        allowed_hosts:
-            - '%env(key:host:url:SULU_MCP_SERVER_URL)%'
-            - localhost
-            - 127.0.0.1
-            - '[::1]'
+    servers:
+        sulu:
+            http:
+                allowed_hosts:
+                    - '%env(key:host:url:SULU_MCP_SERVER_URL)%'
+                    - localhost
+                    - 127.0.0.1
+                    - '[::1]'
 ```
 
 Deriving the first entry from `SULU_MCP_SERVER_URL` keeps it correct per environment, and the loopback entries keep local development working. A request that carries an `Origin` header is checked against the same list and rejected with `Forbidden: Invalid Origin header.` instead.
@@ -199,4 +206,4 @@ bin/console cache:clear
 bin/console debug:container --tag=mcp.tool
 ```
 
-The list reflects the active `dangerous_tools` configuration.
+The list reflects the active `dangerous_tools` configuration. `bin/console debug:mcp --server=sulu` prints the same registry with handlers and descriptions, but filtered by what the current user may call -- on the CLI there is none, so it shows the two tools that need no permission.

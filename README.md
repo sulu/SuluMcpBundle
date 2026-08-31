@@ -232,7 +232,7 @@ request. Security issues should be reported privately as described in [SECURITY.
 ## ✅&nbsp; Requirements
 
 * PHP 8.2 or higher
-* Symfony 7.3 or higher
+* Symfony 7.3 or 8.x
 * Sulu 3.0 or higher
 
 Have a look at the `require` section in the [composer.json](composer.json) for an up-to-date list.
