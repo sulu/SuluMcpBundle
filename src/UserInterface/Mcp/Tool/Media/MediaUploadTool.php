@@ -20,6 +20,7 @@ use Sulu\Bundle\MediaBundle\Api\Media;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Entity\CollectionInterface;
 use Sulu\Bundle\MediaBundle\Entity\MediaInterface;
+use Sulu\Bundle\MediaBundle\Media\Exception\MediaNotFoundException;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Bundle\SecurityBundle\Entity\User;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
@@ -158,7 +159,9 @@ class MediaUploadTool
         $file = $this->downloadWithFallback($source);
 
         try {
-            $storedName = $fileName ?? $file->fileName;
+            $storedName = null !== $fileName
+                ? $this->downloader->normalizeFileName($fileName, $file->mimeType)
+                : $file->fileName;
 
             $data = [
                 'collection' => $collectionId,
@@ -236,7 +239,16 @@ class MediaUploadTool
      */
     private function describeExisting(int $mediaId, string $locale): array
     {
-        $media = $this->mediaManager->getById($mediaId, $locale);
+        try {
+            $media = $this->mediaManager->getById($mediaId, $locale);
+        } catch (MediaNotFoundException) {
+            // The URL names this instance, so downloading it would only 404 as well. Say what
+            // actually happened instead of blaming the target collection.
+            return [
+                'error' => \sprintf('Media %d no longer exists in this Sulu instance.', $mediaId),
+                'hint' => 'The URL points at media that was deleted. Use sulu_media_list to find a replacement, or pass the URL of the image on its original site.',
+            ];
+        }
 
         // getEntity() has no return type at all; Media always wraps a MediaInterface
         /** @var MediaInterface $entity */

@@ -197,13 +197,29 @@ class MediaDownloader
     private function fileNameFor(string $url, string $mimeType): string
     {
         $path = \parse_url($url, \PHP_URL_PATH);
-        $name = \is_string($path) ? \basename(\rawurldecode($path)) : '';
 
-        // Anything the remote could use to escape the collection directory is dropped;
-        // MediaManager cleans the name further, but not before it has been trusted here.
-        $name = \trim(\str_replace(['/', '\\', "\0"], '', $name));
+        return $this->normalizeFileName(\is_string($path) ? \basename(\rawurldecode($path)) : '', $mimeType);
+    }
 
-        if ('' === $name || '.' === $name) {
+    /**
+     * The name a set of bytes may be stored under. Public because a caller-supplied file name
+     * needs exactly the same treatment as one taken from the URL: neither is trustworthy, and
+     * an override that skipped this would be the one way back to a ".php" in the storage
+     * directory.
+     *
+     * @param non-empty-string $mimeType
+     *
+     * @return non-empty-string
+     */
+    public function normalizeFileName(string $name, string $mimeType): string
+    {
+        // Separators and NULs go first, then the leading dots they leave behind: "../../x.gif"
+        // would otherwise survive as "....x.gif", which is a hidden file rather than a traversal
+        // but still not a name anyone asked for. MediaManager cleans it further, but not before
+        // it has been trusted here.
+        $name = \ltrim(\trim(\str_replace(['/', '\\', "\0"], '', $name)), '.');
+
+        if ('' === $name) {
             $name = self::FALLBACK_FILE_NAME;
         }
 

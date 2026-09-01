@@ -103,8 +103,29 @@ final class MediaDownloaderTest extends TestCase
     {
         $file = $this->download($this->respondingWith(self::gif()), 'https://example.com/x/%2E%2E%2Fescaped.gif');
 
-        self::assertStringNotContainsString('/', $file->fileName);
-        self::assertStringNotContainsString('\\', $file->fileName);
+        self::assertSame('escaped.gif', $file->fileName);
+    }
+
+    #[DataProvider('provideUntrustedNames')]
+    public function testNormalizeFileNameAppliesTheSameRuleToACallerSuppliedName(string $given, string $expected): void
+    {
+        $downloader = new MediaDownloader(new MockHttpClient(), 1048576);
+
+        self::assertSame($expected, $downloader->normalizeFileName($given, 'image/gif'));
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideUntrustedNames(): iterable
+    {
+        yield 'kept as is' => ['harbour.gif', 'harbour.gif'];
+        yield 'traversal' => ['../../evil.php', 'evil.gif'];
+        yield 'windows separators' => ['..\\..\\evil.gif', 'evil.gif'];
+        yield 'leading dots' => ['...hidden.gif', 'hidden.gif'];
+        yield 'null byte' => ["evil.gif\0.php", 'evil.gif.gif'];
+        yield 'no extension' => ['hero', 'hero.gif'];
+        yield 'nothing usable' => ['../', 'image.gif'];
     }
 
     public function testAResponseLargerThanTheLimitIsRejected(): void

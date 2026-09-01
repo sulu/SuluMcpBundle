@@ -24,6 +24,7 @@ use Sulu\Bundle\MediaBundle\Api\Media;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Entity\CollectionType;
 use Sulu\Bundle\MediaBundle\Entity\Media as MediaEntity;
+use Sulu\Bundle\MediaBundle\Media\Exception\MediaNotFoundException;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
@@ -295,6 +296,46 @@ final class MediaUploadToolTest extends TestCase
         $this->tool()->uploadMedia('https://example.com/photo.gif', self::COLLECTION_ID, 'en', fileName: 'hero.gif');
 
         self::assertSame('hero.gif', $this->savedClientName);
+    }
+
+    public function testAnExplicitFileNameIsHeldToTheSameRulesAsOneTakenFromTheUrl(): void
+    {
+        $this->authenticateAsUser();
+        $this->expectSaveReturning(113, 'evil');
+
+        $this->tool()->uploadMedia(
+            'https://example.com/photo.gif',
+            self::COLLECTION_ID,
+            'en',
+            fileName: '../../evil.php',
+        );
+
+        self::assertSame(
+            'evil.gif',
+            $this->savedClientName,
+            'The override is model-supplied too, so skipping the guard would be the one way back to a ".php" in the storage directory.',
+        );
+    }
+
+    public function testAStaleLocalMediaUrlSaysWhatActuallyHappened(): void
+    {
+        $this->authenticateAsUser();
+
+        $this->mediaManager->getById(230, 'en')->willThrow(new MediaNotFoundException(230));
+        $this->mediaManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool()->uploadMedia(
+            self::LOCAL_SERVER . '/media/230/download/seal.gif',
+            self::COLLECTION_ID,
+            'en',
+        );
+
+        self::assertStringContainsString('no longer exists', $result['error']);
+        self::assertStringNotContainsString(
+            'collection id',
+            $result['hint'],
+            'The URL names this instance, so blaming the target collection sends the assistant after the wrong thing.',
+        );
     }
 
     public function testAnUnsupportedOriginIsRejected(): void
