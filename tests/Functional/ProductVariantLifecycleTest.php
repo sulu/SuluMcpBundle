@@ -255,8 +255,8 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
             'product',
             $uuid,
             self::LOCALE,
-            $blockId,
-            ['content' => '<p>Updated</p>'],
+            blockId: $blockId,
+            blockData: ['content' => '<p>Updated</p>'],
         );
         self::assertTrue($updated['success'] ?? false, \json_encode($updated));
 

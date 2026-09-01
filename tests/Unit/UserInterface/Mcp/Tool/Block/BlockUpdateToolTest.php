@@ -130,7 +130,7 @@ final class BlockUpdateToolTest extends TestCase
             return true;
         }), Argument::cetera())->shouldBeCalledOnce()->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
 
-        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', 'block-1', [
+        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', blockId: 'block-1', blockData: [
             'title' => 'New Title',
             'description' => '<p>New</p>',
         ]);
@@ -141,6 +141,121 @@ final class BlockUpdateToolTest extends TestCase
         $this->assertSame('block-1', $result['blockId']);
         $this->assertSame('blocks', $result['blockProperty']);
         $this->assertSame([0], $result['blockPath']);
+    }
+
+    public function testUpdatePageBlockByIndexWhenTheBlocksCarryNoId(): void
+    {
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
+
+        $dimensionContent = new PageDimensionContent(new Page());
+        $dimensionContent->setLocale('en');
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        // Blocks that were not created through these tools have no _id at all.
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
+            'template' => 'default',
+            'title' => 'Test Page',
+            'blocks' => [
+                ['type' => 'text', 'title' => 'Old Title', 'description' => '<p>Old</p>'],
+                ['type' => 'image', 'title' => 'Image', 'src' => '/img.jpg'],
+            ],
+        ]);
+
+        $updatedPage = new Page('page-uuid');
+        $updatedPage->setWebspaceKey('example');
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
+
+        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', blockIndex: 1, blockData: ['title' => 'New Image Title']);
+
+        $this->assertTrue($result['success'], \json_encode($result));
+        $this->assertSame('blocks', $result['blockProperty']);
+        $this->assertSame([1], $result['blockPath']);
+        $this->assertArrayNotHasKey('blockId', $result);
+    }
+
+    public function testUpdateBlockByIndexRejectsAnIndexOutOfRange(): void
+    {
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
+
+        $dimensionContent = new PageDimensionContent(new Page());
+        $dimensionContent->setLocale('en');
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
+            'template' => 'default',
+            'title' => 'Test Page',
+            'blocks' => [['type' => 'text', 'title' => 'Only one']],
+        ]);
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', blockIndex: 4, blockData: ['title' => 'New']);
+
+        $this->assertStringContainsString('out of range', $result['error']);
+    }
+
+    public function testUpdateBlockByIndexAsksForThePropertyWhenThereIsMoreThanOne(): void
+    {
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
+
+        $dimensionContent = new PageDimensionContent(new Page());
+        $dimensionContent->setLocale('en');
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
+            'template' => 'default',
+            'title' => 'Test Page',
+            'blocks' => [['type' => 'text', 'title' => 'A']],
+            'teasers' => [['type' => 'text', 'title' => 'B']],
+        ]);
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', blockIndex: 0, blockData: ['title' => 'New']);
+
+        $this->assertStringContainsString('blockProperty is required', $result['error']);
+        $this->assertStringContainsString('teasers', $result['error']);
+    }
+
+    public function testUpdateBlockByIndexUsesTheNamedProperty(): void
+    {
+        $page = new Page();
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
+
+        $dimensionContent = new PageDimensionContent(new Page());
+        $dimensionContent->setLocale('en');
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
+            'template' => 'default',
+            'title' => 'Test Page',
+            'blocks' => [['type' => 'text', 'title' => 'A']],
+            'teasers' => [['type' => 'text', 'title' => 'B']],
+        ]);
+
+        $updatedPage = new Page('page-uuid');
+        $updatedPage->setWebspaceKey('example');
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
+
+        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', blockIndex: 0, blockProperty: 'teasers', blockData: ['title' => 'New']);
+
+        $this->assertSame('teasers', $result['blockProperty']);
+    }
+
+    public function testUpdateBlockRefusesBothOrNeitherAddress(): void
+    {
+        $neither = $this->tool->updateBlock('page', 'page-uuid', 'en', blockData: ['title' => 'New']);
+        $this->assertStringContainsString('either blockId', $neither['error']);
+
+        $both = $this->tool->updateBlock('page', 'page-uuid', 'en', blockId: 'block-1', blockIndex: 0, blockData: ['title' => 'New']);
+        $this->assertStringContainsString('not both', $both['error']);
     }
 
     public function testUpdateArticleBlockById(): void
@@ -168,7 +283,7 @@ final class BlockUpdateToolTest extends TestCase
             return true;
         }), Argument::cetera())->shouldBeCalledOnce()->willReturn(new Envelope($updatedArticle, [new HandledStamp($updatedArticle, 'handler')]));
 
-        $result = $this->tool->updateBlock('article', 'article-uuid', 'en', 'art-block-1', [
+        $result = $this->tool->updateBlock('article', 'article-uuid', 'en', blockId: 'art-block-1', blockData: [
             'body' => '<p>Updated</p>',
         ]);
 
@@ -204,7 +319,7 @@ final class BlockUpdateToolTest extends TestCase
             return true;
         }), Argument::cetera())->shouldBeCalledOnce()->willReturn(new Envelope($updatedSnippet, [new HandledStamp($updatedSnippet, 'handler')]));
 
-        $result = $this->tool->updateBlock('snippet', 'snippet-uuid', 'en', 'snip-block-1', [
+        $result = $this->tool->updateBlock('snippet', 'snippet-uuid', 'en', blockId: 'snip-block-1', blockData: [
             'content' => '<p>Updated</p>',
         ]);
 
@@ -232,7 +347,7 @@ final class BlockUpdateToolTest extends TestCase
             ],
         ]);
 
-        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', 'nonexistent', ['title' => 'New']);
+        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', blockId: 'nonexistent', blockData: ['title' => 'New']);
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('nonexistent', $result['error']);
@@ -244,7 +359,7 @@ final class BlockUpdateToolTest extends TestCase
         $this->pageRepository->getOneBy(Argument::cetera())
             ->willThrow(new \RuntimeException('Not found'));
 
-        $result = $this->tool->updateBlock('page', 'missing-uuid', 'en', 'block-1', ['title' => 'New']);
+        $result = $this->tool->updateBlock('page', 'missing-uuid', 'en', blockId: 'block-1', blockData: ['title' => 'New']);
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('missing-uuid', $result['error']);
@@ -252,7 +367,7 @@ final class BlockUpdateToolTest extends TestCase
 
     public function testInvalidTypeReturnsError(): void
     {
-        $result = $this->tool->updateBlock('invalid', 'uuid', 'en', 'block-1', ['title' => 'New']);
+        $result = $this->tool->updateBlock('invalid', 'uuid', 'en', blockId: 'block-1', blockData: ['title' => 'New']);
 
         $this->assertArrayHasKey('error', $result);
     }
@@ -287,7 +402,7 @@ final class BlockUpdateToolTest extends TestCase
             return true;
         }), Argument::cetera())->shouldBeCalledOnce()->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
 
-        $this->tool->updateBlock('page', 'page-uuid', 'en', 'block-1', [
+        $this->tool->updateBlock('page', 'page-uuid', 'en', blockId: 'block-1', blockData: [
             'description' => '<p>New</p>',
         ]);
 
@@ -312,8 +427,10 @@ final class BlockUpdateToolTest extends TestCase
     public function testBlockDataParameterIsAdvertisedAsObjectSchema(): void
     {
         $reflection = new \ReflectionMethod(BlockUpdateTool::class, 'updateBlock');
-        $parameter = $reflection->getParameters()[4];
+        $parameter = $reflection->getParameters()[3];
         $attributes = $parameter->getAttributes(Schema::class);
+
+        $this->assertSame('blockData', $parameter->getName());
 
         $this->assertCount(1, $attributes);
 
@@ -338,7 +455,7 @@ final class BlockUpdateToolTest extends TestCase
 
         $this->expectException(ToolCallException::class);
 
-        $this->tool->updateBlock('page', 'page-uuid', 'en', 'block-1', ['title' => 'New']);
+        $this->tool->updateBlock('page', 'page-uuid', 'en', blockId: 'block-1', blockData: ['title' => 'New']);
     }
 
     public function testRejectsLocaleWithoutContentInsteadOfReportingNotFound(): void
@@ -352,7 +469,7 @@ final class BlockUpdateToolTest extends TestCase
         $ghostDimensionContent->addAvailableLocale('de');
         $this->contentManager->resolve(Argument::cetera())->willReturn($ghostDimensionContent);
 
-        $result = $this->tool->updateBlock('page', 'uuid-1', 'en', 'block-1', ['title' => 'X']);
+        $result = $this->tool->updateBlock('page', 'uuid-1', 'en', blockId: 'block-1', blockData: ['title' => 'X']);
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('has no "en" content yet', $result['error']);
@@ -366,7 +483,7 @@ final class BlockUpdateToolTest extends TestCase
 
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', 'stage-1', ['gibt_es_nicht' => 'test']);
+        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', blockId: 'stage-1', blockData: ['gibt_es_nicht' => 'test']);
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('gibt_es_nicht', $result['error']);
@@ -381,7 +498,7 @@ final class BlockUpdateToolTest extends TestCase
         $this->messageBus->dispatch(Argument::cetera())->shouldBeCalledOnce()
             ->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
 
-        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', 'stage-1', ['title' => 'Rollout']);
+        $result = $this->tool->updateBlock('page', 'page-uuid', 'en', blockId: 'stage-1', blockData: ['title' => 'Rollout']);
 
         $this->assertTrue($result['success']);
     }
