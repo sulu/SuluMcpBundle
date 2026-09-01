@@ -176,11 +176,12 @@ sulu_mcp:
         delete: false        # sulu_content_delete, sulu_tag_delete, sulu_category_delete
         publish: false       # sulu_content_publish, sulu_content_unpublish, sulu_preview_link_revoke, sulu_page_move, sulu_page_reorder
         block_remove: false  # sulu_block_remove
+        media_upload: false  # sulu_media_upload
 ```
 
 ### Available tools
 
-39 tools spanning the core Sulu domains, plus 9 more when `sulu/product-bundle` is installed:
+40 tools spanning the core Sulu domains, plus 9 more when `sulu/product-bundle` is installed:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
@@ -189,7 +190,7 @@ sulu_mcp:
 | Articles | 4 | `sulu_article_create`, `sulu_article_update`, `sulu_article_get`, `sulu_article_list` |
 | Snippets | 4 | `sulu_snippet_create`, `sulu_snippet_update`, `sulu_snippet_get`, `sulu_snippet_list` |
 | Unified content | 3 | `sulu_content_delete`, `sulu_content_publish`, `sulu_content_unpublish` |
-| Media | 3 | `sulu_media_list`, `sulu_media_get`, `sulu_media_update` |
+| Media | 4 | `sulu_media_list`, `sulu_media_get`, `sulu_media_update`, `sulu_media_upload` |
 | Taxonomy | 6 | `sulu_tag_*`, `sulu_category_*` |
 | Preview | 2 | `sulu_preview_link_generate`, `sulu_preview_link_revoke` |
 | Navigation | 1 | `sulu_navigation_get` |

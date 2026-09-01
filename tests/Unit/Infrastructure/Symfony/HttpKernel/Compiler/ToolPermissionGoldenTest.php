@@ -37,6 +37,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUpdateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUploadTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Navigation\NavigationGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageGetTool;
@@ -95,6 +96,7 @@ final class ToolPermissionGoldenTest extends TestCase
         MediaGetTool::class => ['sulu_media_get', [['sulu.media.collections', PermissionTypes::VIEW]]],
         MediaListTool::class => ['sulu_media_list', [['sulu.media.collections', PermissionTypes::VIEW]]],
         MediaUpdateTool::class => ['sulu_media_update', [['sulu.media.collections', PermissionTypes::EDIT]]],
+        MediaUploadTool::class => ['sulu_media_upload', [['sulu.media.collections', PermissionTypes::ADD]]],
         NavigationGetTool::class => ['sulu_navigation_get', [['sulu.webspaces.#context#', PermissionTypes::VIEW]]],
         BlockAddTool::class => ['sulu_block_add', [['#context#', PermissionTypes::EDIT]]],
         BlockListTool::class => ['sulu_block_list', [['#context#', PermissionTypes::VIEW]]],

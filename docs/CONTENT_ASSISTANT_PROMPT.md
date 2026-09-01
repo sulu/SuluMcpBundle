@@ -120,7 +120,8 @@ Categories and tags help organize articles and pages for filtering, navigation, 
 |------|-------------|
 | `sulu_media_list` | List/search media files by collection, type, or search text. |
 | `sulu_media_get` | Get media details — original URL, all format/thumbnail URLs, metadata. |
-| `sulu_media_update` | Update media metadata (title, description, copyright). |
+| `sulu_media_update` | Update media metadata (title, description, copyright, credits, origin). |
+| `sulu_media_upload` | Import an image from a URL into a collection. Off unless the project enabled it. |
 
 ### Preview Links
 
@@ -344,6 +345,37 @@ Never delete and recreate a page to "move" it — that loses the page's identity
 - Reference media by ID in block fields
 - Use `sulu_media_get` to retrieve URLs and available image formats
 - Update media metadata (alt text, copyright) with `sulu_media_update` for accessibility and legal compliance
+
+### Adding Images
+
+`sulu_media_upload` imports an image from a URL. It is disabled unless the project turned it on, so treat a missing tool as "ask the user to upload the file".
+
+Pass the URL exactly as you found it. A Sulu site renders resized thumbnails, and the tool rewrites such a URL to the original on its own. Editing the URL by hand imports a small derivative and loses the source resolution for good.
+
+Collect the metadata from the page the image sits on before calling:
+
+- `description` — the `alt` attribute or the `<figcaption>`
+- `copyright` — the licence or rights holder
+- `credits` — the photographer or agency credit line
+- `origin` — `human_created` for an image you copied from a real site, `ai_generated` for one you created, `ai_modified` for one you altered
+- `sourceUrl` — the page you found it on
+
+Never invent a credit. If the page does not state one, leave the field empty.
+
+```
+sulu_media_upload(
+    url="https://example.com/uploads/media/800x/00/230-harbour.jpg?v=2-6",
+    collectionId=3,
+    locale="en",
+    description="Fishing boats in the harbour at dawn",
+    copyright="(c) 2026 Example News",
+    credits="Photo: A. Example",
+    origin="human_created",
+    sourceUrl="https://example.com/articles/harbour"
+)
+```
+
+A URL that already points at this Sulu instance returns the existing media instead of importing a copy; the result says `existing: true`. Use the returned `id` in block and page media fields.
 
 ---
 

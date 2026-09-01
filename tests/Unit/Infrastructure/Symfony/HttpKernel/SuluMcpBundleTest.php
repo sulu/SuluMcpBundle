@@ -91,12 +91,13 @@ final class SuluMcpBundleTest extends TestCase
                     'delete' => true,
                     'publish' => false,
                     'block_remove' => true,
+                    'media_upload' => false,
                 ],
             ],
         ], $container);
 
         self::assertSame(
-            ['sulu_content_publish', 'sulu_content_unpublish', 'sulu_preview_link_revoke', 'sulu_page_move', 'sulu_page_reorder'],
+            ['sulu_content_publish', 'sulu_content_unpublish', 'sulu_preview_link_revoke', 'sulu_page_move', 'sulu_page_reorder', 'sulu_media_upload'],
             $container->getParameter('sulu_mcp.disabled_tool_names'),
         );
     }
@@ -113,6 +114,38 @@ final class SuluMcpBundleTest extends TestCase
         self::assertSame('/admin/mcp', $container->getParameter('sulu_mcp.mcp_path'));
         self::assertSame(['mcp:tools', 'mcp:resources'], $container->getParameter('sulu_mcp.oauth.scopes'));
         self::assertFalse($container->getParameter('sulu_mcp.dangerous_tools.delete'));
+        self::assertFalse($container->getParameter('sulu_mcp.dangerous_tools.media_upload'));
+        self::assertSame(10 * 1024 * 1024, $container->getParameter('sulu_mcp.media_upload.max_filesize'));
+        self::assertSame([], $container->getParameter('sulu_mcp.media_upload.allowed_hosts'));
+    }
+
+    public function testLoadConvertsTheMediaUploadLimitToBytesAndLowercasesTheAllowedHosts(): void
+    {
+        $container = $this->container();
+
+        $extension = (new SuluMcpBundle())->getContainerExtension();
+        self::assertNotNull($extension);
+
+        $extension->load([
+            [
+                'server_url' => 'https://sulu.example.com',
+                'media_upload' => [
+                    'max_filesize' => 25,
+                    'allowed_hosts' => ['CDN.Example.COM'],
+                ],
+            ],
+        ], $container);
+
+        self::assertSame(
+            25 * 1024 * 1024,
+            $container->getParameter('sulu_mcp.media_upload.max_filesize'),
+            'The limit is configured in MB like sulu_media.upload.max_filesize, but compared against a byte count.',
+        );
+        self::assertSame(
+            ['cdn.example.com'],
+            $container->getParameter('sulu_mcp.media_upload.allowed_hosts'),
+            'Host comparison is case-insensitive, so the list is normalised once here rather than at every check.',
+        );
     }
 
     #[DataProvider('provideInvalidMcpPaths')]

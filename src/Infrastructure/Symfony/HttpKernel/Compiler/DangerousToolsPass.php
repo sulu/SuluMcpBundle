@@ -17,6 +17,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentPublishTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUploadTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageMoveTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageReorderTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
@@ -59,6 +60,11 @@ final class DangerousToolsPass implements CompilerPassInterface
         ],
         'block_remove' => [
             BlockRemoveTool::class => 'sulu_block_remove',
+        ],
+        // Not destructive, but the only tool that makes the server fetch a model-supplied
+        // address. That egress is what the operator opts into here.
+        'media_upload' => [
+            MediaUploadTool::class => 'sulu_media_upload',
         ],
     ];
 

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Media;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Capability\Attribute\Schema;
 use Mcp\Exception\ToolCallException;
 use Sulu\Bundle\MediaBundle\Api\Media;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
@@ -34,6 +35,13 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
  */
 class MediaUpdateTool
 {
+    /**
+     * The values sulu_media's `origin` single_select offers.
+     *
+     * @var list<string>
+     */
+    private const ORIGINS = ['human_created', 'ai_generated', 'ai_modified', 'unknown'];
+
     public function __construct(
         private readonly MediaManagerInterface $mediaManager,
         private readonly TokenStorageInterface $tokenStorage,
@@ -48,7 +56,7 @@ class MediaUpdateTool
     #[McpTool(
         name: 'sulu_media_update',
         title: 'Update Media',
-        description: 'Update media metadata (title, description, copyright). Does not change the file itself — only metadata fields. Pass only the fields you want to change; the result echoes title, description and copyright as they were stored. An empty or "0" title is refused: Sulu drops it and the title would stay as it is. Calling this with a locale the media has no metadata in yet creates that translation, copying the title from the existing one unless you pass your own, and the result carries "created_locale": true.',
+        description: 'Update media metadata (title, description, copyright, credits, origin). Does not change the file itself — only metadata fields. Pass only the fields you want to change; the result echoes title, description and copyright as they were stored. An empty or "0" title is refused: Sulu drops it and the title would stay as it is. Calling this with a locale the media has no metadata in yet creates that translation, copying the title from the existing one unless you pass your own, and the result carries "created_locale": true.',
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.media.collections', PermissionTypes::EDIT)],
@@ -61,8 +69,18 @@ class MediaUpdateTool
         ?string $title = null,
         ?string $description = null,
         ?string $copyright = null,
+        ?string $credits = null,
+        #[Schema(description: 'How the image came to be. Drives the frontend AI disclosure badge.', enum: ['human_created', 'ai_generated', 'ai_modified', 'unknown'])]
+        ?string $origin = null,
     ): array {
         try {
+            if (null !== $origin && !\in_array($origin, self::ORIGINS, true)) {
+                return [
+                    'error' => \sprintf('Unsupported origin "%s".', $origin),
+                    'hint' => \sprintf('Use one of: %s.', \implode(', ', self::ORIGINS)),
+                ];
+            }
+
             $user = $this->tokenStorage->getToken()?->getUser();
 
             if (!$user instanceof User) {
@@ -111,6 +129,14 @@ class MediaUpdateTool
 
             if (null !== $copyright) {
                 $data['copyright'] = $copyright;
+            }
+
+            if (null !== $credits) {
+                $data['credits'] = $credits;
+            }
+
+            if (null !== $origin) {
+                $data['origin'] = $origin;
             }
 
             $createsLocale = !$this->hasMetaForLocale($media, $locale);

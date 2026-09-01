@@ -336,6 +336,43 @@ final class MediaUpdateToolTest extends TestCase
         $this->assertIsString($result['hint']);
     }
 
+    public function testUpdateMediaWritesCreditsAndOrigin(): void
+    {
+        $this->authenticateAsUser();
+
+        $this->mediaManager->getById(Argument::cetera())->willReturn($this->loadedMedia(5)->reveal());
+
+        $media = $this->prophesize(Media::class);
+        $media->getId()->willReturn(42);
+        $media->getTitle()->willReturn('Original');
+        $media->getDescription()->willReturn(null);
+        $media->getCopyright()->willReturn(null);
+
+        $this->mediaManager
+            ->save(
+                null,
+                Argument::that(fn (array $data): bool => 'Photo: A. Example' === $data['credits']
+                    && 'ai_generated' === $data['origin']),
+                1,
+            )
+            ->shouldBeCalledOnce()
+            ->willReturn($media->reveal());
+
+        $this->tool->updateMedia(42, 'en', credits: 'Photo: A. Example', origin: 'ai_generated');
+    }
+
+    public function testUpdateMediaRejectsAnUnsupportedOrigin(): void
+    {
+        $this->authenticateAsUser();
+
+        $this->mediaManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updateMedia(42, 'en', origin: 'made_up');
+
+        $this->assertStringContainsString('made_up', $result['error']);
+        $this->assertStringContainsString('ai_generated', $result['hint']);
+    }
+
     public function testUpdateMediaReturnsHintOnSaveFailure(): void
     {
         $this->authenticateAsUser();

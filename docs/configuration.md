@@ -19,6 +19,12 @@ sulu_mcp:
         delete: false        # sulu_content_delete, sulu_tag_delete, sulu_category_delete
         publish: false       # sulu_content_publish, sulu_content_unpublish, sulu_preview_link_revoke, sulu_page_move, sulu_page_reorder
         block_remove: false  # sulu_block_remove
+        media_upload: false  # sulu_media_upload
+
+    # Limits applied to sulu_media_upload once dangerous_tools.media_upload is true.
+    media_upload:
+        max_filesize: 10      # MB
+        allowed_hosts: []     # empty allows any public host
 ```
 
 ## Settings
@@ -137,15 +143,29 @@ league runs a single authorization server per application, so token lifetimes, g
 
 ### `dangerous_tools.*`
 
-Three booleans gating high-impact tools. Each flag is independent — enable only what you need.
+Four booleans gating high-impact tools. Each flag is independent — enable only what you need.
 
 | Flag | Tools enabled when `true` |
 |------|---------------------------|
 | `delete` | `sulu_content_delete` (page/article/snippet/product via `type`), `sulu_tag_delete`, `sulu_category_delete` |
 | `publish` | `sulu_content_publish` (page/article/snippet/product via `type`), `sulu_content_unpublish` (page/article/snippet/product via `type`), `sulu_preview_link_revoke`, `sulu_page_move`, `sulu_page_reorder` |
 | `block_remove` | `sulu_block_remove` |
+| `media_upload` | `sulu_media_upload` |
 
 When a flag is `false`, the corresponding tool services are removed from the container at compile time — they don't appear in MCP `tools/list` and calls fail with "unknown tool" rather than running with an error. To change a flag, edit the YAML and clear the cache (`bin/console cache:clear`).
+
+`media_upload` is the odd one out. `sulu_media_upload` destroys nothing: it imports an image from a URL into a collection. It is gated because it is the only tool that makes the server issue an outbound request to an address the model chose, and that egress is the operator's decision, not the model's.
+
+### `media_upload.*`
+
+How `sulu_media_upload` behaves once it exists. Deliberately a separate node: `dangerous_tools` stays a list of on/off switches.
+
+| Setting | Default | Meaning |
+|---------|---------|---------|
+| `max_filesize` | `10` | Largest download in MB, counted against the bytes that actually arrive rather than the `Content-Length` the remote claims. Named and counted like `sulu_media.upload.max_filesize`. |
+| `allowed_hosts` | `[]` | Hosts the tool may download from. Empty allows any public host. |
+
+Whatever `allowed_hosts` says, the download is confined: only `http` and `https`, at most three redirects, a bounded duration, and no private, loopback, link-local or reserved address — re-checked after every redirect, not only on the hostname it started with. The mime type is determined from the downloaded bytes, and anything that is not an image is refused before it reaches the MediaBundle. `sulu_media`'s own `upload.max_filesize` and blocked mime types still apply on top, because the file is stored through `MediaManager` like any other upload.
 
 ### Allowed hosts
 
@@ -195,6 +215,7 @@ sulu_mcp:
         delete: true
         publish: true
         block_remove: true
+        media_upload: true
 ```
 
 ## Verifying

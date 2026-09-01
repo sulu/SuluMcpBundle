@@ -20,6 +20,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentPublishTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUploadTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageMoveTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageReorderTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
@@ -44,6 +45,7 @@ final class DangerousToolsPassTest extends TestCase
         PageMoveTool::class,
         PageReorderTool::class,
         BlockRemoveTool::class,
+        MediaUploadTool::class,
     ];
 
     public function testProcessRemovesOnlyDeleteCategoryWhenDeleteDisabled(): void
@@ -52,6 +54,7 @@ final class DangerousToolsPassTest extends TestCase
         $container->setParameter('sulu_mcp.dangerous_tools.delete', false);
         $container->setParameter('sulu_mcp.dangerous_tools.publish', true);
         $container->setParameter('sulu_mcp.dangerous_tools.block_remove', true);
+        $container->setParameter('sulu_mcp.dangerous_tools.media_upload', true);
 
         (new DangerousToolsPass())->process($container);
 
@@ -67,6 +70,7 @@ final class DangerousToolsPassTest extends TestCase
             PageMoveTool::class,
             PageReorderTool::class,
             BlockRemoveTool::class,
+            MediaUploadTool::class,
         ]);
     }
 
@@ -76,6 +80,7 @@ final class DangerousToolsPassTest extends TestCase
         $container->setParameter('sulu_mcp.dangerous_tools.delete', true);
         $container->setParameter('sulu_mcp.dangerous_tools.publish', false);
         $container->setParameter('sulu_mcp.dangerous_tools.block_remove', true);
+        $container->setParameter('sulu_mcp.dangerous_tools.media_upload', true);
 
         (new DangerousToolsPass())->process($container);
 
@@ -91,6 +96,7 @@ final class DangerousToolsPassTest extends TestCase
             TagDeleteTool::class,
             CategoryDeleteTool::class,
             BlockRemoveTool::class,
+            MediaUploadTool::class,
         ]);
     }
 
@@ -100,6 +106,7 @@ final class DangerousToolsPassTest extends TestCase
         $container->setParameter('sulu_mcp.dangerous_tools.delete', true);
         $container->setParameter('sulu_mcp.dangerous_tools.publish', true);
         $container->setParameter('sulu_mcp.dangerous_tools.block_remove', false);
+        $container->setParameter('sulu_mcp.dangerous_tools.media_upload', true);
 
         (new DangerousToolsPass())->process($container);
 
@@ -115,6 +122,33 @@ final class DangerousToolsPassTest extends TestCase
             PreviewLinkRevokeTool::class,
             PageMoveTool::class,
             PageReorderTool::class,
+            MediaUploadTool::class,
+        ]);
+    }
+
+    public function testProcessRemovesOnlyMediaUploadCategoryWhenMediaUploadDisabled(): void
+    {
+        $container = $this->containerWithGatedDefinitions();
+        $container->setParameter('sulu_mcp.dangerous_tools.delete', true);
+        $container->setParameter('sulu_mcp.dangerous_tools.publish', true);
+        $container->setParameter('sulu_mcp.dangerous_tools.block_remove', true);
+        $container->setParameter('sulu_mcp.dangerous_tools.media_upload', false);
+
+        (new DangerousToolsPass())->process($container);
+
+        $this->assertDefinitionsRemoved($container, [
+            MediaUploadTool::class,
+        ]);
+        $this->assertDefinitionsPresent($container, [
+            ContentDeleteTool::class,
+            TagDeleteTool::class,
+            CategoryDeleteTool::class,
+            ContentPublishTool::class,
+            ContentUnpublishTool::class,
+            PreviewLinkRevokeTool::class,
+            PageMoveTool::class,
+            PageReorderTool::class,
+            BlockRemoveTool::class,
         ]);
     }
 
@@ -124,6 +158,7 @@ final class DangerousToolsPassTest extends TestCase
         $container->setParameter('sulu_mcp.dangerous_tools.delete', true);
         $container->setParameter('sulu_mcp.dangerous_tools.publish', true);
         $container->setParameter('sulu_mcp.dangerous_tools.block_remove', true);
+        $container->setParameter('sulu_mcp.dangerous_tools.media_upload', true);
 
         (new DangerousToolsPass())->process($container);
 
@@ -145,6 +180,7 @@ final class DangerousToolsPassTest extends TestCase
             'delete' => false,
             'publish' => false,
             'block_remove' => false,
+            'media_upload' => false,
         ]);
 
         self::assertSame([
@@ -157,6 +193,7 @@ final class DangerousToolsPassTest extends TestCase
             'sulu_page_move',
             'sulu_page_reorder',
             'sulu_block_remove',
+            'sulu_media_upload',
         ], $names);
     }
 
@@ -166,6 +203,7 @@ final class DangerousToolsPassTest extends TestCase
             'delete' => true,
             'publish' => true,
             'block_remove' => true,
+            'media_upload' => true,
         ]);
 
         self::assertSame([], $names);
@@ -177,6 +215,7 @@ final class DangerousToolsPassTest extends TestCase
             'delete' => true,
             'publish' => false,
             'block_remove' => true,
+            'media_upload' => true,
         ]);
 
         self::assertSame([
@@ -202,6 +241,7 @@ final class DangerousToolsPassTest extends TestCase
             'sulu_page_move',
             'sulu_page_reorder',
             'sulu_block_remove',
+            'sulu_media_upload',
         ], $names);
     }
 
