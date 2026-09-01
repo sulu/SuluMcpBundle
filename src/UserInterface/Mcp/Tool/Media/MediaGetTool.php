@@ -42,7 +42,7 @@ class MediaGetTool
     #[McpTool(
         name: 'sulu_media_get',
         title: 'Get Media',
-        description: 'Get detailed information about a media file by ID. Returns metadata (title, description, copyright, mime type, size), the original URL, and all available format/thumbnail URLs.',
+        description: 'Get detailed information about a media file by ID. Returns metadata (title, description, copyright, credits, origin, mime type, size), the original URL, and all available format/thumbnail URLs.',
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.media.collections', PermissionTypes::VIEW)],
@@ -74,6 +74,8 @@ class MediaGetTool
                 'title' => $media->getTitle(),
                 'description' => $media->getDescription(),
                 'copyright' => $media->getCopyright(),
+                'credits' => $media->getCredits(),
+                'origin' => $media->getOrigin(),
                 'mimeType' => $media->getMimeType(),
                 'size' => $media->getSize(),
                 'url' => $media->getUrl(),

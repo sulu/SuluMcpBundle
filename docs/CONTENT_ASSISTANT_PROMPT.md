@@ -119,7 +119,7 @@ Categories and tags help organize articles and pages for filtering, navigation, 
 | Tool | Description |
 |------|-------------|
 | `sulu_media_list` | List/search media files by collection, type, or search text. |
-| `sulu_media_get` | Get media details — original URL, all format/thumbnail URLs, metadata. |
+| `sulu_media_get` | Get media details — original URL, all format/thumbnail URLs, metadata including credits and origin. |
 | `sulu_media_update` | Update media metadata (title, description, copyright, credits, origin). |
 | `sulu_media_upload` | Import an image from a URL into a collection. Off unless the project enabled it. |
 
