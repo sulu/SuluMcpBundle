@@ -66,7 +66,15 @@ class AttributeListTool
         try {
             $attributes = [];
 
-            foreach ($this->attributeGroupRepository->findAll() as $group) {
+            // The listing reads every group's translation, its attributes and their
+            // translations, so ask for all three eagerly instead of one query per row.
+            $groups = $this->attributeGroupRepository->findBy(selects: [
+                AttributeGroupRepositoryInterface::SELECT_GROUP_TRANSLATIONS => true,
+                AttributeGroupRepositoryInterface::SELECT_GROUP_ATTRIBUTES => true,
+                AttributeGroupRepositoryInterface::SELECT_GROUP_ATTRIBUTE_TRANSLATIONS => true,
+            ]);
+
+            foreach ($groups as $group) {
                 $groupName = $group->getTranslation($locale)?->getName();
 
                 foreach ($group->getGroupAttributes() as $groupAttribute) {

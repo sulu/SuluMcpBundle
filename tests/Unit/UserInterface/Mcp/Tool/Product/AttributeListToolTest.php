@@ -17,6 +17,7 @@ use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
+use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\AttributeListTool;
@@ -53,7 +54,7 @@ final class AttributeListToolTest extends TestCase
 
         $this->addAttribute($group, 12, 'colour', AttributeInterface::TYPE_TEXT, 'Colour');
 
-        $this->attributeGroupRepository->findAll()->willReturn([$group]);
+        $this->attributeGroupRepository->findBy(Argument::cetera())->willReturn([$group]);
 
         $result = $this->tool->listAttributes('en');
 
@@ -77,7 +78,7 @@ final class AttributeListToolTest extends TestCase
         $option->addTranslation(new AttributeOptionTranslation($option, 'en', 'Extra Large'));
         $attribute->addOption($option);
 
-        $this->attributeGroupRepository->findAll()->willReturn([$group]);
+        $this->attributeGroupRepository->findBy(Argument::cetera())->willReturn([$group]);
 
         $result = $this->tool->listAttributes('en');
 
@@ -89,7 +90,7 @@ final class AttributeListToolTest extends TestCase
         $group = new AttributeGroup();
         $this->addAttribute($group, 14, 'material', AttributeInterface::TYPE_TEXT, 'Material');
 
-        $this->attributeGroupRepository->findAll()->willReturn([$group]);
+        $this->attributeGroupRepository->findBy(Argument::cetera())->willReturn([$group]);
 
         $result = $this->tool->listAttributes('de');
 
@@ -103,7 +104,7 @@ final class AttributeListToolTest extends TestCase
         $this->addAttribute($group, 31, 'bravo', AttributeInterface::TYPE_TEXT, 'Bravo');
         $this->addAttribute($group, 32, 'charlie', AttributeInterface::TYPE_TEXT, 'Charlie');
 
-        $this->attributeGroupRepository->findAll()->willReturn([$group]);
+        $this->attributeGroupRepository->findBy(Argument::cetera())->willReturn([$group]);
 
         $descending = $this->tool->listAttributes('en', sortBy: 'key', sortOrder: 'desc');
         $this->assertSame(
@@ -126,7 +127,7 @@ final class AttributeListToolTest extends TestCase
 
     public function testListAttributesReturnsErrorOnFailure(): void
     {
-        $this->attributeGroupRepository->findAll()->willThrow(new \RuntimeException('DB gone'));
+        $this->attributeGroupRepository->findBy(Argument::cetera())->willThrow(new \RuntimeException('DB gone'));
 
         $result = $this->tool->listAttributes('en');
 
