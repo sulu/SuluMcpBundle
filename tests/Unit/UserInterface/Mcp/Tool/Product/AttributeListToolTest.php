@@ -54,7 +54,14 @@ final class AttributeListToolTest extends TestCase
 
         $this->addAttribute($group, 12, 'colour', AttributeInterface::TYPE_TEXT, 'Colour');
 
-        $this->attributeGroupRepository->findBy(Argument::cetera())->willReturn([$group]);
+        // Pinned rather than matched loosely: the listing reads a translation per group,
+        // then its attributes, then a translation per attribute. Losing a select here
+        // costs a query per row and nothing else would notice.
+        $this->attributeGroupRepository->findBy([], [], [
+            AttributeGroupRepositoryInterface::SELECT_GROUP_TRANSLATIONS => true,
+            AttributeGroupRepositoryInterface::SELECT_GROUP_ATTRIBUTES => true,
+            AttributeGroupRepositoryInterface::SELECT_GROUP_ATTRIBUTE_TRANSLATIONS => true,
+        ])->willReturn([$group])->shouldBeCalledOnce();
 
         $result = $this->tool->listAttributes('en');
 
