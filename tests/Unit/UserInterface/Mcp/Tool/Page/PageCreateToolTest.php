@@ -327,6 +327,58 @@ final class PageCreateToolTest extends TestCase
         $this->assertSame(['main'], $capturedMessage->getData()['navigationContexts']);
     }
 
+    public function testCreatePageDropsNavigationContextsSmuggledThroughMetadataFields(): void
+    {
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $mapperMetadataProvider = new ArrayMetadataProvider();
+        $mapperMetadataProvider->set('content_excerpt_metadata', $this->makeFormMeta(['navigationContexts']));
+        $mapperMetadataProvider->setDefault($this->makeFormMeta([]));
+
+        $tool = new PageCreateTool(
+            $this->messageBus->reveal(),
+            $this->contentManager->reveal(),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            $this->blockIdGenerator,
+            new ContentMetadataMapper($mapperMetadataProvider),
+            $this->adminLinkGenerator,
+            $this->pageRepository->reveal(),
+            $this->permissionChecker,
+            $this->webspaceManager->reveal(),
+        );
+
+        $capturedMessage = null;
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockPage, &$capturedMessage) {
+                $capturedMessage = $args[0]->getMessage();
+
+                return $args[0]->with(new HandledStamp($mockPage, 'handler'));
+            });
+
+        $this->contentManager->resolve(Argument::cetera())->willReturn(new PageDimensionContent(new Page()));
+        $this->contentManager->normalize(Argument::cetera())->willReturn([]);
+
+        $tool->createPage(
+            'example',
+            'en',
+            'default',
+            'Test',
+            'parent-uuid',
+            null,
+            null,
+            ['navigationContexts' => ['smuggled']],
+        );
+
+        $this->assertInstanceOf(CreatePageMessage::class, $capturedMessage);
+        $this->assertArrayNotHasKey(
+            'navigationContexts',
+            $capturedMessage->getData(),
+            'ContentMetadataMapper places project-declared metadata names top-level after the content guard, so an excerpt field named navigationContexts must not reach the message unvalidated.',
+        );
+    }
+
     public function testCreatePageGeneratesUrlFromTitleWhenUrlIsNull(): void
     {
         $mockPage = new Page('uuid-1');

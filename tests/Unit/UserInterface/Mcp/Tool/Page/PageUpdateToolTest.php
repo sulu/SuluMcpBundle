@@ -362,6 +362,50 @@ final class PageUpdateToolTest extends TestCase
         $this->assertSame(['footer'], $capturedEnvelope->getMessage()->getData()['navigationContexts']);
     }
 
+    public function testUpdatePagePreservesTheCurrentNavigationContextsOverMetadataSmuggledOnes(): void
+    {
+        $this->setUpReadModifyWrite('uuid-1', 'en', [
+            'template' => 'default',
+            'title' => 'Existing',
+            'navigationContexts' => ['main'],
+        ]);
+
+        $mapperMetadataProvider = new ArrayMetadataProvider();
+        $mapperMetadataProvider->set('content_excerpt_metadata', $this->makeFormMeta(['navigationContexts']));
+        $mapperMetadataProvider->setDefault($this->makeFormMeta([]));
+
+        $tool = new PageUpdateTool(
+            $this->messageBus->reveal(),
+            $this->contentManager->reveal(),
+            $this->pageRepository->reveal(),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            $this->blockIdGenerator,
+            new ContentMetadataMapper($mapperMetadataProvider),
+            $this->adminLinkGenerator,
+            $this->permissionChecker,
+            $this->webspaceManager->reveal(),
+        );
+
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$capturedEnvelope): bool {
+            $capturedEnvelope = $envelope;
+
+            return true;
+        }), Argument::cetera())->shouldBeCalledOnce()
+            ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
+
+        $tool->updatePage('uuid-1', 'en', excerpt: ['navigationContexts' => ['smuggled']]);
+
+        $this->assertSame(
+            ['main'],
+            $capturedEnvelope->getMessage()->getData()['navigationContexts'],
+            'ContentMetadataMapper places project-declared metadata names top-level after the content guard, so an excerpt field named navigationContexts must not replace the current assignment.',
+        );
+    }
+
     public function testUpdatePageMergesContentWithExistingData(): void
     {
         $this->setUpReadModifyWrite('uuid-1', 'en', [
