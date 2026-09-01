@@ -337,19 +337,23 @@ return static function(ContainerConfigurator $container): void {
 
     // Built from the factory rather than wired to the project's `http_client`, so that a
     // project which has the framework client turned off still gets a container that
-    // compiles. NoPrivateNetworkHttpClient re-checks the resolved IP after every redirect,
-    // which is the part a hostname check on its own cannot do.
+    // compiles. MediaDownloader sets max_redirects to 0 and follows redirects itself, so
+    // NoPrivateNetworkHttpClient is not here to re-check hops: it is here because every hop
+    // arrives as its own request() and gets checked on its own resolved address.
     $services->set('sulu_mcp.media_upload.http_client', NoPrivateNetworkHttpClient::class)
         ->arg('$client', inline_service(HttpClientInterface::class)->factory([HttpClient::class, 'create']));
 
     $services->set(MediaFileNamer::class);
 
+    // The download budget is sulu_media's own upload limit: fetching more than the project
+    // is willing to store would only be refused by FileValidator a moment later.
     $services->set(MediaDownloader::class)
         ->arg('$httpClient', new Reference('sulu_mcp.media_upload.http_client'))
-        ->arg('$maxFileSize', '%sulu_mcp.media_upload.max_filesize%')
+        ->arg('$maxFilesizeInMegabytes', '%sulu_media.upload.max_filesize%')
         ->arg('$allowedHosts', '%sulu_mcp.media_upload.allowed_hosts%');
 
-    $services->set(MediaUploadTool::class); // gated by dangerous_tools.media_upload
+    $services->set(MediaUploadTool::class) // gated by dangerous_tools.media_upload
+        ->arg('$collectionRepository', new Reference('sulu_media.collection_repository'));
 
     // Snippet tools
     $services->set(SnippetGetTool::class);

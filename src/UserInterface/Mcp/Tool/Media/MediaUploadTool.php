@@ -19,6 +19,7 @@ use Mcp\Exception\ToolCallException;
 use Sulu\Bundle\MediaBundle\Api\Media;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Entity\CollectionInterface;
+use Sulu\Bundle\MediaBundle\Entity\CollectionRepositoryInterface;
 use Sulu\Bundle\MediaBundle\Entity\MediaInterface;
 use Sulu\Bundle\MediaBundle\Media\Exception\MediaNotFoundException;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
@@ -26,15 +27,16 @@ use Sulu\Bundle\SecurityBundle\Entity\User;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
-use Sulu\Mcp\Application\Media\DownloadedFile;
+use Sulu\Mcp\Application\Media\Dto\DownloadedFile;
+use Sulu\Mcp\Application\Media\Dto\MediaSource;
 use Sulu\Mcp\Application\Media\MediaDownloader;
 use Sulu\Mcp\Application\Media\MediaFileNamer;
-use Sulu\Mcp\Application\Media\MediaSource;
 use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\MediaDownloadException;
 use Sulu\Mcp\Domain\Exception\MediaSourceUnreachableException;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Domain\Model\MediaOrigin;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Symfony\Component\HttpFoundation\File\UploadedFile;
@@ -45,19 +47,12 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
  */
 class MediaUploadTool
 {
-    /**
-     * The values sulu_media's `origin` single_select offers.
-     *
-     * @var list<string>
-     */
-    private const ORIGINS = ['human_created', 'ai_generated', 'ai_modified', 'unknown'];
-
     public function __construct(
         private readonly MediaManagerInterface $mediaManager,
         private readonly MediaSourceUrlResolver $sourceUrlResolver,
         private readonly MediaDownloader $downloader,
         private readonly MediaFileNamer $fileNamer,
-        private readonly SystemCollectionManagerInterface $systemCollectionManager,
+        private readonly CollectionRepositoryInterface $collectionRepository,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly AdminLinkGeneratorInterface $adminLinkGenerator,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
@@ -99,10 +94,10 @@ class MediaUploadTool
         ?string $sourceUrl = null,
     ): array {
         try {
-            if (null !== $origin && !\in_array($origin, self::ORIGINS, true)) {
+            if (null !== $origin && !MediaOrigin::isValid($origin)) {
                 return [
                     'error' => \sprintf('Unsupported origin "%s".', $origin),
-                    'hint' => \sprintf('Use one of: %s.', \implode(', ', self::ORIGINS)),
+                    'hint' => \sprintf('Use one of: %s.', \implode(', ', MediaOrigin::VALUES)),
                 ];
             }
 
@@ -135,7 +130,7 @@ class MediaUploadTool
         } catch (MediaDownloadException $e) {
             return [
                 'error' => $e->getMessage(),
-                'hint' => 'Pass a public http(s) URL of an image. Check sulu_mcp.media_upload for the size limit and the allowed hosts.',
+                'hint' => 'Pass a public http(s) URL of a jpeg, png, gif, webp or avif image. sulu_media.upload.max_filesize bounds the size and sulu_mcp.media_upload.allowed_hosts the hosts.',
             ];
         } catch (\Throwable $e) {
             return [
@@ -307,37 +302,38 @@ class MediaUploadTool
      */
     private function checkTargetCollection(int $collectionId, string $locale): void
     {
-        if ($this->systemCollectionManager->isSystemCollection($collectionId)) {
-            $this->permissionChecker->check('sulu.media.system_collections', PermissionTypes::VIEW, $locale);
-        }
-
-        $this->permissionChecker->check(
-            'sulu.media.collections',
-            PermissionTypes::ADD,
-            $locale,
-            Collection::class,
-            $collectionId,
-        );
+        $this->checkCollection($this->collectionRepository->findCollectionById($collectionId), $collectionId, PermissionTypes::ADD, $locale);
     }
 
     /**
-     * The collection of media that already exists here, read off the entity the same way
-     * MediaGetTool does.
-     *
      * @throws PermissionDeniedException
      */
     private function checkViewOfCollection(CollectionInterface $collection, string $locale): void
     {
-        if (SystemCollectionManagerInterface::COLLECTION_TYPE === $collection->getType()->getKey()) {
+        $this->checkCollection($collection, $collection->getId(), PermissionTypes::VIEW, $locale);
+    }
+
+    /**
+     * The system-collection gate reads the collection's type, the same way MediaGetTool and
+     * MediaUpdateTool do. SystemCollectionManager::isSystemCollection() answers a narrower
+     * question -- whether the id appears in the configured list -- and letting the write path
+     * rest on that would skip the gate for a collection typed as a system collection without
+     * being named in `sulu_media.system_collections`.
+     *
+     * @throws PermissionDeniedException
+     */
+    private function checkCollection(?CollectionInterface $collection, ?int $collectionId, string $permission, string $locale): void
+    {
+        if (null !== $collection && SystemCollectionManagerInterface::COLLECTION_TYPE === $collection->getType()->getKey()) {
             $this->permissionChecker->check('sulu.media.system_collections', PermissionTypes::VIEW, $locale);
         }
 
         $this->permissionChecker->check(
             'sulu.media.collections',
-            PermissionTypes::VIEW,
+            $permission,
             $locale,
             Collection::class,
-            $collection->getId(),
+            $collectionId,
         );
     }
 }

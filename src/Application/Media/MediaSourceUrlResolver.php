@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Application\Media;
 
+use Sulu\Mcp\Application\Media\Dto\MediaSource;
+
 /**
  * Interprets the URL an assistant hands to sulu_media_upload.
  *

@@ -82,6 +82,25 @@ final class MediaFileNamerTest extends TestCase
         );
     }
 
+    public function testAVeryLongNameIsTrimmed(): void
+    {
+        $name = (new MediaFileNamer())->normalize(\str_repeat('a', 400) . '.gif', 'image/gif');
+
+        self::assertSame(
+            \str_repeat('a', 100) . '.gif',
+            $name,
+            'The name comes off a URL the model handed us, so it cannot be allowed to run to whatever length that path happened to be.',
+        );
+    }
+
+    public function testTrimmingKeepsTheExtensionThatMatchesTheBytes(): void
+    {
+        $name = (new MediaFileNamer())->normalize(\str_repeat('a', 400) . '.php', 'image/gif');
+
+        self::assertStringEndsWith('.gif', $name);
+        self::assertSame(104, \strlen($name));
+    }
+
     public function testAnUnknownMimeTypeLeavesTheNameAlone(): void
     {
         self::assertSame('photo.weird', (new MediaFileNamer())->normalize('photo.weird', 'application/x-not-a-real-type'));

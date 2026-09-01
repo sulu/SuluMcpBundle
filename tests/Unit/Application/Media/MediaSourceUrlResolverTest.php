@@ -16,7 +16,7 @@ namespace Sulu\Mcp\Tests\Unit\Application\Media;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Sulu\Mcp\Application\Media\MediaSource;
+use Sulu\Mcp\Application\Media\Dto\MediaSource;
 use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
 
 #[CoversClass(MediaSourceUrlResolver::class)]

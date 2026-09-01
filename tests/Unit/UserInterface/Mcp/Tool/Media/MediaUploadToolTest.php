@@ -22,6 +22,7 @@ use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\MediaBundle\Api\Media;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
+use Sulu\Bundle\MediaBundle\Entity\CollectionRepositoryInterface;
 use Sulu\Bundle\MediaBundle\Entity\CollectionType;
 use Sulu\Bundle\MediaBundle\Entity\Media as MediaEntity;
 use Sulu\Bundle\MediaBundle\Media\Exception\MediaNotFoundException;
@@ -62,8 +63,8 @@ final class MediaUploadToolTest extends TestCase
     /** @var ObjectProphecy<MediaManagerInterface> */
     private ObjectProphecy $mediaManager;
 
-    /** @var ObjectProphecy<SystemCollectionManagerInterface> */
-    private ObjectProphecy $systemCollectionManager;
+    /** @var ObjectProphecy<CollectionRepositoryInterface> */
+    private ObjectProphecy $collectionRepository;
 
     private TokenStorageInterface $tokenStorage;
     private FakeToolPermissionChecker $permissionChecker;
@@ -80,8 +81,8 @@ final class MediaUploadToolTest extends TestCase
     protected function setUp(): void
     {
         $this->mediaManager = $this->prophesize(MediaManagerInterface::class);
-        $this->systemCollectionManager = $this->prophesize(SystemCollectionManagerInterface::class);
-        $this->systemCollectionManager->isSystemCollection(Argument::cetera())->willReturn(false);
+        $this->collectionRepository = $this->prophesize(CollectionRepositoryInterface::class);
+        $this->collectionRepository->findCollectionById(Argument::cetera())->willReturn($this->collection(self::COLLECTION_ID));
         $this->tokenStorage = new TokenStorage();
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
     }
@@ -152,10 +153,10 @@ final class MediaUploadToolTest extends TestCase
         $given = 'https://sulu.io/uploads/media/800x/00/230-seal.gif?v=2-6';
 
         $client = $this->clientRespondingTo([
-            'https://sulu.io/media/230/download/seal.gif' => new MockResponse(\str_repeat('x', 4096)),
+            'https://sulu.io/media/230/download/seal.gif' => new MockResponse(\str_repeat('x', 2 * 1024 * 1024)),
         ]);
 
-        $result = $this->tool($client, maxFileSize: 64)->uploadMedia($given, self::COLLECTION_ID, 'en');
+        $result = $this->tool($client, maxFilesizeInMegabytes: 1)->uploadMedia($given, self::COLLECTION_ID, 'en');
 
         self::assertStringContainsString('larger than the configured limit', $result['error']);
         self::assertSame(
@@ -433,7 +434,8 @@ final class MediaUploadToolTest extends TestCase
     public function testASystemCollectionTargetAlsoRequiresTheSystemCollectionContext(): void
     {
         $this->authenticateAsUser();
-        $this->systemCollectionManager->isSystemCollection(self::COLLECTION_ID)->willReturn(true);
+        $this->collectionRepository->findCollectionById(self::COLLECTION_ID)
+            ->willReturn($this->collection(self::COLLECTION_ID, SystemCollectionManagerInterface::COLLECTION_TYPE));
         $this->expectSaveReturning(109, 'photo');
 
         $this->tool()->uploadMedia('https://example.com/photo.gif', self::COLLECTION_ID, 'en');
@@ -442,6 +444,25 @@ final class MediaUploadToolTest extends TestCase
             ['sulu.media.system_collections', PermissionTypes::VIEW],
             ['sulu.media.collections', PermissionTypes::ADD],
         ], $this->permissionChecker->checkedPairs());
+    }
+
+    public function testTheSystemCollectionGateReadsTheCollectionTypeNotTheConfiguredIdList(): void
+    {
+        $this->authenticateAsUser();
+        $this->collectionRepository->findCollectionById(self::COLLECTION_ID)
+            ->willReturn($this->collection(self::COLLECTION_ID, SystemCollectionManagerInterface::COLLECTION_TYPE));
+        $this->expectSaveReturning(114, 'photo');
+
+        $this->tool()->uploadMedia('https://example.com/photo.gif', self::COLLECTION_ID, 'en');
+
+        self::assertSame(
+            [
+                ['sulu.media.system_collections', PermissionTypes::VIEW],
+                ['sulu.media.collections', PermissionTypes::ADD],
+            ],
+            $this->permissionChecker->checkedPairs(),
+            'SystemCollectionManager only knows the ids named in config, so a collection typed as a system one would slip past the write gate.',
+        );
     }
 
     public function testADeniedCollectionThrowsBeforeAnythingIsFetched(): void
@@ -489,16 +510,16 @@ final class MediaUploadToolTest extends TestCase
         self::assertSame('sulu_media_upload', $attributes[0]->newInstance()->name);
     }
 
-    private function tool(?HttpClientInterface $client = null, int $maxFileSize = 1048576): MediaUploadTool
+    private function tool(?HttpClientInterface $client = null, int $maxFilesizeInMegabytes = 16): MediaUploadTool
     {
         $client ??= $this->clientRespondingTo([]);
 
         return new MediaUploadTool(
             $this->mediaManager->reveal(),
             new MediaSourceUrlResolver(self::LOCAL_SERVER),
-            new MediaDownloader($client, new MediaFileNamer(), $maxFileSize),
+            new MediaDownloader($client, new MediaFileNamer(), $maxFilesizeInMegabytes),
             new MediaFileNamer(),
-            $this->systemCollectionManager->reveal(),
+            $this->collectionRepository->reveal(),
             $this->tokenStorage,
             new AdminLinkGenerator($this->router(), [new MediaAdminLinkProvider(new TestViewRegistry())]),
             $this->permissionChecker,
@@ -557,18 +578,23 @@ final class MediaUploadToolTest extends TestCase
             ->willReturn($media);
     }
 
-    private function mediaEntityInCollection(int $collectionId): MediaEntity
+    private function collection(int $collectionId, string $typeKey = 'collection.default'): Collection
     {
         $collectionType = new CollectionType();
-        $collectionType->setKey('collection.default');
+        $collectionType->setKey($typeKey);
 
         /** @var ObjectProphecy<Collection> $collection */
         $collection = $this->prophesize(Collection::class);
         $collection->getId()->willReturn($collectionId);
         $collection->getType()->willReturn($collectionType);
 
+        return $collection->reveal();
+    }
+
+    private function mediaEntityInCollection(int $collectionId): MediaEntity
+    {
         $entity = new MediaEntity();
-        $entity->setCollection($collection->reveal());
+        $entity->setCollection($this->collection($collectionId));
 
         return $entity;
     }

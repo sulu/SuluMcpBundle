@@ -31,7 +31,7 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  *     server_url: string,
  *     mcp_path: string,
  *     dangerous_tools: array{delete: bool, publish: bool, block_remove: bool, media_upload: bool},
- *     media_upload: array{max_filesize: int, allowed_hosts: list<string>},
+ *     media_upload: array{allowed_hosts: list<string>},
  * }
  */
 class SuluMcpBundle extends AbstractBundle
@@ -108,13 +108,8 @@ class SuluMcpBundle extends AbstractBundle
                     ->addDefaultsIfNotSet()
                     // Separate from the dangerous_tools flag on purpose: that node decides
                     // whether the tool exists, this one how it behaves once it does.
-                    ->info('Limits applied to sulu_media_upload. Only relevant when dangerous_tools.media_upload is true.')
+                    ->info('Limits applied to sulu_media_upload. Only relevant when dangerous_tools.media_upload is true. The download size is bounded by sulu_media.upload.max_filesize rather than a second limit here.')
                     ->children()
-                        ->integerNode('max_filesize')
-                            ->defaultValue(10)
-                            ->min(1)
-                            ->info('Maximum size of a downloaded file in MB. Named and counted like sulu_media.upload.max_filesize.')
-                        ->end()
                         ->arrayNode('allowed_hosts')
                             ->scalarPrototype()->end()
                             ->defaultValue([])
@@ -172,7 +167,6 @@ class SuluMcpBundle extends AbstractBundle
         $builder->setParameter('sulu_mcp.dangerous_tools.block_remove', $config['dangerous_tools']['block_remove']);
         $builder->setParameter('sulu_mcp.dangerous_tools.media_upload', $config['dangerous_tools']['media_upload']);
 
-        $builder->setParameter('sulu_mcp.media_upload.max_filesize', $config['media_upload']['max_filesize'] * 1024 * 1024);
         $builder->setParameter('sulu_mcp.media_upload.allowed_hosts', \array_map(
             static fn (string $host): string => \strtolower($host),
             $config['media_upload']['allowed_hosts'],

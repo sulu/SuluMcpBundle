@@ -16,7 +16,7 @@ namespace Sulu\Mcp\Tests\Unit\Application\Media;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Sulu\Mcp\Application\Media\DownloadedFile;
+use Sulu\Mcp\Application\Media\Dto\DownloadedFile;
 use Sulu\Mcp\Application\Media\MediaDownloader;
 use Sulu\Mcp\Application\Media\MediaFileNamer;
 use Sulu\Mcp\Domain\Exception\MediaDownloadException;
@@ -74,9 +74,19 @@ final class MediaDownloaderTest extends TestCase
     public function testAResponseThatIsNotAnImageIsRejected(): void
     {
         $this->expectException(MediaDownloadException::class);
-        $this->expectExceptionMessage('is not an image');
+        $this->expectExceptionMessage('is not an image this tool accepts');
 
         $this->download($this->respondingWith('<?php echo "hi";'), 'https://example.com/photo.jpg');
+    }
+
+    public function testAnSvgIsRejectedEvenThoughItsMimeTypeStartsWithImage(): void
+    {
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>';
+
+        $this->expectException(MediaDownloadException::class);
+        $this->expectExceptionMessage('is not an image this tool accepts');
+
+        $this->download($this->respondingWith($svg), 'https://example.com/logo.svg');
     }
 
     public function testAResponseLargerThanTheLimitIsRejected(): void
@@ -84,17 +94,18 @@ final class MediaDownloaderTest extends TestCase
         $this->expectException(MediaDownloadException::class);
         $this->expectExceptionMessage('larger than the configured limit');
 
-        $this->download($this->respondingWith(\str_repeat('x', 128)), 'https://example.com/photo.gif', maxFileSize: 32);
+        $this->download($this->respondingWith(\str_repeat('x', 2 * 1024 * 1024)), 'https://example.com/photo.gif', maxFilesizeInMegabytes: 1);
     }
 
     public function testTheLimitIsAppliedWhileStreamingRatherThanAfterTheFullBody(): void
     {
-        $client = $this->respondingWith(\str_repeat('x', 128), ['response_headers' => ['content-length' => '128']]);
+        $oversized = \str_repeat('x', 2 * 1024 * 1024);
+        $client = $this->respondingWith($oversized, ['response_headers' => ['content-length' => (string) \strlen($oversized)]]);
 
         $this->expectException(MediaDownloadException::class);
         $this->expectExceptionMessage('larger than the configured limit');
 
-        $this->download($client, 'https://example.com/photo.gif', maxFileSize: 32);
+        $this->download($client, 'https://example.com/photo.gif', maxFilesizeInMegabytes: 1);
     }
 
     public function testAnErrorStatusIsReported(): void
@@ -281,7 +292,7 @@ final class MediaDownloaderTest extends TestCase
     public function testAnErrorStatusIsUnreachableButARejectedFileIsNot(): void
     {
         $notFound = new MockHttpClient(new MockResponse('nope', ['http_code' => 404]));
-        $tooLarge = $this->respondingWith(\str_repeat('x', 128));
+        $tooLarge = $this->respondingWith(\str_repeat('x', 2 * 1024 * 1024));
 
         try {
             $this->download($notFound, 'https://example.com/photo.gif');
@@ -295,7 +306,7 @@ final class MediaDownloaderTest extends TestCase
         }
 
         try {
-            $this->download($tooLarge, 'https://example.com/photo.gif', maxFileSize: 32);
+            $this->download($tooLarge, 'https://example.com/photo.gif', maxFilesizeInMegabytes: 1);
             self::fail('Expected a failure.');
         } catch (MediaDownloadException $e) {
             self::assertNotInstanceOf(
@@ -340,10 +351,10 @@ final class MediaDownloaderTest extends TestCase
     private function download(
         HttpClientInterface $client,
         string $url,
-        int $maxFileSize = 1048576,
+        int $maxFilesizeInMegabytes = 16,
         array $allowedHosts = [],
     ): DownloadedFile {
-        $file = (new MediaDownloader($client, new MediaFileNamer(), $maxFileSize, $allowedHosts))->download($url);
+        $file = (new MediaDownloader($client, new MediaFileNamer(), $maxFilesizeInMegabytes, $allowedHosts))->download($url);
         $this->downloadedPaths[] = $file->path;
 
         return $file;

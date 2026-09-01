@@ -26,6 +26,7 @@ use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Domain\Model\MediaOrigin;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -35,13 +36,6 @@ use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInt
  */
 class MediaUpdateTool
 {
-    /**
-     * The values sulu_media's `origin` single_select offers.
-     *
-     * @var list<string>
-     */
-    private const ORIGINS = ['human_created', 'ai_generated', 'ai_modified', 'unknown'];
-
     public function __construct(
         private readonly MediaManagerInterface $mediaManager,
         private readonly TokenStorageInterface $tokenStorage,
@@ -74,10 +68,10 @@ class MediaUpdateTool
         ?string $origin = null,
     ): array {
         try {
-            if (null !== $origin && !\in_array($origin, self::ORIGINS, true)) {
+            if (null !== $origin && !MediaOrigin::isValid($origin)) {
                 return [
                     'error' => \sprintf('Unsupported origin "%s".', $origin),
-                    'hint' => \sprintf('Use one of: %s.', \implode(', ', self::ORIGINS)),
+                    'hint' => \sprintf('Use one of: %s.', \implode(', ', MediaOrigin::VALUES)),
                 ];
             }
 

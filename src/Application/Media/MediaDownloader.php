@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Application\Media;
 
+use Sulu\Mcp\Application\Media\Dto\DownloadedFile;
 use Sulu\Mcp\Domain\Exception\MediaDownloadException;
 use Sulu\Mcp\Domain\Exception\MediaSourceUnreachableException;
 use Symfony\Component\Mime\MimeTypes;
@@ -43,25 +44,41 @@ class MediaDownloader
     private const MAX_REDIRECTS = 3;
 
     /**
+     * Raster types only, named rather than matched on an `image/` prefix. SVG is an image by
+     * mime type but a document in practice: it can carry a <script>, Sulu's
+     * MediaStreamController lists only the html/xml types as dangerous to serve inline, and
+     * `sulu_media.upload.blocked_file_types` is empty by default. A human upload has someone
+     * choosing the file; here it comes off whatever page the model happened to be reading.
+     *
+     * @var list<string>
+     */
+    private const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
+
+    /**
      * Seconds of inactivity before the transfer is abandoned.
      */
     private const IDLE_TIMEOUT = 10.0;
 
     /**
-     * Seconds the whole transfer may take, redirects included.
+     * Seconds the whole call may take, every redirect hop included.
      */
     private const MAX_DURATION = 30.0;
 
+    private readonly int $maxFileSize;
+
     /**
-     * @param int<1, max> $maxFileSize in bytes
+     * @param int<1, max> $maxFilesizeInMegabytes counted in MB, because it is sulu_media's own
+     *                                            upload.max_filesize: there is no point fetching
+     *                                            more than the project will store
      * @param list<string> $allowedHosts empty allows any host the client will talk to
      */
     public function __construct(
         private readonly HttpClientInterface $httpClient,
         private readonly MediaFileNamer $fileNamer,
-        private readonly int $maxFileSize,
+        int $maxFilesizeInMegabytes,
         private readonly array $allowedHosts = [],
     ) {
+        $this->maxFileSize = $maxFilesizeInMegabytes * 1024 * 1024;
     }
 
     /**
@@ -82,11 +99,12 @@ class MediaDownloader
 
             $mimeType = MimeTypes::getDefault()->guessMimeType($path);
 
-            if (null === $mimeType || !\str_starts_with($mimeType, 'image/')) {
+            if (null === $mimeType || !\in_array($mimeType, self::ALLOWED_MIME_TYPES, true)) {
                 throw new MediaDownloadException(\sprintf(
-                    'The response from "%s" is not an image (detected "%s").',
+                    'The response from "%s" is not an image this tool accepts (detected "%s"). Accepted: %s.',
                     $url,
                     $mimeType ?? 'unknown',
+                    \implode(', ', self::ALLOWED_MIME_TYPES),
                 ));
             }
 
@@ -164,11 +182,22 @@ class MediaDownloader
      */
     private function requestFollowingRedirects(string $url): ResponseInterface
     {
+        // max_duration is per request(), so handing each hop the full budget would let a chain
+        // of redirects hold a worker for MAX_REDIRECTS + 1 times as long as the documented
+        // limit. One deadline is shared out instead.
+        $deadline = \microtime(true) + self::MAX_DURATION;
+
         for ($hop = 0;; ++$hop) {
+            $remaining = $deadline - \microtime(true);
+
+            if ($remaining <= 0) {
+                throw new MediaSourceUnreachableException(\sprintf('Downloading "%s" took longer than %d seconds.', $url, self::MAX_DURATION));
+            }
+
             $response = $this->httpClient->request('GET', $url, [
                 'max_redirects' => 0,
-                'timeout' => self::IDLE_TIMEOUT,
-                'max_duration' => self::MAX_DURATION,
+                'timeout' => \min(self::IDLE_TIMEOUT, $remaining),
+                'max_duration' => $remaining,
                 'headers' => ['Accept' => 'image/*,*/*;q=0.8'],
             ]);
 

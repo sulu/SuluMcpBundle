@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Mcp\Application\Media;
+namespace Sulu\Mcp\Application\Media\Dto;
 
 /**
  * A downloaded source image, sitting in a temporary file the caller owns and must

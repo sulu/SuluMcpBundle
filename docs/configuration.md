@@ -23,7 +23,6 @@ sulu_mcp:
 
     # Limits applied to sulu_media_upload once dangerous_tools.media_upload is true.
     media_upload:
-        max_filesize: 10      # MB
         allowed_hosts: []     # empty allows any public host
 ```
 
@@ -154,7 +153,7 @@ Four booleans gating high-impact tools. Each flag is independent — enable only
 
 When a flag is `false`, the corresponding tool services are removed from the container at compile time — they don't appear in MCP `tools/list` and calls fail with "unknown tool" rather than running with an error. To change a flag, edit the YAML and clear the cache (`bin/console cache:clear`).
 
-`media_upload` is the odd one out. `sulu_media_upload` destroys nothing: it imports an image from a URL into a collection. It is gated because it is the only tool that makes the server issue an outbound request to an address the model chose, and that egress is the operator's decision, not the model's.
+`media_upload` is the odd one out. `sulu_media_upload` destroys nothing: it imports an image from a URL into a collection. It is gated because it is the only tool that makes the server issue an outbound request to an address the model chose, and that is the operator's decision, not the model's.
 
 ### `media_upload.*`
 
@@ -162,10 +161,11 @@ How `sulu_media_upload` behaves once it exists. Deliberately a separate node: `d
 
 | Setting | Default | Meaning |
 |---------|---------|---------|
-| `max_filesize` | `10` | Largest download in MB, counted against the bytes that actually arrive rather than the `Content-Length` the remote claims. Named and counted like `sulu_media.upload.max_filesize`. |
 | `allowed_hosts` | `[]` | Hosts the tool may download from, redirect targets included. Empty allows any public host. |
 
-Whatever `allowed_hosts` says, the download is confined: only `http` and `https`, at most three redirects, a bounded duration, and no private, loopback, link-local or reserved address. Redirects are followed one hop at a time and every hop is held to all of these rules, so an allowed host cannot redirect the server to one you did not name. The mime type is determined from the downloaded bytes, and anything that is not an image is refused before it reaches the MediaBundle. `sulu_media`'s own `upload.max_filesize` and blocked mime types still apply on top, because the file is stored through `MediaManager` like any other upload.
+There is no separate size limit. The download stops once it has read `sulu_media.upload.max_filesize` megabytes, counted against the bytes that actually arrive rather than the `Content-Length` the remote claims. Fetching more than the project is willing to store would only be refused by `FileValidator` a moment later, so the two cannot drift apart.
+
+Whatever `allowed_hosts` says, the download is confined: only `http` and `https`, at most three redirects, a bounded duration, and no private, loopback, link-local or reserved address. Redirects are followed one hop at a time and every hop is held to all of these rules, so an allowed host cannot redirect the server to one you did not name. The mime type is determined from the downloaded bytes, and only `image/jpeg`, `image/png`, `image/gif`, `image/webp` and `image/avif` are accepted. SVG is deliberately not on that list: it is an image by mime type but a document in practice, it can carry a `<script>`, and Sulu serves it inline by default. A human upload has a person choosing the file; here it comes off whatever page the model happened to be reading. `sulu_media`'s blocked mime types still apply on top, because the file is stored through `MediaManager` like any other upload.
 
 ### Allowed hosts
 

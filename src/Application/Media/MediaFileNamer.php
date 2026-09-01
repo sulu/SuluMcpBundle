@@ -30,6 +30,13 @@ class MediaFileNamer
     private const FALLBACK = 'image';
 
     /**
+     * Characters kept from the stem. A URL path can be arbitrarily long, and this one was
+     * chosen by the model rather than typed into a form, so it is cut well short of the
+     * filesystem's own limit rather than at it.
+     */
+    private const MAX_STEM_LENGTH = 100;
+
+    /**
      * @param non-empty-string $mimeType
      *
      * @return non-empty-string
@@ -61,13 +68,31 @@ class MediaFileNamer
         $extensions = MimeTypes::getDefault()->getExtensions($mimeType);
         $canonical = $extensions[0] ?? null;
         $extension = \strtolower(\pathinfo($name, \PATHINFO_EXTENSION));
-
-        if (null === $canonical || \in_array($extension, $extensions, true)) {
-            return $name;
-        }
+        $keepExtension = null === $canonical || \in_array($extension, $extensions, true);
 
         // Renamed to match what the bytes actually are, so a ".php" served as an image, or a
         // URL with no extension at all, still lands as an image file.
-        return \pathinfo($name, \PATHINFO_FILENAME) . '.' . $canonical;
+        $suffix = $keepExtension ? ('' !== $extension ? '.' . $extension : '') : '.' . $canonical;
+        $stem = \pathinfo($name, \PATHINFO_FILENAME);
+
+        if ('' === $stem) {
+            $stem = self::FALLBACK;
+        }
+
+        return $this->shorten($stem) . $suffix;
+    }
+
+    /**
+     * @return non-empty-string
+     */
+    private function shorten(string $stem): string
+    {
+        if (\mb_strlen($stem) <= self::MAX_STEM_LENGTH) {
+            return '' === $stem ? self::FALLBACK : $stem;
+        }
+
+        $shortened = \rtrim(\mb_substr($stem, 0, self::MAX_STEM_LENGTH));
+
+        return '' === $shortened ? self::FALLBACK : $shortened;
     }
 }
