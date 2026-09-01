@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Media;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
+use Sulu\Bundle\MediaBundle\Api\Media;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Entity\MediaInterface;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
@@ -47,7 +48,7 @@ class MediaUpdateTool
     #[McpTool(
         name: 'sulu_media_update',
         title: 'Update Media',
-        description: 'Update media metadata (title, description, copyright). Does not change the file itself — only metadata fields. Pass only the fields you want to change.',
+        description: 'Update media metadata (title, description, copyright). Does not change the file itself — only metadata fields. Pass only the fields you want to change; the result echoes title, description and copyright as they were stored. An empty or "0" title is refused: Sulu drops it and the title would stay as it is. Calling this with a locale the media has no metadata in yet creates that translation, copying the title from the existing one unless you pass your own, and the result carries "created_locale": true.',
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.media.collections', PermissionTypes::EDIT)],
@@ -94,6 +95,13 @@ class MediaUpdateTool
             ];
 
             if (null !== $title) {
+                if (!self::isStorableTitle($title)) {
+                    return [
+                        'error' => \sprintf('Sulu cannot store "%s" as a media title: MediaManager drops a falsy value, so the title would silently stay as it is.', $title),
+                        'hint' => 'Pass a different title, or leave title out to keep the current one.',
+                    ];
+                }
+
                 $data['title'] = $title;
             }
 
@@ -105,13 +113,36 @@ class MediaUpdateTool
                 $data['copyright'] = $copyright;
             }
 
+            $createsLocale = !$this->hasMetaForLocale($media, $locale);
+            if ($createsLocale && !isset($data['title'])) {
+                // The meta row this save creates has a NOT NULL title, and a description
+                // or copyright alone is enough to create it.
+                $fallbackTitle = $media->getTitle();
+                if (!self::isStorableTitle($fallbackTitle)) {
+                    return [
+                        'error' => \sprintf('Media %d has no title to copy into the new "%s" translation.', $id, $locale),
+                        'hint' => 'Pass a non-empty title when updating a media in a locale it has no metadata in yet.',
+                    ];
+                }
+
+                $data['title'] = $fallbackTitle;
+            }
+
             $media = $this->mediaManager->save(null, $data, $user->getId());
 
             $result = [
                 'success' => true,
                 'id' => $media->getId(),
+                'locale' => $locale,
+                // Read back, not echoed: an argument that did not land must not look applied.
                 'title' => $media->getTitle(),
+                'description' => $media->getDescription(),
+                'copyright' => $media->getCopyright(),
             ];
+
+            if ($createsLocale) {
+                $result['created_locale'] = true;
+            }
 
             $adminUrl = $this->adminLinkGenerator->generate('media', ['locale' => $locale, 'id' => $media->getId()]);
             if (null !== $adminUrl) {
@@ -127,5 +158,32 @@ class MediaUpdateTool
                 'hint' => 'Verify the media id exists (use sulu_media_list) and the locale is valid.',
             ];
         }
+    }
+
+    /**
+     * Whether MediaManager will carry $title into the entity.
+     *
+     * {@see \Sulu\Bundle\MediaBundle\Media\Manager\MediaManager::setDataToMedia()} applies
+     * an attribute only when its value is truthy, and title is not among the exemptions
+     * description and copyright enjoy, so "" and "0" never reach the entity.
+     */
+    private static function isStorableTitle(mixed $title): bool
+    {
+        return \is_string($title) && '' !== $title && '0' !== $title;
+    }
+
+    /**
+     * {@see \Sulu\Bundle\MediaBundle\Api\Media::getTitle()} and friends fall back to the
+     * default translation, so they cannot answer whether this locale has a row of its own.
+     */
+    private function hasMetaForLocale(Media $media, string $locale): bool
+    {
+        foreach ($media->getFileVersion()->getMeta() as $meta) {
+            if ($meta->getLocale() === $locale) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

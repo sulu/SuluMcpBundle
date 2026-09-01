@@ -23,6 +23,8 @@ use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\MediaBundle\Api\Media;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Entity\CollectionType;
+use Sulu\Bundle\MediaBundle\Entity\FileVersion;
+use Sulu\Bundle\MediaBundle\Entity\FileVersionMeta;
 use Sulu\Bundle\MediaBundle\Entity\Media as MediaEntity;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
@@ -95,7 +97,7 @@ final class MediaUpdateToolTest extends TestCase
      *
      * @return ObjectProphecy<Media>
      */
-    private function loadedMedia(int $collectionId, ?string $typeKey = null): ObjectProphecy
+    private function loadedMedia(int $collectionId, ?string $typeKey = null, string ...$metaLocales): ObjectProphecy
     {
         $collectionType = new CollectionType();
         $collectionType->setKey($typeKey);
@@ -108,9 +110,18 @@ final class MediaUpdateToolTest extends TestCase
         $mediaEntity = new MediaEntity();
         $mediaEntity->setCollection($collection->reveal());
 
+        $fileVersion = new FileVersion();
+        foreach ([] === $metaLocales ? ['en'] : $metaLocales as $metaLocale) {
+            $meta = new FileVersionMeta();
+            $meta->setLocale($metaLocale);
+            $meta->setTitle('Existing ' . $metaLocale);
+            $fileVersion->addMeta($meta);
+        }
+
         /** @var ObjectProphecy<Media> $media */
         $media = $this->prophesize(Media::class);
         $media->getEntity()->willReturn($mediaEntity);
+        $media->getFileVersion()->willReturn($fileVersion);
 
         return $media;
     }
@@ -124,6 +135,8 @@ final class MediaUpdateToolTest extends TestCase
         $media = $this->prophesize(Media::class);
         $media->getId()->willReturn(42);
         $media->getTitle()->willReturn('Updated Title');
+        $media->getDescription()->willReturn(null);
+        $media->getCopyright()->willReturn(null);
 
         $this->mediaManager
             ->save(
@@ -164,6 +177,8 @@ final class MediaUpdateToolTest extends TestCase
         $media = $this->prophesize(Media::class);
         $media->getId()->willReturn(42);
         $media->getTitle()->willReturn('Original');
+        $media->getDescription()->willReturn(null);
+        $media->getCopyright()->willReturn(null);
 
         $this->mediaManager
             ->save(
@@ -178,6 +193,147 @@ final class MediaUpdateToolTest extends TestCase
             ->willReturn($media->reveal());
 
         $this->tool->updateMedia(42, 'en', null, null, '(c) 2026');
+    }
+
+    public function testUpdateMediaSeedsTheTitleWhenTheLocaleHasNoMetadataYet(): void
+    {
+        $this->authenticateAsUser();
+
+        $loaded = $this->loadedMedia(5, null, 'en');
+        $loaded->getTitle()->willReturn('Existing en');
+        $this->mediaManager->getById(Argument::cetera())->willReturn($loaded->reveal());
+
+        $media = $this->prophesize(Media::class);
+        $media->getId()->willReturn(42);
+        $media->getTitle()->willReturn('Existing en');
+        $media->getDescription()->willReturn('Beschreibung');
+        $media->getCopyright()->willReturn(null);
+
+        $this->mediaManager
+            ->save(
+                null,
+                // Without the seeded title the meta row this creates hits a NOT NULL column.
+                Argument::that(fn (array $data): bool => 'de' === $data['locale']
+                    && 'Existing en' === $data['title']
+                    && 'Beschreibung' === $data['description']),
+                1,
+            )
+            ->shouldBeCalledOnce()
+            ->willReturn($media->reveal());
+
+        $result = $this->tool->updateMedia(42, 'de', null, 'Beschreibung');
+
+        $this->assertTrue($result['success']);
+        $this->assertTrue($result['created_locale']);
+    }
+
+    public function testUpdateMediaKeepsAnExplicitTitleWhenCreatingATranslation(): void
+    {
+        $this->authenticateAsUser();
+
+        $this->mediaManager->getById(Argument::cetera())->willReturn($this->loadedMedia(5, null, 'en')->reveal());
+
+        $media = $this->prophesize(Media::class);
+        $media->getId()->willReturn(42);
+        $media->getTitle()->willReturn('Eigener Titel');
+        $media->getDescription()->willReturn(null);
+        $media->getCopyright()->willReturn(null);
+
+        $this->mediaManager
+            ->save(null, Argument::that(fn (array $data): bool => 'Eigener Titel' === $data['title']), 1)
+            ->shouldBeCalledOnce()
+            ->willReturn($media->reveal());
+
+        $this->tool->updateMedia(42, 'de', 'Eigener Titel');
+    }
+
+    public function testUpdateMediaDoesNotSeedATitleForALocaleThatAlreadyHasMetadata(): void
+    {
+        $this->authenticateAsUser();
+
+        $this->mediaManager->getById(Argument::cetera())->willReturn($this->loadedMedia(5, null, 'en', 'de')->reveal());
+
+        $media = $this->prophesize(Media::class);
+        $media->getId()->willReturn(42);
+        $media->getTitle()->willReturn('Existing de');
+        $media->getDescription()->willReturn('Beschreibung');
+        $media->getCopyright()->willReturn(null);
+
+        $this->mediaManager
+            ->save(null, Argument::that(fn (array $data): bool => !\array_key_exists('title', $data)), 1)
+            ->shouldBeCalledOnce()
+            ->willReturn($media->reveal());
+
+        $result = $this->tool->updateMedia(42, 'de', null, 'Beschreibung');
+
+        $this->assertArrayNotHasKey('created_locale', $result);
+    }
+
+    public function testUpdateMediaReturnsTheStoredFieldsRatherThanTheArguments(): void
+    {
+        $this->authenticateAsUser();
+
+        $this->mediaManager->getById(Argument::cetera())->willReturn($this->loadedMedia(5)->reveal());
+
+        $media = $this->prophesize(Media::class);
+        $media->getId()->willReturn(42);
+        $media->getTitle()->willReturn('Stored title');
+        $media->getDescription()->willReturn('Stored description');
+        $media->getCopyright()->willReturn('(c) stored');
+
+        $this->mediaManager->save(Argument::cetera())->willReturn($media->reveal());
+
+        $result = $this->tool->updateMedia(42, 'en', null, 'Sent description');
+
+        $this->assertSame('en', $result['locale']);
+        $this->assertSame('Stored title', $result['title']);
+        $this->assertSame('Stored description', $result['description']);
+        $this->assertSame('(c) stored', $result['copyright']);
+    }
+
+    public function testUpdateMediaRefusesATitleSuluWouldDropRatherThanSubstituteOne(): void
+    {
+        $this->authenticateAsUser();
+
+        $this->mediaManager->getById(Argument::cetera())->willReturn($this->loadedMedia(5)->reveal());
+        $this->mediaManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        // "0" is a legitimate title, so it must not be silently swapped for another one.
+        $result = $this->tool->updateMedia(42, 'en', '0', 'Beschreibung');
+
+        $this->assertStringContainsString('cannot store', $result['error']);
+        $this->assertIsString($result['hint']);
+    }
+
+    public function testUpdateMediaAsksForATitleWhenTheOnlyOneIsUnstorable(): void
+    {
+        $this->authenticateAsUser();
+
+        $loaded = $this->loadedMedia(5, null, 'en');
+        $loaded->getTitle()->willReturn('');
+        $this->mediaManager->getById(Argument::cetera())->willReturn($loaded->reveal());
+
+        $this->mediaManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updateMedia(42, 'de', null, 'Beschreibung');
+
+        $this->assertStringContainsString('no title to copy', $result['error']);
+    }
+
+    public function testUpdateMediaAsksForATitleWhenThereIsNoneToCopy(): void
+    {
+        $this->authenticateAsUser();
+
+        $loaded = $this->loadedMedia(5, null, 'en');
+        $loaded->getTitle()->willReturn(null);
+        $this->mediaManager->getById(Argument::cetera())->willReturn($loaded->reveal());
+
+        $this->mediaManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updateMedia(42, 'de', null, 'Beschreibung');
+
+        $this->assertStringContainsString('no title to copy', $result['error']);
+        $this->assertIsString($result['hint']);
     }
 
     public function testUpdateMediaReturnsHintOnSaveFailure(): void
@@ -204,6 +360,8 @@ final class MediaUpdateToolTest extends TestCase
         $media = $this->prophesize(Media::class);
         $media->getId()->willReturn(42);
         $media->getTitle()->willReturn('Title');
+        $media->getDescription()->willReturn(null);
+        $media->getCopyright()->willReturn(null);
         $this->mediaManager->save(Argument::cetera())->willReturn($media->reveal());
 
         $this->tool->updateMedia(42, 'en', 'Title');
@@ -228,6 +386,8 @@ final class MediaUpdateToolTest extends TestCase
         $media = $this->prophesize(Media::class);
         $media->getId()->willReturn(42);
         $media->getTitle()->willReturn('Title');
+        $media->getDescription()->willReturn(null);
+        $media->getCopyright()->willReturn(null);
         $this->mediaManager->save(Argument::cetera())->willReturn($media->reveal());
 
         $this->tool->updateMedia(42, 'en', 'Title');
