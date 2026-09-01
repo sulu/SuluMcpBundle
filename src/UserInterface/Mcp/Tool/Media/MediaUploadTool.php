@@ -21,6 +21,8 @@ use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Entity\CollectionInterface;
 use Sulu\Bundle\MediaBundle\Entity\CollectionRepositoryInterface;
 use Sulu\Bundle\MediaBundle\Entity\MediaInterface;
+use Sulu\Bundle\MediaBundle\FileInspector\FileInspectorInterface;
+use Sulu\Bundle\MediaBundle\FileInspector\UnsafeFileException;
 use Sulu\Bundle\MediaBundle\Media\Exception\MediaNotFoundException;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Bundle\SecurityBundle\Entity\User;
@@ -53,6 +55,8 @@ class MediaUploadTool
         private readonly MediaDownloader $downloader,
         private readonly MediaFileNamer $fileNamer,
         private readonly CollectionRepositoryInterface $collectionRepository,
+        /** @var iterable<FileInspectorInterface> */
+        private readonly iterable $fileInspectors,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly AdminLinkGeneratorInterface $adminLinkGenerator,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
@@ -127,10 +131,15 @@ class MediaUploadTool
             ], $fileName, $sourceUrl);
         } catch (PermissionDeniedException $e) {
             throw new ToolCallException($e->getMessage(), 0, $e);
+        } catch (UnsafeFileException $e) {
+            return [
+                'error' => \sprintf('The file at "%s" was refused as unsafe: %s', $url, $e->getMessage()),
+                'hint' => 'An SVG carrying a script, an external reference or a data URI is rejected the same way it would be in the administration interface. Pick a raster image instead.',
+            ];
         } catch (MediaDownloadException $e) {
             return [
                 'error' => $e->getMessage(),
-                'hint' => 'Pass a public http(s) URL of a jpeg, png, gif, webp or avif image. sulu_media.upload.max_filesize bounds the size and sulu_mcp.media_upload.allowed_hosts the hosts.',
+                'hint' => 'Pass a public http(s) URL of a jpeg, png, gif, webp, avif or svg image. sulu_media.upload.max_filesize bounds the size and sulu_mcp.media_upload.allowed_hosts the hosts.',
             ];
         } catch (\Throwable $e) {
             return [
@@ -177,11 +186,9 @@ class MediaUploadTool
 
             // The file is already on disk and was validated here, hence test: true —
             // it is not a PHP upload and has no UPLOAD_ERR to report.
-            $media = $this->mediaManager->save(
-                new UploadedFile($file->path, $storedName, $file->mimeType, null, true),
-                $data,
-                $userId,
-            );
+            $uploadedFile = new UploadedFile($file->path, $storedName, $file->mimeType, null, true);
+
+            $media = $this->mediaManager->save($this->inspect($uploadedFile, $file->mimeType), $data, $userId);
 
             $result = [
                 'success' => true,
@@ -204,6 +211,25 @@ class MediaUploadTool
         } finally {
             @\unlink($file->path);
         }
+    }
+
+    /**
+     * Sulu runs its file inspectors from UploadFileSubscriber, over `$request->files`. A file
+     * assembled in PHP never passes through that, so an MCP import would otherwise skip every
+     * inspector the project has registered -- SvgFileInspector, which is what stops an SVG
+     * carrying a <script>, and anything a project adds beside it.
+     *
+     * @throws UnsafeFileException
+     */
+    private function inspect(UploadedFile $file, string $mimeType): UploadedFile
+    {
+        foreach ($this->fileInspectors as $inspector) {
+            if ($inspector->supports($mimeType)) {
+                $file = $inspector->inspect($file);
+            }
+        }
+
+        return $file;
     }
 
     /**

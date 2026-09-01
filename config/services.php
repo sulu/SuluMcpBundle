@@ -353,7 +353,10 @@ return static function(ContainerConfigurator $container): void {
         ->arg('$allowedHosts', '%sulu_mcp.media_upload.allowed_hosts%');
 
     $services->set(MediaUploadTool::class) // gated by dangerous_tools.media_upload
-        ->arg('$collectionRepository', new Reference('sulu_media.collection_repository'));
+        ->arg('$collectionRepository', new Reference('sulu_media.collection_repository'))
+        // UploadFileSubscriber only inspects files that arrive on a request, so the same
+        // inspectors are handed to the tool for the files it assembles itself.
+        ->arg('$fileInspectors', tagged_iterator('sulu_media.file_inspector'));
 
     // Snippet tools
     $services->set(SnippetGetTool::class);

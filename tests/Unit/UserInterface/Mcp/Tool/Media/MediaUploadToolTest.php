@@ -25,6 +25,9 @@ use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Entity\CollectionRepositoryInterface;
 use Sulu\Bundle\MediaBundle\Entity\CollectionType;
 use Sulu\Bundle\MediaBundle\Entity\Media as MediaEntity;
+use Sulu\Bundle\MediaBundle\FileInspector\FileInspectorInterface;
+use Sulu\Bundle\MediaBundle\FileInspector\SvgFileInspector;
+use Sulu\Bundle\MediaBundle\FileInspector\SvgSanitizerFactory;
 use Sulu\Bundle\MediaBundle\Media\Exception\MediaNotFoundException;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
@@ -36,6 +39,7 @@ use Sulu\Mcp\Infrastructure\Sulu\AdminLink\MediaAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
+use Sulu\Mcp\Tests\Unit\Fixture\RecordingFileInspector;
 use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUploadTool;
 use Symfony\Component\HttpClient\MockHttpClient;
@@ -394,6 +398,56 @@ final class MediaUploadToolTest extends TestCase
         );
     }
 
+    public function testAnUnsafeFileIsRefusedBySulusOwnInspector(): void
+    {
+        $this->authenticateAsUser();
+        $this->mediaManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>';
+        $client = $this->clientRespondingTo(['https://example.com/logo.svg' => new MockResponse($svg)]);
+
+        $result = $this->tool($client, inspectors: [new SvgFileInspector(
+            (new SvgSanitizerFactory())->create(),
+            (new SvgSanitizerFactory())->createSafe(),
+        )])->uploadMedia('https://example.com/logo.svg', self::COLLECTION_ID, 'en');
+
+        self::assertStringContainsString('refused as unsafe', $result['error']);
+        self::assertNotEmpty($result['hint']);
+    }
+
+    public function testASafeSvgPassesTheInspectorAndIsStored(): void
+    {
+        $this->authenticateAsUser();
+        $this->expectSaveReturning(115, 'logo');
+
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><rect width="1" height="1"/></svg>';
+        $client = $this->clientRespondingTo(['https://example.com/logo.svg' => new MockResponse($svg)]);
+
+        $result = $this->tool($client, inspectors: [new SvgFileInspector(
+            (new SvgSanitizerFactory())->create(),
+            (new SvgSanitizerFactory())->createSafe(),
+        )])->uploadMedia('https://example.com/logo.svg', self::COLLECTION_ID, 'en');
+
+        self::assertTrue($result['success']);
+        self::assertSame('logo.svg', $this->savedClientName);
+    }
+
+    public function testEveryRegisteredInspectorIsConsultedForTheDownloadedType(): void
+    {
+        $this->authenticateAsUser();
+        $this->expectSaveReturning(116, 'photo');
+
+        $inspector = new RecordingFileInspector();
+
+        $this->tool(inspectors: [$inspector])->uploadMedia('https://example.com/photo.gif', self::COLLECTION_ID, 'en');
+
+        self::assertSame(
+            ['image/gif'],
+            $inspector->supportedCalls,
+            'UploadFileSubscriber only sees files on a request, so a project inspector would never run on an MCP import unless the tool asks it.',
+        );
+    }
+
     public function testAnUnsupportedOriginIsRejected(): void
     {
         $this->authenticateAsUser();
@@ -510,7 +564,10 @@ final class MediaUploadToolTest extends TestCase
         self::assertSame('sulu_media_upload', $attributes[0]->newInstance()->name);
     }
 
-    private function tool(?HttpClientInterface $client = null, int $maxFilesizeInMegabytes = 16): MediaUploadTool
+    /**
+     * @param list<FileInspectorInterface> $inspectors
+     */
+    private function tool(?HttpClientInterface $client = null, int $maxFilesizeInMegabytes = 16, array $inspectors = []): MediaUploadTool
     {
         $client ??= $this->clientRespondingTo([]);
 
@@ -520,6 +577,7 @@ final class MediaUploadToolTest extends TestCase
             new MediaDownloader($client, new MediaFileNamer(), $maxFilesizeInMegabytes),
             new MediaFileNamer(),
             $this->collectionRepository->reveal(),
+            $inspectors,
             $this->tokenStorage,
             new AdminLinkGenerator($this->router(), [new MediaAdminLinkProvider(new TestViewRegistry())]),
             $this->permissionChecker,

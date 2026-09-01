@@ -44,15 +44,14 @@ class MediaDownloader
     private const MAX_REDIRECTS = 3;
 
     /**
-     * Raster types only, named rather than matched on an `image/` prefix. SVG is an image by
-     * mime type but a document in practice: it can carry a <script>, Sulu's
-     * MediaStreamController lists only the html/xml types as dangerous to serve inline, and
-     * `sulu_media.upload.blocked_file_types` is empty by default. A human upload has someone
-     * choosing the file; here it comes off whatever page the model happened to be reading.
+     * Named rather than matched on an `image/` prefix, so that a type nobody meant to accept
+     * cannot arrive just by claiming to be an image. SVG is on the list but is the one entry
+     * that carries markup rather than pixels; the caller runs it through Sulu's own
+     * SvgFileInspector before storing it.
      *
      * @var list<string>
      */
-    private const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif'];
+    private const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/avif', 'image/svg+xml'];
 
     /**
      * Seconds of inactivity before the transfer is abandoned.

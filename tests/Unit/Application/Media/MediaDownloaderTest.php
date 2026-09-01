@@ -79,14 +79,25 @@ final class MediaDownloaderTest extends TestCase
         $this->download($this->respondingWith('<?php echo "hi";'), 'https://example.com/photo.jpg');
     }
 
-    public function testAnSvgIsRejectedEvenThoughItsMimeTypeStartsWithImage(): void
+    public function testAnSvgIsAcceptedHereAndLeftForTheInspectorToJudge(): void
     {
-        $svg = '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>';
+        $svg = '<svg xmlns="http://www.w3.org/2000/svg" width="1" height="1"><rect width="1" height="1"/></svg>';
 
+        $file = $this->download($this->respondingWith($svg), 'https://example.com/logo.svg');
+
+        self::assertSame(
+            'image/svg+xml',
+            $file->mimeType,
+            'Whether the markup is safe is SvgFileInspector\'s call, not a mime type\'s; refusing it here would refuse safe logos too.',
+        );
+    }
+
+    public function testATypeOutsideTheListIsRejectedEvenWhenItClaimsToBeAnImage(): void
+    {
         $this->expectException(MediaDownloadException::class);
         $this->expectExceptionMessage('is not an image this tool accepts');
 
-        $this->download($this->respondingWith($svg), 'https://example.com/logo.svg');
+        $this->download($this->respondingWith('II*\x00 not really a tiff'), 'https://example.com/photo.tiff');
     }
 
     public function testAResponseLargerThanTheLimitIsRejected(): void
