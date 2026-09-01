@@ -291,28 +291,18 @@ final class MediaUpdateToolTest extends TestCase
         $this->assertSame('(c) stored', $result['copyright']);
     }
 
-    public function testUpdateMediaSeedsTheTitleWhenTheCallerPassesOneSuluWouldDrop(): void
+    public function testUpdateMediaRefusesATitleSuluWouldDropRatherThanSubstituteOne(): void
     {
         $this->authenticateAsUser();
 
-        $loaded = $this->loadedMedia(5, null, 'en');
-        $loaded->getTitle()->willReturn('Existing en');
-        $this->mediaManager->getById(Argument::cetera())->willReturn($loaded->reveal());
+        $this->mediaManager->getById(Argument::cetera())->willReturn($this->loadedMedia(5)->reveal());
+        $this->mediaManager->save(Argument::cetera())->shouldNotBeCalled();
 
-        $media = $this->prophesize(Media::class);
-        $media->getId()->willReturn(42);
-        $media->getTitle()->willReturn('Existing en');
-        $media->getDescription()->willReturn('Beschreibung');
-        $media->getCopyright()->willReturn(null);
+        // "0" is a legitimate title, so it must not be silently swapped for another one.
+        $result = $this->tool->updateMedia(42, 'en', '0', 'Beschreibung');
 
-        // MediaManager drops a falsy title, and the description alone would then create
-        // the row without one.
-        $this->mediaManager
-            ->save(null, Argument::that(fn (array $data): bool => 'Existing en' === $data['title']), 1)
-            ->shouldBeCalledOnce()
-            ->willReturn($media->reveal());
-
-        $this->tool->updateMedia(42, 'de', '', 'Beschreibung');
+        $this->assertStringContainsString('cannot store', $result['error']);
+        $this->assertIsString($result['hint']);
     }
 
     public function testUpdateMediaAsksForATitleWhenTheOnlyOneIsUnstorable(): void

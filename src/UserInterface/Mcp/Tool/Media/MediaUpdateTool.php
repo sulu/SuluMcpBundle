@@ -48,7 +48,7 @@ class MediaUpdateTool
     #[McpTool(
         name: 'sulu_media_update',
         title: 'Update Media',
-        description: 'Update media metadata (title, description, copyright). Does not change the file itself — only metadata fields. Pass only the fields you want to change; the result echoes title, description and copyright as they were stored. Calling this with a locale the media has no metadata in yet creates that translation, copying the title from the existing one unless you pass your own, and the result carries "created_locale": true.',
+        description: 'Update media metadata (title, description, copyright). Does not change the file itself — only metadata fields. Pass only the fields you want to change; the result echoes title, description and copyright as they were stored. An empty or "0" title is refused: Sulu drops it and the title would stay as it is. Calling this with a locale the media has no metadata in yet creates that translation, copying the title from the existing one unless you pass your own, and the result carries "created_locale": true.',
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.media.collections', PermissionTypes::EDIT)],
@@ -95,6 +95,13 @@ class MediaUpdateTool
             ];
 
             if (null !== $title) {
+                if (!self::isStorableTitle($title)) {
+                    return [
+                        'error' => \sprintf('Sulu cannot store "%s" as a media title: MediaManager drops a falsy value, so the title would silently stay as it is.', $title),
+                        'hint' => 'Pass a different title, or leave title out to keep the current one.',
+                    ];
+                }
+
                 $data['title'] = $title;
             }
 
@@ -107,7 +114,7 @@ class MediaUpdateTool
             }
 
             $createsLocale = !$this->hasMetaForLocale($media, $locale);
-            if ($createsLocale && !self::isStorableTitle($data['title'] ?? null)) {
+            if ($createsLocale && !isset($data['title'])) {
                 // The meta row this save creates has a NOT NULL title, and a description
                 // or copyright alone is enough to create it.
                 $fallbackTitle = $media->getTitle();
@@ -157,8 +164,8 @@ class MediaUpdateTool
      * Whether MediaManager will carry $title into the entity.
      *
      * {@see \Sulu\Bundle\MediaBundle\Media\Manager\MediaManager::setDataToMedia()} applies
-     * an attribute only when its value is truthy, and title is not among the exemptions --
-     * so "" and "0" are dropped, and a description alone then creates the row without one.
+     * an attribute only when its value is truthy, and title is not among the exemptions
+     * description and copyright enjoy, so "" and "0" never reach the entity.
      */
     private static function isStorableTitle(mixed $title): bool
     {
