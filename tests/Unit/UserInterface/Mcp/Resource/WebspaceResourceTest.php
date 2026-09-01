@@ -125,6 +125,24 @@ final class WebspaceResourceTest extends TestCase
         $this->assertSame(['footer' => 'Footer'], $result[0]['navigationContexts']);
     }
 
+    public function testGetWebspacesResolvesTitlesByLanguageWhenTheDefaultLocalizationHasACountry(): void
+    {
+        $webspace = $this->createWebspaceWithPortal('example', 'Example', ['de_at'], 'example.com');
+        $webspace->setNavigation(new Navigation([
+            new NavigationContext('main', ['title' => ['de' => 'Hauptnavigation']]),
+        ]));
+
+        $this->webspaceManager->getWebspaceCollection()->willReturn(new WebspaceCollection([$webspace]));
+
+        $result = $this->resource->getWebspaces();
+
+        $this->assertSame(
+            ['main' => 'Hauptnavigation'],
+            $result[0]['navigationContexts'],
+            'Webspace XML titles are keyed by the plain lang attribute, so a "de_at" default localization must still resolve the "de" title instead of falling back to the capitalised key.',
+        );
+    }
+
     public function testGetWebspacesReturnsNoNavigationContextsWhenTheWebspaceHasNoNavigation(): void
     {
         $webspace = $this->createWebspaceWithPortal('example', 'Example', ['en'], 'example.com');
@@ -139,12 +157,12 @@ final class WebspaceResourceTest extends TestCase
     /**
      * Creates a webspace with a single prod-env portal.
      *
-     * @param list<string> $locales
+     * @param list<string> $locales language codes, optionally with a country ("de_at")
      */
     private function createWebspaceWithPortal(string $key, string $name, array $locales, ?string $prodUrl): Webspace
     {
         $localizations = \array_map(
-            static fn (string $locale): Localization => new Localization($locale),
+            static fn (string $locale): Localization => new Localization(...\explode('_', $locale, 2)),
             $locales,
         );
 

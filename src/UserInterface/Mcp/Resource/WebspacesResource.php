@@ -59,26 +59,21 @@ class WebspacesResource
     /**
      * The navigation contexts declared for a webspace, as key => title.
      *
-     * Titles are read in the webspace's default locale: the resource is not locale-aware,
-     * and NavigationContext::getTitle() falls back to the capitalised key when a locale
-     * carries no title, so a key is always readable.
+     * Titles are read in the webspace's default language: the resource is not locale-aware.
      *
      * @return array<string, string>
      */
     private function getNavigationContexts(Webspace $webspace): array
     {
-        // Sulu's own Webspace::toArray() guards the same way: the property is untyped
-        // and a programmatically built webspace can reach here without a navigation,
-        // whatever the @return annotation promises.
-        if (!$navigation = $webspace->getNavigation()) { // @phpstan-ignore booleanNot.alwaysFalse
+        if (!$navigation = $webspace->getNavigation()) { // @phpstan-ignore booleanNot.alwaysFalse (property is untyped; Webspace::toArray() guards the same way)
             return [];
         }
 
-        $locale = $webspace->getDefaultLocalization()->getLocale();
+        $language = $webspace->getDefaultLocalization()->getLanguage();
 
         $contexts = [];
         foreach ($navigation->getContexts() as $context) {
-            $contexts[$context->getKey()] = $context->getTitle($locale) ?? \ucfirst($context->getKey());
+            $contexts[$context->getKey()] = $context->getTitle($language) ?? \ucfirst($context->getKey());
         }
 
         return $contexts;

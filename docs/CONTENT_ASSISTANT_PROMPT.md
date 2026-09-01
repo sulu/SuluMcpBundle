@@ -135,6 +135,8 @@ Categories and tags help organize articles and pages for filtering, navigation, 
 |------|-------------|
 | `sulu_navigation_get` | Get the published navigation tree of a webspace for one navigation context (e.g. "main", "footer"). Only published pages assigned to the context appear. |
 
+`sulu_get_context` lists the declared contexts per webspace (`navigationContexts`, key => title). Assign pages with the `navigationContexts` parameter on `sulu_page_create` / `sulu_page_update`: the list replaces the current assignment, omitting the parameter leaves it unchanged, `[]` clears it. Navigation contexts exist on pages only.
+
 ### Contacts
 
 | Tool | Description |
@@ -283,7 +285,8 @@ Pages form the site structure — homepage, about, services, contact, etc. They 
 2. **Get context:** `sulu_get_context()` — available templates and block types
 3. **Create the page with its blocks in one call** (preferred): `sulu_page_create(webspace, locale, template, title, parentId, content={"blocks": [ … nested blocks … ]})` — URL auto-generates from the title, block `_id`s are assigned automatically, and unknown block fields are rejected before any write.
 4. **Refine if needed:** use `sulu_block_add(type="page", uuid, …)` / `sulu_block_update` / `sulu_block_reorder` to tweak individual blocks without resending the whole tree.
-5. **Verify and publish:** `sulu_page_get` → user approval → `sulu_content_publish(type="page", ...)`
+5. **Put the page into the navigation:** pass `navigationContexts=["main"]` (keys from `sulu_get_context`) on create, or later via `sulu_page_update`. The list replaces the current assignment; omit it to leave the assignment unchanged, pass `[]` to clear it.
+6. **Verify and publish:** `sulu_page_get` → user approval → `sulu_content_publish(type="page", ...)`
 
 ### Editing Existing Pages
 

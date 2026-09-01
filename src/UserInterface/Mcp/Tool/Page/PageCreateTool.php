@@ -132,6 +132,9 @@ class PageCreateTool
 
             $normalizedContent = $this->stringifyKeys($this->assignBlockIds($normalizedContent, $this->blockIdGenerator));
 
+            // content must not smuggle navigationContexts past the validated parameter below.
+            unset($normalizedContent['navigationContexts']);
+
             $data = \array_merge($normalizedContent, [
                 'locale' => $locale,
                 'template' => $template,

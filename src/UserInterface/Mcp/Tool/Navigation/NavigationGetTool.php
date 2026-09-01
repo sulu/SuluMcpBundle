@@ -38,7 +38,7 @@ class NavigationGetTool
     #[McpTool(
         name: 'sulu_navigation_get',
         title: 'Get Navigation',
-        description: 'Get the published navigation tree of a webspace for one navigation context. Returns nodes with title, url, targetType, and nested "children". Only published (live) pages that are assigned to the given navigation context appear — a page missing here may simply be unpublished or not assigned to the context. Context keys are defined per webspace in config/webspaces/*.xml under <navigation><contexts> (commonly "main" or "footer"); use sulu_get_context to discover webspaces. Use sulu_page_tree instead when you need the full page hierarchy including drafts.',
+        description: 'Get the published navigation tree of a webspace for one navigation context. Returns nodes with title, url, targetType, and nested "children". Only published (live) pages that are assigned to the given navigation context appear — a page missing here may simply be unpublished or not assigned to the context. Call sulu_get_context (or read the sulu_webspaces resource) to discover the navigation contexts each webspace declares (commonly "main" or "footer"); the contexts themselves are defined in the webspace XML under <navigation><contexts>. Use sulu_page_tree instead when you need the full page hierarchy including drafts.',
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.webspaces.#context#', PermissionTypes::VIEW)],
@@ -86,7 +86,7 @@ class NavigationGetTool
         } catch (\Throwable $e) {
             return [
                 'error' => \sprintf('Failed to get navigation for webspace "%s": %s', $webspace, $e->getMessage()),
-                'hint' => \sprintf('Verify the navigation context "%s" is defined in the webspace XML under <navigation><contexts> and that pages are published.', $navigationContext),
+                'hint' => \sprintf('Call sulu_get_context to see the navigation contexts the webspace declares and verify "%s" is among them and that pages are published.', $navigationContext),
             ];
         }
     }

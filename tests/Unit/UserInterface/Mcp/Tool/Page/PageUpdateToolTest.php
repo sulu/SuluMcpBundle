@@ -277,7 +277,89 @@ final class PageUpdateToolTest extends TestCase
         $result = $this->tool->updatePage('uuid-1', 'en', navigationContexts: ['footer']);
 
         $this->assertArrayHasKey('error', $result);
-        $this->assertStringContainsString('Declared contexts: main.', $result['error']);
+        $this->assertStringContainsString('Declared contexts: main.', $result['hint']);
+    }
+
+    public function testUpdatePageClearsTheNavigationContextsWhenAnEmptyListIsPassed(): void
+    {
+        $this->setUpReadModifyWrite('uuid-1', 'en', [
+            'template' => 'default',
+            'title' => 'Existing',
+            'navigationContexts' => ['main'],
+        ]);
+
+        $webspace = new Webspace();
+        $webspace->setKey('example');
+        $webspace->setNavigation(new Navigation([new NavigationContext('main', [])]));
+        $this->webspaceManager->findWebspaceByKey('example')->willReturn($webspace);
+
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$capturedEnvelope): bool {
+            $capturedEnvelope = $envelope;
+
+            return true;
+        }), Argument::cetera())->shouldBeCalledOnce()
+            ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
+
+        $this->tool->updatePage('uuid-1', 'en', navigationContexts: []);
+
+        $this->assertSame([], $capturedEnvelope->getMessage()->getData()['navigationContexts']);
+    }
+
+    public function testUpdatePageIgnoresNavigationContextsSmuggledInsideContent(): void
+    {
+        $this->setUpReadModifyWrite('uuid-1', 'en', [
+            'template' => 'default',
+            'title' => 'Existing',
+            'navigationContexts' => ['main'],
+        ]);
+
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$capturedEnvelope): bool {
+            $capturedEnvelope = $envelope;
+
+            return true;
+        }), Argument::cetera())->shouldBeCalledOnce()
+            ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
+
+        $this->tool->updatePage('uuid-1', 'en', content: ['navigationContexts' => ['smuggled']]);
+
+        $this->assertSame(
+            ['main'],
+            $capturedEnvelope->getMessage()->getData()['navigationContexts'],
+            'A navigationContexts key inside content bypasses the declared-context validation and must not replace the current assignment.',
+        );
+    }
+
+    public function testUpdatePageLetsTheValidatedParameterWinOverContentSmuggledNavigationContexts(): void
+    {
+        $this->setUpReadModifyWrite('uuid-1', 'en', ['template' => 'default', 'title' => 'Existing']);
+
+        $webspace = new Webspace();
+        $webspace->setKey('example');
+        $webspace->setNavigation(new Navigation([new NavigationContext('footer', [])]));
+        $this->webspaceManager->findWebspaceByKey('example')->willReturn($webspace);
+
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$capturedEnvelope): bool {
+            $capturedEnvelope = $envelope;
+
+            return true;
+        }), Argument::cetera())->shouldBeCalledOnce()
+            ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
+
+        $this->tool->updatePage('uuid-1', 'en', content: ['navigationContexts' => ['smuggled']], navigationContexts: ['footer']);
+
+        $this->assertSame(['footer'], $capturedEnvelope->getMessage()->getData()['navigationContexts']);
     }
 
     public function testUpdatePageMergesContentWithExistingData(): void

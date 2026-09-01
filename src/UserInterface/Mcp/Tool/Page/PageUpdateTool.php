@@ -167,6 +167,8 @@ class PageUpdateTool
                     return $validationError;
                 }
                 $normalizedContent = $this->assignBlockIds($normalizedContent, $this->blockIdGenerator);
+                // content must not smuggle navigationContexts past the validated parameter below.
+                unset($normalizedContent['navigationContexts']);
                 $data = \array_merge($data, $normalizedContent);
             }
 
