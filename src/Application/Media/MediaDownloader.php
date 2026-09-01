@@ -14,9 +14,11 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Application\Media;
 
 use Sulu\Mcp\Domain\Exception\MediaDownloadException;
+use Sulu\Mcp\Domain\Exception\MediaSourceUnreachableException;
 use Symfony\Component\Mime\MimeTypes;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpClientExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
+use Symfony\Contracts\HttpClient\ResponseInterface;
 
 /**
  * Fetches a model-supplied URL into a temporary file.
@@ -26,10 +28,12 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
  * constrained: only http(s), only hosts the operator allows, a bounded number of redirects,
  * a bounded duration and a bounded response size.
  *
- * Blocking private and loopback addresses is the injected client's job -- it is wired as a
- * NoPrivateNetworkHttpClient, which re-checks the resolved IP after every redirect rather
- * than trusting the hostname once. The literal-IP check here is a second lock on the same
- * door, so a misconfigured client cannot silently turn the tool into a port scanner.
+ * Redirects are followed one hop at a time so that every address in the chain is held to the
+ * same rules, not just the one the model supplied. Blocking private and loopback addresses is
+ * the injected client's job -- it is wired as a NoPrivateNetworkHttpClient, and issuing each
+ * hop as its own request is what puts every hop through it. The literal-IP check here is a
+ * second lock on the same door, so a misconfigured client cannot silently turn the tool into
+ * a port scanner.
  *
  * @internal
  */
@@ -109,18 +113,7 @@ class MediaDownloader
         }
 
         try {
-            $response = $this->httpClient->request('GET', $url, [
-                'max_redirects' => self::MAX_REDIRECTS,
-                'timeout' => self::IDLE_TIMEOUT,
-                'max_duration' => self::MAX_DURATION,
-                'headers' => ['Accept' => 'image/*,*/*;q=0.8'],
-            ]);
-
-            $statusCode = $response->getStatusCode();
-
-            if (200 !== $statusCode) {
-                throw new MediaDownloadException(\sprintf('Downloading "%s" returned HTTP %d.', $url, $statusCode));
-            }
+            $response = $this->requestFollowingRedirects($url);
 
             $size = 0;
 
@@ -142,10 +135,14 @@ class MediaDownloader
                     ));
                 }
 
-                \fwrite($handle, $content);
+                if (\strlen($content) !== \fwrite($handle, $content)) {
+                    // A short write means the temp volume is full. Counting the chunk as
+                    // written anyway would hand MediaManager a truncated image.
+                    throw new MediaDownloadException('Could not write the download to the temporary file.');
+                }
             }
         } catch (HttpClientExceptionInterface $e) {
-            throw new MediaDownloadException(\sprintf('Could not download "%s": %s', $url, $e->getMessage()), 0, $e);
+            throw new MediaSourceUnreachableException(\sprintf('Could not download "%s": %s', $url, $e->getMessage()), 0, $e);
         } finally {
             \fclose($handle);
         }
@@ -155,6 +152,84 @@ class MediaDownloader
         }
 
         return $size;
+    }
+
+    /**
+     * Redirects are followed here rather than by the client, because `max_redirects` would
+     * check only the first URL: an allow-listed host could then redirect anywhere and the
+     * bytes would be fetched from a host the operator never named. Every hop instead goes
+     * through assertFetchable() and through a fresh request(), and the fresh request is also
+     * what re-runs NoPrivateNetworkHttpClient's own check on the new address.
+     *
+     * @throws MediaDownloadException
+     */
+    private function requestFollowingRedirects(string $url): ResponseInterface
+    {
+        for ($hop = 0;; ++$hop) {
+            $response = $this->httpClient->request('GET', $url, [
+                'max_redirects' => 0,
+                'timeout' => self::IDLE_TIMEOUT,
+                'max_duration' => self::MAX_DURATION,
+                'headers' => ['Accept' => 'image/*,*/*;q=0.8'],
+            ]);
+
+            $statusCode = $response->getStatusCode();
+
+            if ($statusCode < 300 || $statusCode >= 400) {
+                if (200 !== $statusCode) {
+                    // Named after the hop that actually answered, which is not the URL the
+                    // caller passed once a redirect has been followed.
+                    throw new MediaSourceUnreachableException(\sprintf('Downloading "%s" returned HTTP %d.', $url, $statusCode));
+                }
+
+                return $response;
+            }
+
+            if ($hop >= self::MAX_REDIRECTS) {
+                throw new MediaSourceUnreachableException(\sprintf('Downloading "%s" exceeded %d redirects.', $url, self::MAX_REDIRECTS));
+            }
+
+            $location = $response->getHeaders(false)['location'][0] ?? null;
+
+            if (!\is_string($location) || '' === $location) {
+                throw new MediaSourceUnreachableException(\sprintf('Downloading "%s" returned HTTP %d without a Location.', $url, $statusCode));
+            }
+
+            $url = self::resolveLocation($url, $location);
+            $this->assertFetchable($url);
+        }
+    }
+
+    /**
+     * A Location may be absolute, protocol-relative, root-relative or relative to the current
+     * document (RFC 7231 permits all four), and the result has to be absolute before it can be
+     * checked against the host rules.
+     */
+    private static function resolveLocation(string $base, string $location): string
+    {
+        if (null !== \parse_url($location, \PHP_URL_SCHEME)) {
+            return $location;
+        }
+
+        $baseParts = \parse_url($base);
+        $scheme = \is_array($baseParts) ? ($baseParts['scheme'] ?? '') : '';
+        $host = \is_array($baseParts) ? ($baseParts['host'] ?? '') : '';
+        $port = \is_array($baseParts) && isset($baseParts['port']) ? ':' . $baseParts['port'] : '';
+        $basePath = \is_array($baseParts) ? ($baseParts['path'] ?? '/') : '/';
+
+        if (\str_starts_with($location, '//')) {
+            return $scheme . ':' . $location;
+        }
+
+        $origin = $scheme . '://' . $host . $port;
+
+        if (\str_starts_with($location, '/')) {
+            return $origin . $location;
+        }
+
+        $lastSlash = \strrpos($basePath, '/');
+
+        return $origin . ($lastSlash > 0 ? \substr($basePath, 0, $lastSlash) : '') . '/' . $location;
     }
 
     /**

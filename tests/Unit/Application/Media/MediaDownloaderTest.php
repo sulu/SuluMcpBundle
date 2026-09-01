@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Application\Media\DownloadedFile;
 use Sulu\Mcp\Application\Media\MediaDownloader;
 use Sulu\Mcp\Domain\Exception\MediaDownloadException;
+use Sulu\Mcp\Domain\Exception\MediaSourceUnreachableException;
 use Symfony\Component\HttpClient\Exception\TransportException;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
@@ -32,6 +33,9 @@ final class MediaDownloaderTest extends TestCase
 
     /** @var list<string> */
     private array $downloadedPaths = [];
+
+    /** @var list<string> */
+    private array $requestedUrls = [];
 
     protected function tearDown(): void
     {
@@ -216,6 +220,145 @@ final class MediaDownloaderTest extends TestCase
         $this->download($client, 'https://elsewhere.example/photo.gif', allowedHosts: ['cdn.example.com']);
     }
 
+    public function testARedirectAwayFromTheAllowListIsRefused(): void
+    {
+        $client = $this->respondingTo([
+            'https://cdn.example.com/photo.gif' => new MockResponse('', [
+                'http_code' => 302,
+                'response_headers' => ['location' => 'https://elsewhere.example/photo.gif'],
+            ]),
+        ]);
+
+        try {
+            $this->download($client, 'https://cdn.example.com/photo.gif', allowedHosts: ['cdn.example.com']);
+            self::fail('Expected the redirect target to be refused.');
+        } catch (MediaDownloadException $e) {
+            self::assertStringContainsString('allowed_hosts', $e->getMessage());
+        }
+
+        self::assertSame(
+            ['https://cdn.example.com/photo.gif'],
+            $this->requestedUrls,
+            'An allow-listed host that redirects elsewhere must not get the bytes fetched from the new host anyway.',
+        );
+    }
+
+    public function testARedirectIntoThePrivateNetworkIsRefused(): void
+    {
+        $client = $this->respondingTo([
+            'https://cdn.example.com/photo.gif' => new MockResponse('', [
+                'http_code' => 302,
+                'response_headers' => ['location' => 'http://169.254.169.254/latest/meta-data'],
+            ]),
+        ]);
+
+        $this->expectException(MediaDownloadException::class);
+        $this->expectExceptionMessage('private or reserved address');
+
+        $this->download($client, 'https://cdn.example.com/photo.gif');
+    }
+
+    public function testARedirectToAnAllowedHostIsFollowed(): void
+    {
+        $client = $this->respondingTo([
+            'https://cdn.example.com/photo.gif' => new MockResponse('', [
+                'http_code' => 301,
+                'response_headers' => ['location' => 'https://cdn.example.com/real/photo.gif'],
+            ]),
+        ]);
+
+        $file = $this->download($client, 'https://cdn.example.com/photo.gif', allowedHosts: ['cdn.example.com']);
+
+        self::assertSame('image/gif', $file->mimeType);
+        self::assertSame(
+            ['https://cdn.example.com/photo.gif', 'https://cdn.example.com/real/photo.gif'],
+            $this->requestedUrls,
+        );
+    }
+
+    #[DataProvider('provideRelativeLocations')]
+    public function testARelativeLocationIsResolvedAgainstTheUrlItCameFrom(string $location, string $expected): void
+    {
+        $client = $this->respondingTo([
+            'https://cdn.example.com/a/b/photo.gif' => new MockResponse('', [
+                'http_code' => 302,
+                'response_headers' => ['location' => $location],
+            ]),
+        ]);
+
+        $this->download($client, 'https://cdn.example.com/a/b/photo.gif');
+
+        self::assertSame($expected, $this->requestedUrls[1] ?? null);
+    }
+
+    /**
+     * @return iterable<string, array{string, string}>
+     */
+    public static function provideRelativeLocations(): iterable
+    {
+        yield 'root relative' => ['/real.gif', 'https://cdn.example.com/real.gif'];
+        yield 'document relative' => ['real.gif', 'https://cdn.example.com/a/b/real.gif'];
+        yield 'protocol relative' => ['//other.example/real.gif', 'https://other.example/real.gif'];
+        yield 'absolute' => ['https://other.example/real.gif', 'https://other.example/real.gif'];
+    }
+
+    public function testARedirectLoopIsAbandoned(): void
+    {
+        $client = new MockHttpClient(function(string $method, string $url): MockResponse {
+            $this->requestedUrls[] = $url;
+
+            return new MockResponse('', [
+                'http_code' => 302,
+                'response_headers' => ['location' => 'https://cdn.example.com/next'],
+            ]);
+        });
+
+        $this->expectException(MediaSourceUnreachableException::class);
+        $this->expectExceptionMessage('exceeded 3 redirects');
+
+        $this->download($client, 'https://cdn.example.com/photo.gif');
+    }
+
+    public function testARedirectWithoutALocationIsReported(): void
+    {
+        $client = $this->respondingTo([
+            'https://cdn.example.com/photo.gif' => new MockResponse('', ['http_code' => 302]),
+        ]);
+
+        $this->expectException(MediaSourceUnreachableException::class);
+        $this->expectExceptionMessage('without a Location');
+
+        $this->download($client, 'https://cdn.example.com/photo.gif');
+    }
+
+    public function testAnErrorStatusIsUnreachableButARejectedFileIsNot(): void
+    {
+        $notFound = new MockHttpClient(new MockResponse('nope', ['http_code' => 404]));
+        $tooLarge = $this->respondingWith(\str_repeat('x', 128));
+
+        try {
+            $this->download($notFound, 'https://example.com/photo.gif');
+            self::fail('Expected a failure.');
+        } catch (MediaDownloadException $e) {
+            self::assertInstanceOf(
+                MediaSourceUnreachableException::class,
+                $e,
+                'An error status means the address does not serve the file, which is the only case worth retrying elsewhere.',
+            );
+        }
+
+        try {
+            $this->download($tooLarge, 'https://example.com/photo.gif', maxFileSize: 32);
+            self::fail('Expected a failure.');
+        } catch (MediaDownloadException $e) {
+            self::assertNotInstanceOf(
+                MediaSourceUnreachableException::class,
+                $e,
+                'The address served a file and we refused it; retrying elsewhere would work around the limit.',
+            );
+        }
+    }
+
     public function testAHostOnTheAllowListIsFetched(): void
     {
         $file = $this->download(
@@ -265,6 +408,18 @@ final class MediaDownloaderTest extends TestCase
     private function respondingWith(string $body, array $info = []): MockHttpClient
     {
         return new MockHttpClient(new MockResponse($body, $info));
+    }
+
+    /**
+     * @param array<string, MockResponse> $responses keyed by URL; anything else gets the image
+     */
+    private function respondingTo(array $responses): MockHttpClient
+    {
+        return new MockHttpClient(function(string $method, string $url) use ($responses): MockResponse {
+            $this->requestedUrls[] = $url;
+
+            return $responses[$url] ?? new MockResponse(self::gif());
+        });
     }
 
     private function tempFileCount(): int

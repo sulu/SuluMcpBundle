@@ -163,9 +163,9 @@ How `sulu_media_upload` behaves once it exists. Deliberately a separate node: `d
 | Setting | Default | Meaning |
 |---------|---------|---------|
 | `max_filesize` | `10` | Largest download in MB, counted against the bytes that actually arrive rather than the `Content-Length` the remote claims. Named and counted like `sulu_media.upload.max_filesize`. |
-| `allowed_hosts` | `[]` | Hosts the tool may download from. Empty allows any public host. |
+| `allowed_hosts` | `[]` | Hosts the tool may download from, redirect targets included. Empty allows any public host. |
 
-Whatever `allowed_hosts` says, the download is confined: only `http` and `https`, at most three redirects, a bounded duration, and no private, loopback, link-local or reserved address — re-checked after every redirect, not only on the hostname it started with. The mime type is determined from the downloaded bytes, and anything that is not an image is refused before it reaches the MediaBundle. `sulu_media`'s own `upload.max_filesize` and blocked mime types still apply on top, because the file is stored through `MediaManager` like any other upload.
+Whatever `allowed_hosts` says, the download is confined: only `http` and `https`, at most three redirects, a bounded duration, and no private, loopback, link-local or reserved address. Redirects are followed one hop at a time and every hop is held to all of these rules, so an allowed host cannot redirect the server to one you did not name. The mime type is determined from the downloaded bytes, and anything that is not an image is refused before it reaches the MediaBundle. `sulu_media`'s own `upload.max_filesize` and blocked mime types still apply on top, because the file is stored through `MediaManager` like any other upload.
 
 ### Allowed hosts
 

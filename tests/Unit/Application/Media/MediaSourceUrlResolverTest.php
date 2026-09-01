@@ -105,6 +105,47 @@ final class MediaSourceUrlResolverTest extends TestCase
         self::assertSame(MediaSource::KIND_DIRECT, $source->kind);
     }
 
+    public function testAProtocolRelativeUrlWithAForeignHostIsNotLocal(): void
+    {
+        $source = $this->resolver()->resolve('//remote.example/media/230/download/photo.jpg');
+
+        self::assertSame(
+            MediaSource::KIND_DIRECT,
+            $source->kind,
+            'It carries a host, so treating it as relative would hand back this instance\'s media 230 instead of the remote image.',
+        );
+        self::assertNull($source->localMediaId);
+    }
+
+    public function testAProtocolRelativeUrlOnThisHostIsStillLocal(): void
+    {
+        $source = $this->resolver()->resolve('//sulu.example.com/media/230/download/photo.jpg');
+
+        self::assertSame(MediaSource::KIND_LOCAL_MEDIA, $source->kind);
+        self::assertSame(230, $source->localMediaId);
+    }
+
+    #[DataProvider('provideDefaultPortUrls')]
+    public function testAPortTheSchemeImpliesDoesNotMakeADifferentInstance(string $url): void
+    {
+        $source = $this->resolver()->resolve($url);
+
+        self::assertSame(
+            MediaSource::KIND_LOCAL_MEDIA,
+            $source->kind,
+            'https://host:443 and https://host are the same origin, so spelling the port out must not import a duplicate.',
+        );
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function provideDefaultPortUrls(): iterable
+    {
+        yield 'explicit 443' => ['https://sulu.example.com:443/media/230/download/photo.jpg'];
+        yield 'explicit 443 on a format url' => ['https://sulu.example.com:443/uploads/media/800x/00/230-photo.jpg'];
+    }
+
     public function testADifferentPortIsADifferentInstance(): void
     {
         $source = $this->resolver()->resolve('https://sulu.example.com:8443/media/230/download/photo.jpg');

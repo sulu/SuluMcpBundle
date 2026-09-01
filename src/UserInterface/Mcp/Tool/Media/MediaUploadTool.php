@@ -32,6 +32,7 @@ use Sulu\Mcp\Application\Media\MediaSource;
 use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\MediaDownloadException;
+use Sulu\Mcp\Domain\Exception\MediaSourceUnreachableException;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
@@ -185,15 +186,24 @@ class MediaUploadTool
                 $userId,
             );
 
-            if (null !== $sourceUrl) {
-                $media = $this->recordProvenance($media, $locale, $userId, $sourceUrl);
-            }
-
-            return $this->describe($media, $locale) + [
+            $result = [
                 'success' => true,
                 'resolved_from' => $source->kind,
                 'existing' => false,
             ];
+
+            if (null !== $sourceUrl) {
+                try {
+                    $media = $this->recordProvenance($media, $locale, $userId, $sourceUrl);
+                } catch (\Throwable $e) {
+                    // The media exists by this point. Reporting the whole call as failed would
+                    // invite a retry that imports the file a second time, so the shortfall is
+                    // named instead.
+                    $result['warning'] = \sprintf('The media was created but its source URL could not be recorded: %s', $e->getMessage());
+                }
+            }
+
+            return $this->describe($media, $locale) + $result;
         } finally {
             @\unlink($file->path);
         }
@@ -218,14 +228,18 @@ class MediaUploadTool
     }
 
     /**
-     * A rewritten format URL is a guess about the remote's routing, so a failure to fetch it
-     * falls back to the URL as given rather than failing the call.
+     * A rewritten format URL is a guess about the remote's routing, so an address that does not
+     * serve the file falls back to the URL as given rather than failing the call.
+     *
+     * Only unreachability is retried. Falling back after a size or content rejection would
+     * quietly import the thumbnail the rewrite existed to avoid, and would present the
+     * configured limit as if it had never applied.
      */
     private function downloadWithFallback(MediaSource $source): DownloadedFile
     {
         try {
             return $this->downloader->download($source->url);
-        } catch (MediaDownloadException $e) {
+        } catch (MediaSourceUnreachableException $e) {
             if (!$source->hasFallback()) {
                 throw $e;
             }

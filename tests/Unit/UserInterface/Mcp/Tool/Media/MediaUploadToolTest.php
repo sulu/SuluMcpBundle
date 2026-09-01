@@ -143,6 +143,60 @@ final class MediaUploadToolTest extends TestCase
         );
     }
 
+    public function testAnOversizedOriginalIsNotQuietlyReplacedByTheThumbnail(): void
+    {
+        $this->authenticateAsUser();
+        $this->mediaManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        $given = 'https://sulu.io/uploads/media/800x/00/230-seal.gif?v=2-6';
+
+        $client = $this->clientRespondingTo([
+            'https://sulu.io/media/230/download/seal.gif' => new MockResponse(\str_repeat('x', 4096)),
+        ]);
+
+        $result = $this->tool($client, maxFileSize: 64)->uploadMedia($given, self::COLLECTION_ID, 'en');
+
+        self::assertStringContainsString('larger than the configured limit', $result['error']);
+        self::assertSame(
+            ['https://sulu.io/media/230/download/seal.gif'],
+            $this->requestedUrls,
+            'Falling back here would import the resized derivative the rewrite exists to avoid, and would hide the limit that refused the original.',
+        );
+    }
+
+    public function testTheUploadStillSucceedsWhenTheProvenanceSaveFails(): void
+    {
+        $this->authenticateAsUser();
+
+        $uploaded = $this->prophesize(Media::class);
+        $uploaded->getId()->willReturn(120);
+        $uploaded->getTitle()->willReturn('photo');
+        $uploaded->getUrl()->willReturn('/media/120/download/photo.gif?v=1');
+        $uploaded->getMimeType()->willReturn('image/gif');
+        $uploaded->getSize()->willReturn(43);
+        $uploaded->getFormats()->willReturn([]);
+        $uploaded->getProperties()->willReturn([]);
+
+        $this->mediaManager->save(Argument::type(UploadedFile::class), Argument::cetera())
+            ->willReturn($uploaded->reveal());
+        $this->mediaManager->save(null, Argument::cetera(), Argument::cetera())
+            ->willThrow(new \RuntimeException('write conflict'));
+
+        $result = $this->tool()->uploadMedia(
+            'https://example.com/photo.gif',
+            self::COLLECTION_ID,
+            'en',
+            sourceUrl: 'https://example.com/article',
+        );
+
+        self::assertTrue(
+            $result['success'],
+            'The media exists by then, so reporting failure would invite a retry that imports the file twice.',
+        );
+        self::assertSame(120, $result['id']);
+        self::assertStringContainsString('source URL could not be recorded', $result['warning']);
+    }
+
     public function testAUrlPointingAtThisInstanceReturnsTheExistingMediaWithoutDownloading(): void
     {
         $this->authenticateAsUser();
@@ -434,14 +488,14 @@ final class MediaUploadToolTest extends TestCase
         self::assertSame('sulu_media_upload', $attributes[0]->newInstance()->name);
     }
 
-    private function tool(?HttpClientInterface $client = null): MediaUploadTool
+    private function tool(?HttpClientInterface $client = null, int $maxFileSize = 1048576): MediaUploadTool
     {
         $client ??= $this->clientRespondingTo([]);
 
         return new MediaUploadTool(
             $this->mediaManager->reveal(),
             new MediaSourceUrlResolver(self::LOCAL_SERVER),
-            new MediaDownloader($client, 1048576),
+            new MediaDownloader($client, $maxFileSize),
             $this->systemCollectionManager->reveal(),
             $this->tokenStorage,
             new AdminLinkGenerator($this->router(), [new MediaAdminLinkProvider(new TestViewRegistry())]),

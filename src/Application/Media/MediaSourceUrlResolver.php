@@ -41,14 +41,14 @@ class MediaSourceUrlResolver
      */
     private const DOWNLOAD_SLUG_PATTERN = '(?<fileName>[^/]+)';
 
-    private readonly ?string $localOrigin;
+    private readonly ?string $localAuthority;
 
     public function __construct(
         string $serverUrl,
         private readonly string $mediaProxyPath = '/uploads/media/{slug}',
         private readonly string $mediaDownloadPath = '/media/{id}/download/{slug}',
     ) {
-        $this->localOrigin = self::originOf($serverUrl);
+        $this->localAuthority = self::authorityOf($serverUrl);
     }
 
     public function resolve(string $url): MediaSource
@@ -59,7 +59,14 @@ class MediaSourceUrlResolver
 
         $path = self::pathOf($url);
         $origin = self::originOf($url);
-        $isLocal = null !== $this->localOrigin && (null === $origin || $origin === $this->localOrigin);
+        $authority = self::authorityOf($url);
+
+        // Keyed on the authority rather than the whole origin: a media id only means something
+        // on the instance that issued it, and `//host/path` carries a host but no scheme, so
+        // asking for a scheme here would file a protocol-relative remote URL as local and hand
+        // back the wrong image.
+        $isLocal = null !== $this->localAuthority
+            && (null === $authority || $authority === $this->localAuthority);
 
         $format = null !== $path ? $this->matchFormatPath($path) : null;
 
@@ -133,8 +140,7 @@ class MediaSourceUrlResolver
     }
 
     /**
-     * `scheme://host[:port]`, or null when the URL carries no host (a relative URL, which is
-     * what sulu_media_get returns for this instance's own media).
+     * `scheme://host[:port]`, or null when the URL carries no scheme or no host.
      *
      * @return non-empty-string|null
      */
@@ -146,9 +152,36 @@ class MediaSourceUrlResolver
             return null;
         }
 
-        $port = isset($parts['port']) ? ':' . $parts['port'] : '';
+        $authority = self::authorityOf($url);
 
-        return \strtolower($parts['scheme'] . '://' . $parts['host']) . $port;
+        return \strtolower($parts['scheme']) . '://' . ($authority ?? \strtolower($parts['host']));
+    }
+
+    /**
+     * `host[:port]`, with a port that the scheme implies anyway left off so that
+     * `https://host:443` and `https://host` name the same instance. Null when the URL carries
+     * no host, which is what a relative URL looks like -- the form sulu_media_get returns for
+     * this instance's own media.
+     *
+     * @return non-empty-string|null
+     */
+    private static function authorityOf(string $url): ?string
+    {
+        $parts = \parse_url($url);
+
+        if (false === $parts || !isset($parts['host']) || '' === $parts['host']) {
+            return null;
+        }
+
+        $host = \strtolower($parts['host']);
+        $scheme = isset($parts['scheme']) ? \strtolower($parts['scheme']) : null;
+        $port = $parts['port'] ?? null;
+
+        if (null === $port || ('https' === $scheme && 443 === $port) || ('http' === $scheme && 80 === $port)) {
+            return $host;
+        }
+
+        return $host . ':' . $port;
     }
 
     private static function pathOf(string $url): ?string
