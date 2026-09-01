@@ -68,7 +68,7 @@ class BlockUpdateTool
     #[McpTool(
         name: 'sulu_block_update',
         title: 'Update Block',
-        description: 'Update a single block by its _id. Pass blockData as a flat object mapping the block-type\'s template field names to new values, e.g. blockData={"title": "New heading"}. Only the keys you pass are changed; other fields are preserved. Unknown keys are rejected against the block type\'s schema; the internal {name, value} storage shape is rejected too. Use sulu_page_get, sulu_article_get, or sulu_snippet_get to find block _id values (returned in block summaries), and sulu_block_list to read full content before updating. The entity must be re-published after updating blocks.',
+        description: 'Update a single block, addressed by its _id (blockId) or by its 0-based index at the top level of a block property (blockIndex plus blockProperty, which may be left out when the entity has a single block property). Prefer blockId — ids do not shift as blocks are added or removed, and only blockId reaches nested blocks. Content that was not created through these tools carries no _id, and blockIndex is the way in. Pass blockData as a flat object mapping the block-type\'s template field names to new values, e.g. blockData={"title": "New heading"}. Only the keys you pass are changed; other fields are preserved. Unknown keys are rejected against the block type\'s schema; the internal {name, value} storage shape is rejected too. Use sulu_page_get, sulu_article_get, or sulu_snippet_get to find block _id values (returned in block summaries), and sulu_block_list to read full content before updating. The entity must be re-published after updating blocks.',
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('#context#', PermissionTypes::EDIT)],
@@ -79,12 +79,28 @@ class BlockUpdateTool
         string $type,
         string $uuid,
         string $locale,
-        string $blockId,
         #[Schema(type: 'object', description: 'Changed block field values as a flat object, e.g. {"content": "<p>Updated</p>"}', additionalProperties: true)]
         array $blockData,
+        #[Schema(type: 'string', description: 'The block\'s _id value, e.g. "c6c22b89". Provide this OR blockIndex. Prefer blockId — ids do not shift, and only blockId addresses nested blocks.')]
+        ?string $blockId = null,
+        #[Schema(type: 'integer', description: '0-based index of the block at the top level of blockProperty, e.g. 2. Provide this OR blockId. The only way to address a block that carries no _id.')]
+        ?int $blockIndex = null,
+        #[Schema(type: 'string', description: 'Template property holding the blocks, e.g. "blocks". Only used with blockIndex, and only needed when the entity has more than one block property.')]
+        ?string $blockProperty = null,
     ): array {
         if (!$this->contentTypeResolver->supports($type)) {
             return ['error' => \sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', $this->contentTypeResolver->supportedTypes()))];
+        }
+
+        if (null === $blockId && null === $blockIndex) {
+            return [
+                'error' => 'Provide either blockId (the block _id value) or blockIndex (0-based).',
+                'hint' => 'e.g. blockId="c6c22b89" or blockIndex=2. Use sulu_block_list to see indices and _id values.',
+            ];
+        }
+
+        if (null !== $blockId && null !== $blockIndex) {
+            return ['error' => 'Provide either blockId or blockIndex, not both.'];
         }
 
         try {
@@ -119,14 +135,22 @@ class BlockUpdateTool
 
             $currentData = $this->contentManager->normalize($dimensionContent);
 
-            // Find the block by _id anywhere in the block tree (including nested blocks)
-            $found = $this->findBlockPath($currentData, $blockId);
+            if (null !== $blockId) {
+                // Find the block by _id anywhere in the block tree (including nested blocks)
+                $found = $this->findBlockPath($currentData, $blockId);
 
-            if (null === $found) {
-                return [
-                    'error' => \sprintf('Block with _id "%s" not found in %s %s.', $blockId, $type, $uuid),
-                    'hint' => 'Use sulu_page_get, sulu_article_get, or sulu_snippet_get to see block summaries with _id values.',
-                ];
+                if (null === $found) {
+                    return [
+                        'error' => \sprintf('Block with _id "%s" not found in %s %s.', $blockId, $type, $uuid),
+                        'hint' => 'Use sulu_page_get, sulu_article_get, or sulu_snippet_get to see block summaries with _id values.',
+                    ];
+                }
+            } else {
+                $found = $this->resolveBlockPathByIndex($currentData, $blockProperty, $blockIndex);
+
+                if (isset($found['error'])) {
+                    return $found;
+                }
             }
 
             $foundProperty = $found['property'];
@@ -168,20 +192,106 @@ class BlockUpdateTool
 
             $this->handle(new Envelope($message, [new EnableFlushStamp()]));
 
-            return [
+            $result = [
                 'success' => true,
                 'uuid' => $uuid,
-                'blockId' => $blockId,
                 'blockProperty' => $foundProperty,
                 'blockPath' => $foundIndices,
             ];
+
+            if (null !== $blockId) {
+                $result['blockId'] = $blockId;
+            }
+
+            return $result;
         } catch (PermissionDeniedException $e) {
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to update block "%s" in %s %s: %s', $blockId, $type, $uuid, $e->getMessage()),
-                'hint' => 'Verify the UUID exists and the block _id is correct (use sulu_page_get, sulu_article_get, or sulu_snippet_get to check).',
+                'error' => \sprintf('Failed to update block "%s" in %s %s: %s', $blockId ?? '#' . $blockIndex, $type, $uuid, $e->getMessage()),
+                'hint' => 'Verify the UUID exists and the block _id or index is correct (use sulu_block_list to check).',
             ];
         }
+    }
+
+    /**
+     * The path shape {@see findBlockPath()} returns, or an error array when the property
+     * is ambiguous, unknown, or the index is out of range.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return array{property: string, indices: list<int>}|array{error: string, hint?: string}
+     */
+    private function resolveBlockPathByIndex(array $data, ?string $blockProperty, int $blockIndex): array
+    {
+        $properties = $this->indexableBlockProperties($data);
+
+        if (null === $blockProperty) {
+            if (1 !== \count($properties)) {
+                return [
+                    'error' => [] === $properties
+                        ? 'The entity has no block property to index into.'
+                        : \sprintf('The entity has more than one block property (%s), so blockProperty is required with blockIndex.', \implode(', ', $properties)),
+                    'hint' => 'Use sulu_block_list to see the block properties and their contents.',
+                ];
+            }
+
+            $blockProperty = $properties[0];
+        } elseif (!\in_array($blockProperty, $properties, true)) {
+            return [
+                'error' => \sprintf('"%s" is not a block property of this entity.', $blockProperty),
+                'hint' => [] === $properties
+                    ? 'The entity has no block property.'
+                    : \sprintf('Block properties: %s.', \implode(', ', $properties)),
+            ];
+        }
+
+        /** @var list<array<string, mixed>> $blocks */
+        $blocks = $data[$blockProperty];
+
+        if ($blockIndex < 0 || $blockIndex >= \count($blocks)) {
+            return [
+                'error' => \sprintf(
+                    'Block index %d out of range. "%s" has %d block(s) (valid indices: 0-%d).',
+                    $blockIndex,
+                    $blockProperty,
+                    \count($blocks),
+                    \max(0, \count($blocks) - 1),
+                ),
+            ];
+        }
+
+        return ['property' => $blockProperty, 'indices' => [$blockIndex]];
+    }
+
+    /**
+     * Block properties addressable by index.
+     *
+     * {@see ContentNormalizerTrait::detectBlockProperties()} requires an `_id`, which is
+     * exactly what the content this addresses lacks -- ids come from these tools, not Sulu.
+     *
+     * @param array<string, mixed> $data
+     *
+     * @return list<string>
+     */
+    private function indexableBlockProperties(array $data): array
+    {
+        $properties = [];
+
+        foreach ($data as $key => $value) {
+            if (!\is_array($value) || !\array_is_list($value) || [] === $value) {
+                continue;
+            }
+
+            foreach ($value as $item) {
+                if (\is_array($item) && isset($item['type'])) {
+                    $properties[] = $key;
+
+                    continue 2;
+                }
+            }
+        }
+
+        return $properties;
     }
 }
