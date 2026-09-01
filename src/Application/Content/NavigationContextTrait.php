@@ -16,9 +16,8 @@ namespace Sulu\Mcp\Application\Content;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 
 /**
- * Navigation contexts are declared per webspace in its XML, under <navigation><contexts>,
- * and Sulu stores whatever it is given. Validating against the declaration turns a silent
- * no-op into an error naming the contexts that do exist.
+ * Navigation contexts are declared per webspace in its XML, under <navigation><contexts>;
+ * Sulu itself stores undeclared keys without error.
  *
  * @internal
  */
@@ -41,7 +40,7 @@ trait NavigationContextTrait
     /**
      * @param list<string> $navigationContexts
      *
-     * @return array{error: string}|null the error to return to the caller, or null when every context is declared
+     * @return array{error: string, hint: string}|null the error to return to the caller, or null when every context is declared
      */
     private function validateNavigationContexts(
         WebspaceManagerInterface $webspaceManager,
@@ -57,13 +56,13 @@ trait NavigationContextTrait
 
         return [
             'error' => \sprintf(
-                'Unknown navigation context(s) for webspace "%s": %s. %s',
+                'Unknown navigation context(s) for webspace "%s": %s.',
                 $webspaceKey,
                 \implode(', ', $unknown),
-                [] === $declared
-                    ? 'This webspace declares none, they are added under <navigation><contexts> in its XML.'
-                    : \sprintf('Declared contexts: %s.', \implode(', ', $declared)),
             ),
+            'hint' => [] === $declared
+                ? 'This webspace declares none, they are added under <navigation><contexts> in its XML.'
+                : \sprintf('Declared contexts: %s.', \implode(', ', $declared)),
         ];
     }
 }

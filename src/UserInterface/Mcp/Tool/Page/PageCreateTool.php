@@ -143,8 +143,6 @@ class PageCreateTool
                 if ($validationError = $this->validateNavigationContexts($this->webspaceManager, $webspace, $navigationContexts)) {
                     return $validationError;
                 }
-
-                $data['navigationContexts'] = $navigationContexts;
             }
 
             $data = $this->contentMetadataMapper->applyExcerpt($data, $excerpt, $locale);
@@ -156,11 +154,16 @@ class PageCreateTool
                 return $data;
             }
 
-            // Force trusted values before dispatch: excerpt/seo must not smuggle a
-            // different locale, template, or title.
+            // Force trusted values before dispatch: content/excerpt/seo must not smuggle a
+            // different locale, template, title, or navigation context assignment.
             $data['locale'] = $locale;
             $data['template'] = $template;
             $data['title'] = $title;
+            if (null !== $navigationContexts) {
+                $data['navigationContexts'] = $navigationContexts;
+            } else {
+                unset($data['navigationContexts']);
+            }
 
             $message = new CreatePageMessage($webspace, $parentId, $data);
 

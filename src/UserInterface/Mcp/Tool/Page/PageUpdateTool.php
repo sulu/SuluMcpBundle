@@ -174,8 +174,6 @@ class PageUpdateTool
                 if ($validationError = $this->validateNavigationContexts($this->webspaceManager, $page->getWebspaceKey(), $navigationContexts)) {
                     return $validationError;
                 }
-
-                $data['navigationContexts'] = $navigationContexts;
             }
 
             $data = $this->contentMetadataMapper->applyExcerpt($data, $excerpt, $locale);
@@ -191,9 +189,17 @@ class PageUpdateTool
             $data = $this->stringifyKeys($data);
 
             // Force trusted values before dispatch: content/excerpt/seo must not smuggle
-            // a different locale or template.
+            // a different locale, template, or navigation context assignment. When the
+            // parameter is omitted only the page's current assignment may ride along.
             $data['locale'] = $locale;
             $data['template'] = $effectiveTemplate;
+            if (null !== $navigationContexts) {
+                $data['navigationContexts'] = $navigationContexts;
+            } elseif (\array_key_exists('navigationContexts', $currentData)) {
+                $data['navigationContexts'] = $currentData['navigationContexts'];
+            } else {
+                unset($data['navigationContexts']);
+            }
 
             $message = new ModifyPageMessage(['uuid' => $uuid], $data);
 

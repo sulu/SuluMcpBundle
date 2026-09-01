@@ -238,7 +238,7 @@ final class PageCreateToolTest extends TestCase
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('footer', $result['error']);
-        $this->assertStringContainsString('Declared contexts: main.', $result['error']);
+        $this->assertStringContainsString('Declared contexts: main.', $result['hint']);
     }
 
     public function testCreatePageHintsAtTheWebspaceXmlWhenNoContextIsDeclared(): void
@@ -252,7 +252,131 @@ final class PageCreateToolTest extends TestCase
         $result = $this->tool->createPage('example', 'en', 'default', 'Test', 'parent-uuid', navigationContexts: ['main']);
 
         $this->assertArrayHasKey('error', $result);
-        $this->assertStringContainsString('<navigation><contexts>', $result['error']);
+        $this->assertStringContainsString('<navigation><contexts>', $result['hint']);
+    }
+
+    public function testCreatePageDropsNavigationContextsSmuggledInsideContent(): void
+    {
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $capturedMessage = null;
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockPage, &$capturedMessage) {
+                $capturedMessage = $args[0]->getMessage();
+
+                return $args[0]->with(new HandledStamp($mockPage, 'handler'));
+            });
+
+        $this->contentManager->resolve(Argument::cetera())->willReturn(new PageDimensionContent(new Page()));
+        $this->contentManager->normalize(Argument::cetera())->willReturn([]);
+
+        $this->tool->createPage(
+            'example',
+            'en',
+            'default',
+            'Test',
+            'parent-uuid',
+            null,
+            ['navigationContexts' => ['smuggled']],
+        );
+
+        $this->assertInstanceOf(CreatePageMessage::class, $capturedMessage);
+        $this->assertArrayNotHasKey(
+            'navigationContexts',
+            $capturedMessage->getData(),
+            'A navigationContexts key inside content bypasses the declared-context validation and must never reach the message.',
+        );
+    }
+
+    public function testCreatePageLetsTheValidatedParameterWinOverContentSmuggledNavigationContexts(): void
+    {
+        $webspace = new Webspace();
+        $webspace->setKey('example');
+        $webspace->setNavigation(new Navigation([new NavigationContext('main', [])]));
+        $this->webspaceManager->findWebspaceByKey('example')->willReturn($webspace);
+
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $capturedMessage = null;
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockPage, &$capturedMessage) {
+                $capturedMessage = $args[0]->getMessage();
+
+                return $args[0]->with(new HandledStamp($mockPage, 'handler'));
+            });
+
+        $this->contentManager->resolve(Argument::cetera())->willReturn(new PageDimensionContent(new Page()));
+        $this->contentManager->normalize(Argument::cetera())->willReturn([]);
+
+        $this->tool->createPage(
+            'example',
+            'en',
+            'default',
+            'Test',
+            'parent-uuid',
+            null,
+            ['navigationContexts' => ['smuggled']],
+            navigationContexts: ['main'],
+        );
+
+        $this->assertInstanceOf(CreatePageMessage::class, $capturedMessage);
+        $this->assertSame(['main'], $capturedMessage->getData()['navigationContexts']);
+    }
+
+    public function testCreatePageDropsNavigationContextsSmuggledThroughMetadataFields(): void
+    {
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $mapperMetadataProvider = new ArrayMetadataProvider();
+        $mapperMetadataProvider->set('content_excerpt_metadata', $this->makeFormMeta(['navigationContexts']));
+        $mapperMetadataProvider->setDefault($this->makeFormMeta([]));
+
+        $tool = new PageCreateTool(
+            $this->messageBus->reveal(),
+            $this->contentManager->reveal(),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            $this->blockIdGenerator,
+            new ContentMetadataMapper($mapperMetadataProvider),
+            $this->adminLinkGenerator,
+            $this->pageRepository->reveal(),
+            $this->permissionChecker,
+            $this->webspaceManager->reveal(),
+        );
+
+        $capturedMessage = null;
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockPage, &$capturedMessage) {
+                $capturedMessage = $args[0]->getMessage();
+
+                return $args[0]->with(new HandledStamp($mockPage, 'handler'));
+            });
+
+        $this->contentManager->resolve(Argument::cetera())->willReturn(new PageDimensionContent(new Page()));
+        $this->contentManager->normalize(Argument::cetera())->willReturn([]);
+
+        $tool->createPage(
+            'example',
+            'en',
+            'default',
+            'Test',
+            'parent-uuid',
+            null,
+            null,
+            ['navigationContexts' => ['smuggled']],
+        );
+
+        $this->assertInstanceOf(CreatePageMessage::class, $capturedMessage);
+        $this->assertArrayNotHasKey(
+            'navigationContexts',
+            $capturedMessage->getData(),
+            'ContentMetadataMapper places project-declared metadata names top-level after the content guard, so an excerpt field named navigationContexts must not reach the message unvalidated.',
+        );
     }
 
     public function testCreatePageGeneratesUrlFromTitleWhenUrlIsNull(): void
