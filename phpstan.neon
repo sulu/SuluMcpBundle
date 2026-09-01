@@ -2,6 +2,7 @@ parameters:
     phpVersion: 80200
     level: max
     paths:
+        - config/
         - src/
     reportUnmatchedIgnoredErrors: false
     disallowedMethodCalls:

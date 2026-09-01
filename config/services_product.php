@@ -32,7 +32,7 @@ use Symfony\Component\DependencyInjection\Reference;
 /*
  * Imported by SuluMcpBundle only when SuluProductBundle is registered.
  */
-return static function (ContainerConfigurator $container): void {
+return static function(ContainerConfigurator $container): void {
     $services = $container->services()
         ->defaults()
             ->autowire()

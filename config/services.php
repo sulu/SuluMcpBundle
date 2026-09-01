@@ -101,7 +101,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagListTool;
 use Sulu\Page\Domain\Repository\NavigationRepositoryInterface;
 use Symfony\Component\DependencyInjection\Reference;
 
-return static function (ContainerConfigurator $container): void {
+return static function(ContainerConfigurator $container): void {
     $services = $container->services()
         ->defaults()
             ->autowire()
