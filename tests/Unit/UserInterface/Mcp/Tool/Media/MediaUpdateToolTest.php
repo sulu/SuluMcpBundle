@@ -291,6 +291,45 @@ final class MediaUpdateToolTest extends TestCase
         $this->assertSame('(c) stored', $result['copyright']);
     }
 
+    public function testUpdateMediaSeedsTheTitleWhenTheCallerPassesOneSuluWouldDrop(): void
+    {
+        $this->authenticateAsUser();
+
+        $loaded = $this->loadedMedia(5, null, 'en');
+        $loaded->getTitle()->willReturn('Existing en');
+        $this->mediaManager->getById(Argument::cetera())->willReturn($loaded->reveal());
+
+        $media = $this->prophesize(Media::class);
+        $media->getId()->willReturn(42);
+        $media->getTitle()->willReturn('Existing en');
+        $media->getDescription()->willReturn('Beschreibung');
+        $media->getCopyright()->willReturn(null);
+
+        // MediaManager drops a falsy title, and the description alone would then create
+        // the row without one.
+        $this->mediaManager
+            ->save(null, Argument::that(fn (array $data): bool => 'Existing en' === $data['title']), 1)
+            ->shouldBeCalledOnce()
+            ->willReturn($media->reveal());
+
+        $this->tool->updateMedia(42, 'de', '', 'Beschreibung');
+    }
+
+    public function testUpdateMediaAsksForATitleWhenTheOnlyOneIsUnstorable(): void
+    {
+        $this->authenticateAsUser();
+
+        $loaded = $this->loadedMedia(5, null, 'en');
+        $loaded->getTitle()->willReturn('');
+        $this->mediaManager->getById(Argument::cetera())->willReturn($loaded->reveal());
+
+        $this->mediaManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updateMedia(42, 'de', null, 'Beschreibung');
+
+        $this->assertStringContainsString('no title to copy', $result['error']);
+    }
+
     public function testUpdateMediaAsksForATitleWhenThereIsNoneToCopy(): void
     {
         $this->authenticateAsUser();
