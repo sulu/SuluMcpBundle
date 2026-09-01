@@ -28,6 +28,7 @@ use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Media\DownloadedFile;
 use Sulu\Mcp\Application\Media\MediaDownloader;
+use Sulu\Mcp\Application\Media\MediaFileNamer;
 use Sulu\Mcp\Application\Media\MediaSource;
 use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
@@ -55,6 +56,7 @@ class MediaUploadTool
         private readonly MediaManagerInterface $mediaManager,
         private readonly MediaSourceUrlResolver $sourceUrlResolver,
         private readonly MediaDownloader $downloader,
+        private readonly MediaFileNamer $fileNamer,
         private readonly SystemCollectionManagerInterface $systemCollectionManager,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly AdminLinkGeneratorInterface $adminLinkGenerator,
@@ -161,7 +163,7 @@ class MediaUploadTool
 
         try {
             $storedName = null !== $fileName
-                ? $this->downloader->normalizeFileName($fileName, $file->mimeType)
+                ? $this->fileNamer->normalize($fileName, $file->mimeType)
                 : $file->fileName;
 
             $data = [

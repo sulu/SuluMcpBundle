@@ -52,14 +52,13 @@ class MediaDownloader
      */
     private const MAX_DURATION = 30.0;
 
-    private const FALLBACK_FILE_NAME = 'image';
-
     /**
      * @param int<1, max> $maxFileSize in bytes
      * @param list<string> $allowedHosts empty allows any host the client will talk to
      */
     public function __construct(
         private readonly HttpClientInterface $httpClient,
+        private readonly MediaFileNamer $fileNamer,
         private readonly int $maxFileSize,
         private readonly array $allowedHosts = [],
     ) {
@@ -91,7 +90,7 @@ class MediaDownloader
                 ));
             }
 
-            return new DownloadedFile($path, $this->fileNameFor($url, $mimeType), $mimeType, $size);
+            return new DownloadedFile($path, $this->fileNamer->fromUrl($url, $mimeType), $mimeType, $size);
         } catch (\Throwable $e) {
             @\unlink($path);
 
@@ -262,52 +261,5 @@ class MediaDownloader
                 $host,
             ));
         }
-    }
-
-    /**
-     * @param non-empty-string $mimeType
-     *
-     * @return non-empty-string
-     */
-    private function fileNameFor(string $url, string $mimeType): string
-    {
-        $path = \parse_url($url, \PHP_URL_PATH);
-
-        return $this->normalizeFileName(\is_string($path) ? \basename(\rawurldecode($path)) : '', $mimeType);
-    }
-
-    /**
-     * The name a set of bytes may be stored under. Public because a caller-supplied file name
-     * needs exactly the same treatment as one taken from the URL: neither is trustworthy, and
-     * an override that skipped this would be the one way back to a ".php" in the storage
-     * directory.
-     *
-     * @param non-empty-string $mimeType
-     *
-     * @return non-empty-string
-     */
-    public function normalizeFileName(string $name, string $mimeType): string
-    {
-        // Separators and NULs go first, then the leading dots they leave behind: "../../x.gif"
-        // would otherwise survive as "....x.gif", which is a hidden file rather than a traversal
-        // but still not a name anyone asked for. MediaManager cleans it further, but not before
-        // it has been trusted here.
-        $name = \ltrim(\trim(\str_replace(['/', '\\', "\0"], '', $name)), '.');
-
-        if ('' === $name) {
-            $name = self::FALLBACK_FILE_NAME;
-        }
-
-        $extensions = MimeTypes::getDefault()->getExtensions($mimeType);
-        $canonical = $extensions[0] ?? null;
-        $extension = \strtolower(\pathinfo($name, \PATHINFO_EXTENSION));
-
-        if (null === $canonical || \in_array($extension, $extensions, true)) {
-            return $name;
-        }
-
-        // The name is renamed to match what the bytes actually are, so a ".php" served as
-        // an image, or a URL with no extension at all, still lands as an image file.
-        return \pathinfo($name, \PATHINFO_FILENAME) . '.' . $canonical;
     }
 }

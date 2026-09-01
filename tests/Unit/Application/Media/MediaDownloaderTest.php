@@ -18,6 +18,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Application\Media\DownloadedFile;
 use Sulu\Mcp\Application\Media\MediaDownloader;
+use Sulu\Mcp\Application\Media\MediaFileNamer;
 use Sulu\Mcp\Domain\Exception\MediaDownloadException;
 use Sulu\Mcp\Domain\Exception\MediaSourceUnreachableException;
 use Symfony\Component\HttpClient\Exception\TransportException;
@@ -76,60 +77,6 @@ final class MediaDownloaderTest extends TestCase
         $this->expectExceptionMessage('is not an image');
 
         $this->download($this->respondingWith('<?php echo "hi";'), 'https://example.com/photo.jpg');
-    }
-
-    public function testTheFileNameIsDerivedFromTheMimeTypeWhenTheUrlHasNoExtension(): void
-    {
-        $file = $this->download($this->respondingWith(self::gif()), 'https://example.com/media/hero');
-
-        self::assertSame('hero.gif', $file->fileName);
-    }
-
-    public function testAFileNameThatContradictsTheBytesIsCorrected(): void
-    {
-        $file = $this->download($this->respondingWith(self::gif()), 'https://example.com/photo.php');
-
-        self::assertSame(
-            'photo.gif',
-            $file->fileName,
-            'The extension has to follow what the bytes actually are, or an executable extension reaches the storage directory.',
-        );
-    }
-
-    public function testAPercentEncodedFileNameIsDecodedForStorage(): void
-    {
-        $file = $this->download($this->respondingWith(self::gif()), 'https://example.com/Official%20Seal.gif');
-
-        self::assertSame('Official Seal.gif', $file->fileName);
-    }
-
-    public function testAFileNameCannotEscapeIntoAnotherDirectory(): void
-    {
-        $file = $this->download($this->respondingWith(self::gif()), 'https://example.com/x/%2E%2E%2Fescaped.gif');
-
-        self::assertSame('escaped.gif', $file->fileName);
-    }
-
-    #[DataProvider('provideUntrustedNames')]
-    public function testNormalizeFileNameAppliesTheSameRuleToACallerSuppliedName(string $given, string $expected): void
-    {
-        $downloader = new MediaDownloader(new MockHttpClient(), 1048576);
-
-        self::assertSame($expected, $downloader->normalizeFileName($given, 'image/gif'));
-    }
-
-    /**
-     * @return iterable<string, array{string, string}>
-     */
-    public static function provideUntrustedNames(): iterable
-    {
-        yield 'kept as is' => ['harbour.gif', 'harbour.gif'];
-        yield 'traversal' => ['../../evil.php', 'evil.gif'];
-        yield 'windows separators' => ['..\\..\\evil.gif', 'evil.gif'];
-        yield 'leading dots' => ['...hidden.gif', 'hidden.gif'];
-        yield 'null byte' => ["evil.gif\0.php", 'evil.gif.gif'];
-        yield 'no extension' => ['hero', 'hero.gif'];
-        yield 'nothing usable' => ['../', 'image.gif'];
     }
 
     public function testAResponseLargerThanTheLimitIsRejected(): void
@@ -396,7 +343,7 @@ final class MediaDownloaderTest extends TestCase
         int $maxFileSize = 1048576,
         array $allowedHosts = [],
     ): DownloadedFile {
-        $file = (new MediaDownloader($client, $maxFileSize, $allowedHosts))->download($url);
+        $file = (new MediaDownloader($client, new MediaFileNamer(), $maxFileSize, $allowedHosts))->download($url);
         $this->downloadedPaths[] = $file->path;
 
         return $file;

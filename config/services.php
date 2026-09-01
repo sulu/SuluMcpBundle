@@ -22,6 +22,7 @@ use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Media\MediaDownloader;
+use Sulu\Mcp\Application\Media\MediaFileNamer;
 use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
 use Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
@@ -340,6 +341,8 @@ return static function(ContainerConfigurator $container): void {
     // which is the part a hostname check on its own cannot do.
     $services->set('sulu_mcp.media_upload.http_client', NoPrivateNetworkHttpClient::class)
         ->arg('$client', inline_service(HttpClientInterface::class)->factory([HttpClient::class, 'create']));
+
+    $services->set(MediaFileNamer::class);
 
     $services->set(MediaDownloader::class)
         ->arg('$httpClient', new Reference('sulu_mcp.media_upload.http_client'))

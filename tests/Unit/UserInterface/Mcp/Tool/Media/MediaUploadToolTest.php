@@ -29,6 +29,7 @@ use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\Media\MediaDownloader;
+use Sulu\Mcp\Application\Media\MediaFileNamer;
 use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\MediaAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
@@ -495,7 +496,8 @@ final class MediaUploadToolTest extends TestCase
         return new MediaUploadTool(
             $this->mediaManager->reveal(),
             new MediaSourceUrlResolver(self::LOCAL_SERVER),
-            new MediaDownloader($client, $maxFileSize),
+            new MediaDownloader($client, new MediaFileNamer(), $maxFileSize),
+            new MediaFileNamer(),
             $this->systemCollectionManager->reveal(),
             $this->tokenStorage,
             new AdminLinkGenerator($this->router(), [new MediaAdminLinkProvider(new TestViewRegistry())]),
