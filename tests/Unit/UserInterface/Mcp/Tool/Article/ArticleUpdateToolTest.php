@@ -31,6 +31,7 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
+use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
@@ -104,6 +105,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ContentMetadataMapper($this->mapperMetadataProvider),
             $adminLinkGenerator,
             $this->articleGroupResolver,
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $this->articleContextResolver,
             new ContentSecurityContextResolver($this->articleContextResolver, $this->contentManager->reveal()),
@@ -235,6 +237,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
             new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),
@@ -277,6 +280,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
             new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),
@@ -325,6 +329,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
             new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),
@@ -382,6 +387,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
             new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),
@@ -463,6 +469,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
             new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),
@@ -663,6 +670,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $this->articleContextResolver,
             new ContentSecurityContextResolver($this->articleContextResolver, $this->contentManager->reveal()),
@@ -895,6 +903,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
             new ContentSecurityContextResolver($contextResolver, $this->contentManager->reveal()),

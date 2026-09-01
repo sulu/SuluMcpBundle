@@ -78,6 +78,40 @@ final class ArticleRouteValidator
     }
 
     /**
+     * Check the supplied routing form against the type the template declares.
+     *
+     * Passing the other one reached Sulu, which answered `Expected property "url" to be
+     * an array or null but "string" given` -- about a property the caller never wrote.
+     *
+     * @param array<string, mixed> $content
+     * @param ArticleRouteTypeResolver::TYPE_*|null $routeType
+     *
+     * @return array<string, string>|null
+     */
+    public static function assertFormMatchesTemplate(array $content, ?string $routeType): ?array
+    {
+        if (null === $routeType) {
+            return null;
+        }
+
+        $usesPageTreeForm = \array_key_exists('page', $content) || \is_array($content['url'] ?? null);
+
+        if (ArticleRouteTypeResolver::TYPE_PAGE_TREE_ROUTE === $routeType && !$usesPageTreeForm) {
+            if (!\array_key_exists('url', $content)) {
+                return null;
+            }
+
+            return self::error('This article template routes through the page tree, so content.url as a plain string does not fit it. Pass content={"page": {"path": "/blog", "uuid": "<parent-page-uuid>", "suffix": "my-article"}}.');
+        }
+
+        if (ArticleRouteTypeResolver::TYPE_ROUTE === $routeType && $usesPageTreeForm) {
+            return self::error('This article template uses a simple route, so the page-tree form does not fit it. Pass content={"url": "/<full-path>"}.');
+        }
+
+        return null;
+    }
+
+    /**
      * Convert the MCP-friendly page_tree_route alias to Sulu's actual template field shape.
      *
      * Sulu templates still name the route property `url`, even when its type is

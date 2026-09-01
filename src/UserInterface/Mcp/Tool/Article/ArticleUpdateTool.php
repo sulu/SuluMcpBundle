@@ -25,6 +25,7 @@ use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
+use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Article\ArticleRouteValidator;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
@@ -61,6 +62,7 @@ class ArticleUpdateTool
         private readonly ContentMetadataMapper $contentMetadataMapper,
         private readonly AdminLinkGeneratorInterface $adminLinkGenerator,
         private readonly ArticleGroupResolver $articleGroupResolver,
+        private readonly ArticleRouteTypeResolver $articleRouteTypeResolver,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
         private readonly ArticleSecurityContextResolver $articleContextResolver,
         private readonly ContentSecurityContextResolver $contentSecurityContextResolver,
@@ -180,6 +182,13 @@ class ArticleUpdateTool
                 $normalizedContent = self::normalizeContent($content);
                 if ($validationError = ArticleRouteValidator::validate($normalizedContent, required: $createsLocale)) {
                     return $validationError;
+                }
+
+                if ($routeFormError = ArticleRouteValidator::assertFormMatchesTemplate(
+                    $normalizedContent,
+                    $this->articleRouteTypeResolver->resolve($effectiveTemplate),
+                )) {
+                    return $routeFormError;
                 }
                 $suluContent = ArticleRouteValidator::normalizeForSulu($normalizedContent);
                 if ($blockError = $this->blockDataValidator->validateContentTree($suluContent, 'article', $effectiveTemplate)) {
