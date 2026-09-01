@@ -389,7 +389,7 @@ final class BlockUpdateToolTest extends TestCase
     /**
      * A page whose "content" holds the global block "timeline_process" with a nested
      * "stage" block, plus the metadata that only describes "stage" inside that global
-     * block -- the shape of case 2 in sulu/SuluMcpBundle#31.
+     * block. This is the shape of case 2 in sulu/SuluMcpBundle#31.
      */
     private function setupPageWithTimelineProcess(): void
     {

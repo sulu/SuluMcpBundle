@@ -482,10 +482,68 @@ final class BlockAddToolTest extends TestCase
         $this->assertStringContainsString('eyebrow', $result['error']);
     }
 
+    public function testNestedAddIntoAnEmptyListStillValidatesAgainstTheSchema(): void
+    {
+        // The first item of a card list: the parent declares "items" but holds nothing
+        // there yet, so the target property has to come from the template metadata.
+        $this->setupPageWithDuplicateItemTypes([
+            ['_id' => 'cards-1', 'type' => 'feature_cards', 'headline' => 'Cards'],
+        ]);
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->addBlock(
+            'page',
+            'test-uuid',
+            'en',
+            'item',
+            'blocks',
+            ['bogus_key' => 'x'],
+            parentBlockId: 'cards-1',
+        );
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('bogus_key', $result['error']);
+        $this->assertStringContainsString('eyebrow', $result['error']);
+    }
+
+    public function testNestedAddIntoAnEmptyListTargetsThePropertyThatDeclaresTheType(): void
+    {
+        $this->setupPageWithDuplicateItemTypes([
+            ['_id' => 'cards-1', 'type' => 'feature_cards', 'headline' => 'Cards'],
+        ]);
+
+        $captured = null;
+        $updatedPage = new Page('test-uuid');
+        $updatedPage->setWebspaceKey('example');
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$captured): bool {
+            $captured = $envelope->getMessage();
+
+            return true;
+        }), Argument::cetera())->shouldBeCalledOnce()
+            ->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
+
+        $result = $this->tool->addBlock(
+            'page',
+            'test-uuid',
+            'en',
+            'item',
+            'blocks',
+            ['eyebrow' => 'B'],
+            parentBlockId: 'cards-1',
+        );
+
+        $this->assertTrue($result['success']);
+
+        $parent = $captured->getData()['blocks'][0];
+        $this->assertArrayHasKey('items', $parent, 'the block must land in the property that declares its type, not in a guessed "blocks" key');
+        $this->assertSame('B', $parent['items'][0]['eyebrow']);
+    }
+
     public function testNestedAddRejectsNameValueShapeEvenWhenTheTargetPropertyIsUnknown(): void
     {
         // The parent has no nested block list yet, so the property the block would land
-        // in cannot be inferred and the schema stays unresolved -- the storage-shape
+        // in cannot be inferred and the schema stays unresolved. The storage-shape
         // guard does not depend on metadata and must still fire.
         $this->setupEntityWithBlocks('page', [
             ['_id' => 'cards-1', 'type' => 'feature_cards', 'headline' => 'Cards'],
@@ -509,11 +567,13 @@ final class BlockAddToolTest extends TestCase
 
     /**
      * A page holding a "feature_cards" block, with a template whose "trust_bar" declares
-     * a differently shaped nested type of the same name "item" -- and declares it first.
+     * a differently shaped nested type of the same name "item", and declares it first.
+     *
+     * @param list<array<string, mixed>>|null $blocks
      */
-    private function setupPageWithDuplicateItemTypes(): void
+    private function setupPageWithDuplicateItemTypes(?array $blocks = null): void
     {
-        $this->setupEntityWithBlocks('page', [
+        $this->setupEntityWithBlocks('page', $blocks ?? [
             ['_id' => 'cards-1', 'type' => 'feature_cards', 'headline' => 'Cards', 'items' => [
                 ['_id' => 'item-1', 'type' => 'item', 'eyebrow' => 'A', 'headline' => 'Card A', 'text' => '<p>…</p>'],
             ]],

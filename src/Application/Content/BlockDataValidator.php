@@ -27,9 +27,9 @@ use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
  * expected template field keys and showed empty blocks, while the read-side
  * normalizer flattened bogus `{name, value}` pairs and hid the corruption.
  *
- * A block type name is only unique within the block property that declares it --
- * `item` is used by nearly every card list -- so every lookup here walks the chain
- * of (block property, block type) steps down from the template form instead of
+ * A block type name is only unique within the block property that declares it, and
+ * `item` is used by nearly every card list, so every lookup here walks the chain of
+ * (block property, block type) steps down from the template form instead of
  * searching the metadata for a matching name.
  *
  * @internal
@@ -79,7 +79,45 @@ final readonly class BlockDataValidator
             return null;
         }
 
-        return $this->validateKeys($blockType, $blockData, $form);
+        // Name the type the schema was actually resolved for, which is what the message
+        // describes, rather than the caller's label for the same block.
+        return $this->validateKeys($blockPath[\array_key_last($blockPath)]['type'], $blockData, $form);
+    }
+
+    /**
+     * Return the block property of the form at $parentPath that offers $blockType.
+     *
+     * Answers "where does a block of this type belong inside this parent", which the
+     * current content cannot answer: a list that is still empty is indistinguishable
+     * from one that does not exist, and a parent may offer several block properties.
+     * Null when the parent form is undiscoverable or offers the type in no property,
+     * or in more than one, so the caller can fall back to its own guess.
+     *
+     * @param list<array{property: string, type: string}> $parentPath
+     */
+    public function resolveBlockProperty(
+        string $contentType,
+        ?string $templateKey,
+        array $parentPath,
+        string $blockType,
+    ): ?string {
+        if ([] === $parentPath) {
+            return null;
+        }
+
+        $parentForm = $this->resolveBlockPath($contentType, $templateKey, $parentPath);
+        if (!$parentForm instanceof FormMetadata) {
+            return null;
+        }
+
+        $properties = [];
+        foreach ($parentForm->getFlatFieldMetadata() as $name => $field) {
+            if (isset($field->getTypes()[$blockType])) {
+                $properties[] = $name;
+            }
+        }
+
+        return 1 === \count($properties) ? $properties[0] : null;
     }
 
     /**
@@ -188,7 +226,7 @@ final readonly class BlockDataValidator
     /**
      * Detect the `[{"name": "field", "value": "..."}]` storage-shape pattern that
      * AI clients sometimes emit. This shape is silently stored by Sulu and breaks
-     * the admin UI -- give a tailored message before generic key validation.
+     * the admin UI, so give a tailored message before generic key validation.
      *
      * @param array<array-key, mixed> $blockData
      *

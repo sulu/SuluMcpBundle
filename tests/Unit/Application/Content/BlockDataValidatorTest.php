@@ -540,14 +540,17 @@ final class BlockDataValidatorTest extends TestCase
         $this->assertStringContainsString('gibt_es_nicht', $error['error']);
     }
 
-    public function testEmptyBlockPathSkipsSchemaValidation(): void
+    public function testUndescribableChainSkipsSchemaValidation(): void
     {
         $validator = $this->validatorWithDuplicateItemTypes();
 
-        $this->assertNull($validator->validate('page', 'default', 'item', [], ['whatever' => 'x']));
+        $this->assertNull(
+            $validator->validate('page', 'default', 'item', [], ['whatever' => 'x']),
+            'an empty chain means the caller could not describe where the block sits, not that the block has no schema',
+        );
     }
 
-    public function testEmptyBlockPathStillRejectsTheStorageShape(): void
+    public function testUndescribableChainStillRejectsTheStorageShape(): void
     {
         $validator = $this->validatorWithDuplicateItemTypes();
 
@@ -559,7 +562,7 @@ final class BlockDataValidatorTest extends TestCase
 
     /**
      * Validator whose "default" template offers two block types that each nest a type
-     * named "item" with a different field set -- the shape the issue was reported for.
+     * named "item" with a different field set, the shape the issue was reported for.
      */
     private function validatorWithDuplicateItemTypes(): BlockDataValidator
     {
@@ -587,7 +590,7 @@ final class BlockDataValidatorTest extends TestCase
 
     /**
      * Validator whose "default" template references the global block "timeline_process",
-     * whose fields -- including the nested "stage" type -- only exist in the separate
+     * whose fields, including the nested "stage" type, only exist in the separate
      * global block metadata.
      */
     private function validatorWithGlobalTimelineBlock(): BlockDataValidator

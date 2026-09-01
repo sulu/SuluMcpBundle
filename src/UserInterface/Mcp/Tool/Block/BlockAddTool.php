@@ -143,7 +143,10 @@ class BlockAddTool
             $templateKey = isset($currentData['template']) && \is_string($currentData['template'])
                 ? $currentData['template']
                 : null;
-            $blockPath = $this->newBlockTypePath($currentData, $blockProperty, $blockType, $parentPath);
+            $nestedProperty = null !== $parentPath
+                ? $this->nestedTargetProperty($currentData, $type, $templateKey, $blockType, $parentPath)
+                : null;
+            $blockPath = $this->newBlockTypePath($currentData, $blockProperty, $blockType, $parentPath, $nestedProperty);
             if ($validationError = $this->blockDataValidator->validate($type, $templateKey, $blockType, $blockPath, $blockData)) {
                 return $validationError;
             }
@@ -151,7 +154,7 @@ class BlockAddTool
             $newBlock = $this->stringifyKeys($this->assignBlockIds(\array_merge(['type' => $blockType], $blockData), $this->blockIdGenerator));
 
             if (null !== $parentPath) {
-                $result = $this->insertBlockAtPath($blocks, $parentPath['indices'], $newBlock, $position);
+                $result = $this->insertBlockAtPath($blocks, $parentPath['indices'], $newBlock, $position, $nestedProperty);
                 if (null === $result) {
                     return ['error' => \sprintf('Could not insert block into parent "%s" — no nested block list found.', $parentBlockId)];
                 }
@@ -198,35 +201,60 @@ class BlockAddTool
     }
 
     /**
+     * The property of the parent block the added block belongs in. Asks the template
+     * metadata which of the parent's block properties declares $blockType, because the
+     * current content cannot tell an empty list from an absent one, which is exactly
+     * the state a card list is in before its first item is added. Falls back to the
+     * first populated list only when the metadata gives no single answer.
+     *
+     * @param array<string, mixed> $currentData
+     * @param array{property: string, indices: list<int>} $parentPath
+     */
+    private function nestedTargetProperty(
+        array $currentData,
+        string $type,
+        ?string $templateKey,
+        string $blockType,
+        array $parentPath,
+    ): ?string {
+        $parentChain = $this->blockTypePath($currentData, $parentPath['property'], $parentPath['indices']);
+
+        $resolved = $this->blockDataValidator->resolveBlockProperty($type, $templateKey, $parentChain, $blockType);
+        if (null !== $resolved) {
+            return $resolved;
+        }
+
+        /** @var list<array<string, mixed>> $parentBlocks */
+        $parentBlocks = $currentData[$parentPath['property']];
+
+        return $this->findNestedBlockKey($this->getBlockAtPath($parentBlocks, $parentPath['indices']));
+    }
+
+    /**
      * The (block property, block type) chain the added block will sit at: the target
-     * property of the entity, or the nested block list of the parent block.
+     * property of the entity, or $nestedProperty inside the parent block.
      *
      * @param array<string, mixed> $currentData
      * @param array{property: string, indices: list<int>}|null $parentPath
      *
      * @return list<array{property: string, type: string}>
      */
-    private function newBlockTypePath(array $currentData, string $blockProperty, string $blockType, ?array $parentPath): array
-    {
+    private function newBlockTypePath(
+        array $currentData,
+        string $blockProperty,
+        string $blockType,
+        ?array $parentPath,
+        ?string $nestedProperty,
+    ): array {
         if (null === $parentPath) {
             return [['property' => $blockProperty, 'type' => $blockType]];
         }
 
         $parentChain = $this->blockTypePath($currentData, $parentPath['property'], $parentPath['indices']);
-        if ([] === $parentChain) {
+        if ([] === $parentChain || null === $nestedProperty) {
             return [];
         }
 
-        /** @var list<array<string, mixed>> $parentBlocks */
-        $parentBlocks = $currentData[$parentPath['property']];
-        $nestedKey = $this->findNestedBlockKey($this->getBlockAtPath($parentBlocks, $parentPath['indices']));
-        if (null === $nestedKey) {
-            // The insert falls back to "blocks" for a parent with no nested list yet;
-            // that is a guess, so leave the chain unresolved instead of validating
-            // against whatever schema the guessed property happens to declare.
-            return [];
-        }
-
-        return [...$parentChain, ['property' => $nestedKey, 'type' => $blockType]];
+        return [...$parentChain, ['property' => $nestedProperty, 'type' => $blockType]];
     }
 }
