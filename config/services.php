@@ -17,6 +17,7 @@ use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkProviderInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
+use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
@@ -302,6 +303,8 @@ return static function(ContainerConfigurator $container): void {
     // Article tools
     $services->set(ArticleGroupResolver::class)
         ->arg('$groupProvider', new Reference('sulu_admin.metadata_group_provider'));
+    $services->set(ArticleRouteTypeResolver::class)
+        ->arg('$formMetadataProvider', new Reference('sulu_admin.form_metadata_provider'));
     $services->set(ArticleGetTool::class);
     $services->set(ArticleListTool::class);
     $services->set(ArticleCreateTool::class);

@@ -30,6 +30,7 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
+use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
@@ -90,6 +91,7 @@ final class ArticleCreateToolTest extends TestCase
             new ContentMetadataMapper($this->mapperMetadataProvider),
             $adminLinkGenerator,
             $this->articleGroupResolver,
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
         );
     }
 
@@ -114,6 +116,66 @@ final class ArticleCreateToolTest extends TestCase
                 'suffix' => 'my-article',
             ],
         ];
+    }
+
+    public function testCreateArticleRejectsAPlainUrlOnAPageTreeRouteTemplate(): void
+    {
+        $this->formMetadataProvider->set('article', $this->makeTypedFormMeta('blog', 'url', 'page_tree_route'));
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->createArticle('en', 'blog', 'Title', null, ['url' => '/my-article']);
+
+        $this->assertStringContainsString('routes through the page tree', $result['error']);
+        $this->assertStringContainsString('content={"page"', $result['error']);
+    }
+
+    public function testCreateArticleRejectsThePageTreeFormOnASimpleRouteTemplate(): void
+    {
+        $this->formMetadataProvider->set('article', $this->makeTypedFormMeta('simple', 'url', 'route'));
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->createArticle('en', 'simple', 'Title', null, [
+            'page' => ['path' => '/blog', 'uuid' => 'page-uuid', 'suffix' => 'my-article'],
+        ]);
+
+        $this->assertStringContainsString('simple route', $result['error']);
+    }
+
+    public function testCreateArticleAcceptsTheFormTheTemplateDeclares(): void
+    {
+        $this->formMetadataProvider->set('article', $this->makeTypedFormMeta('blog', 'url', 'page_tree_route'));
+
+        $article = new Article('uuid-1');
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalled()
+            ->will(fn (array $args) => $args[0]->with(new HandledStamp($article, 'handler')));
+        $this->contentManager->resolve(Argument::cetera())->willReturn(new ArticleDimensionContent(new Article()));
+        $this->contentManager->normalize(Argument::cetera())->willReturn(['url' => ['page' => ['path' => '/blog'], 'suffix' => 'my-article']]);
+
+        $result = $this->tool->createArticle('en', 'blog', 'Title', null, [
+            'page' => ['path' => '/blog', 'uuid' => 'page-uuid', 'suffix' => 'my-article'],
+        ]);
+
+        $this->assertTrue($result['success'] ?? false, \json_encode($result));
+    }
+
+    /**
+     * A TypedFormMetadata whose $templateKey form declares one field of $type.
+     */
+    private function makeTypedFormMeta(string $templateKey, string $fieldName, string $type): TypedFormMetadata
+    {
+        $field = new FieldMetadata($fieldName);
+        $field->setType($type);
+
+        $form = new FormMetadata();
+        $form->addItem($field);
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm($templateKey, $form);
+
+        return $typed;
     }
 
     public function testCreateArticleDispatchesCreateArticleMessage(): void
@@ -168,6 +230,7 @@ final class ArticleCreateToolTest extends TestCase
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             new ArticleGroupResolver($groupProvider, $this->contentManager->reveal()),
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
         );
 
         $result = $tool->createArticle('en', 'blog', 'Custom', null, ['url' => '/custom']);
@@ -490,6 +553,7 @@ final class ArticleCreateToolTest extends TestCase
             new ContentMetadataMapper($this->mapperMetadataProvider),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
         );
 
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
@@ -561,6 +625,7 @@ final class ArticleCreateToolTest extends TestCase
             new ContentMetadataMapper($mapperMetadataProvider),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
+            new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
         );
 
         $capturedData = null;

@@ -78,6 +78,38 @@ final class ArticleRouteValidator
     }
 
     /**
+     * Check the routing value the article will be saved with against the type the
+     * template declares.
+     *
+     * Takes the merged, Sulu-shaped value rather than the caller's content: an update
+     * that changes only the template carries the previous routing forward, and that is
+     * the form the mismatch reaches Sulu with -- `Expected property "url" to be an array
+     * or null but "string" given`, about a property the caller never wrote.
+     *
+     * @param mixed $url The `url` the update will dispatch: a string for a simple route,
+     *                   {page: {path, uuid}, suffix} for a page_tree_route
+     * @param ArticleRouteTypeResolver::TYPE_*|null $routeType
+     *
+     * @return array<string, string>|null
+     */
+    public static function assertFormMatchesTemplate(mixed $url, ?string $routeType): ?array
+    {
+        if (null === $routeType || null === $url) {
+            return null;
+        }
+
+        if (ArticleRouteTypeResolver::TYPE_PAGE_TREE_ROUTE === $routeType && !\is_array($url)) {
+            return self::error('This article template routes through the page tree, so a plain string URL does not fit it. Pass content={"page": {"path": "/blog", "uuid": "<parent-page-uuid>", "suffix": "my-article"}}.');
+        }
+
+        if (ArticleRouteTypeResolver::TYPE_ROUTE === $routeType && \is_array($url)) {
+            return self::error('This article template uses a simple route, so the page-tree form does not fit it. Pass content={"url": "/<full-path>"}.');
+        }
+
+        return null;
+    }
+
+    /**
      * Convert the MCP-friendly page_tree_route alias to Sulu's actual template field shape.
      *
      * Sulu templates still name the route property `url`, even when its type is
