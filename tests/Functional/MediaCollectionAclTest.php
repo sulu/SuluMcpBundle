@@ -67,5 +67,15 @@ final class MediaCollectionAclTest extends FunctionalTestCase
             $checker->has('sulu.media.collections', PermissionTypes::EDIT, 'en', Collection::class, 43),
             'Role-level EDIT grant on sulu.media.collections must apply when no per-collection ACL denies it.',
         );
+
+        self::assertFalse(
+            $checker->has('sulu.media.collections', PermissionTypes::ADD, 'en', Collection::class, self::DENIED_COLLECTION_ID),
+            'Per-collection ACL deny must override the role-level ADD grant, or sulu_media_upload writes into a collection the user is barred from.',
+        );
+
+        self::assertTrue(
+            $checker->has('sulu.media.collections', PermissionTypes::ADD, 'en', Collection::class, 43),
+            'Role-level ADD grant on sulu.media.collections must apply when no per-collection ACL denies it.',
+        );
     }
 }

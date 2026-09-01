@@ -30,7 +30,8 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  * @phpstan-type SuluMcpConfig array{
  *     server_url: string,
  *     mcp_path: string,
- *     dangerous_tools: array{delete: bool, publish: bool, block_remove: bool},
+ *     dangerous_tools: array{delete: bool, publish: bool, block_remove: bool, media_upload: bool},
+ *     media_upload: array{allowed_hosts: list<string>},
  * }
  */
 class SuluMcpBundle extends AbstractBundle
@@ -97,6 +98,23 @@ class SuluMcpBundle extends AbstractBundle
                             ->defaultFalse()
                             ->info('Enable sulu_block_remove')
                         ->end()
+                        ->booleanNode('media_upload')
+                            ->defaultFalse()
+                            ->info('Enable sulu_media_upload')
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('media_upload')
+                    ->addDefaultsIfNotSet()
+                    // Separate from the dangerous_tools flag on purpose: that node decides
+                    // whether the tool exists, this one how it behaves once it does.
+                    ->info('Limits applied to sulu_media_upload. Only relevant when dangerous_tools.media_upload is true. The download size is bounded by sulu_media.upload.max_filesize rather than a second limit here.')
+                    ->children()
+                        ->arrayNode('allowed_hosts')
+                            ->scalarPrototype()->end()
+                            ->defaultValue([])
+                            ->info('Hosts sulu_media_upload may download from. Empty allows any public host; private and reserved addresses are refused either way.')
+                        ->end()
                     ->end()
                 ->end()
             ->end()
@@ -147,6 +165,12 @@ class SuluMcpBundle extends AbstractBundle
         $builder->setParameter('sulu_mcp.dangerous_tools.delete', $config['dangerous_tools']['delete']);
         $builder->setParameter('sulu_mcp.dangerous_tools.publish', $config['dangerous_tools']['publish']);
         $builder->setParameter('sulu_mcp.dangerous_tools.block_remove', $config['dangerous_tools']['block_remove']);
+        $builder->setParameter('sulu_mcp.dangerous_tools.media_upload', $config['dangerous_tools']['media_upload']);
+
+        $builder->setParameter('sulu_mcp.media_upload.allowed_hosts', \array_map(
+            static fn (string $host): string => \strtolower($host),
+            $config['media_upload']['allowed_hosts'],
+        ));
 
         $builder->setParameter(
             'sulu_mcp.disabled_tool_names',

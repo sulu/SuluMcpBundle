@@ -16,14 +16,14 @@ Sulu MCP Bundle is a Symfony bundle that turns a Sulu 3.x installation into an [
 
 ## What it exposes
 
-The bundle ships **39 tools** spanning the core Sulu domains, plus **9 product tools** when the optional `sulu/product-bundle` is installed:
+The bundle ships **40 tools** spanning the core Sulu domains, plus **9 product tools** when the optional `sulu/product-bundle` is installed:
 
 - Pages, articles, snippets — full lifecycle (CRUD, publish/unpublish, blocks, SEO, excerpt).
 - Media, taxonomy (tags, categories), contacts.
 - Products, variants, product families and attributes — only when the optional [`sulu/product-bundle`](https://github.com/sulu/SuluProductBundle) is installed.
 - Preview links, navigation, content search, and a context tool that briefs the AI on the current Sulu instance.
 
-A handful of high-impact tools (delete, publish, block-remove) are gated behind opt-in config — see the bundle [README](../README.md#configuration).
+A handful of high-impact tools (delete, publish, block-remove, media-upload) are gated behind opt-in config — see the bundle [README](../README.md#configuration).
 
 ## Transport
 

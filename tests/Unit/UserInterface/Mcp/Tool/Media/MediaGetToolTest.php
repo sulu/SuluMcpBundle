@@ -82,6 +82,8 @@ final class MediaGetToolTest extends TestCase
         $media->getTitle()->willReturn(null);
         $media->getDescription()->willReturn(null);
         $media->getCopyright()->willReturn(null);
+        $media->getCredits()->willReturn(null);
+        $media->getOrigin()->willReturn('unknown');
         $media->getMimeType()->willReturn(null);
         $media->getSize()->willReturn(0);
         $media->getUrl()->willReturn('');
@@ -97,6 +99,8 @@ final class MediaGetToolTest extends TestCase
         $media->getTitle()->willReturn('Hero Image');
         $media->getDescription()->willReturn('A beautiful hero image');
         $media->getCopyright()->willReturn('(c) 2026 Example');
+        $media->getCredits()->willReturn('Photo: A. Example');
+        $media->getOrigin()->willReturn('ai_generated');
         $media->getMimeType()->willReturn('image/png');
         $media->getSize()->willReturn(54321);
         $media->getUrl()->willReturn('/media/42/hero.png');
@@ -113,6 +117,12 @@ final class MediaGetToolTest extends TestCase
         $this->assertSame('Hero Image', $result['title']);
         $this->assertSame('A beautiful hero image', $result['description']);
         $this->assertSame('(c) 2026 Example', $result['copyright']);
+        $this->assertSame('Photo: A. Example', $result['credits']);
+        $this->assertSame(
+            'ai_generated',
+            $result['origin'],
+            'sulu_media_upload writes credits and origin, so a client has to be able to read them back.',
+        );
         $this->assertSame('image/png', $result['mimeType']);
         $this->assertSame(54321, $result['size']);
         $this->assertSame('/media/42/hero.png', $result['url']);

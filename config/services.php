@@ -21,6 +21,9 @@ use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Media\MediaDownloader;
+use Sulu\Mcp\Application\Media\MediaFileNamer;
+use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
 use Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 use Sulu\Mcp\Application\Metadata\FieldValueExampleProvider;
@@ -78,6 +81,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUpdateTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUploadTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Navigation\NavigationGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageGetTool;
@@ -101,6 +105,9 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagListTool;
 use Sulu\Page\Domain\Repository\NavigationRepositoryInterface;
 use Symfony\Component\DependencyInjection\Reference;
+use Symfony\Component\HttpClient\HttpClient;
+use Symfony\Component\HttpClient\NoPrivateNetworkHttpClient;
+use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 return static function(ContainerConfigurator $container): void {
     $services = $container->services()
@@ -322,6 +329,34 @@ return static function(ContainerConfigurator $container): void {
     $services->set(MediaListTool::class);
     $services->set(MediaGetTool::class);
     $services->set(MediaUpdateTool::class);
+
+    $services->set(MediaSourceUrlResolver::class)
+        ->arg('$serverUrl', '%sulu_mcp.server_url%')
+        ->arg('$mediaProxyPath', '%sulu_media.format_cache.media_proxy_path%')
+        ->arg('$mediaDownloadPath', '%sulu_media.media_manager.media_download_path%');
+
+    // Built from the factory rather than wired to the project's `http_client`, so that a
+    // project which has the framework client turned off still gets a container that
+    // compiles. MediaDownloader sets max_redirects to 0 and follows redirects itself, so
+    // NoPrivateNetworkHttpClient is not here to re-check hops: it is here because every hop
+    // arrives as its own request() and gets checked on its own resolved address.
+    $services->set('sulu_mcp.media_upload.http_client', NoPrivateNetworkHttpClient::class)
+        ->arg('$client', inline_service(HttpClientInterface::class)->factory([HttpClient::class, 'create']));
+
+    $services->set(MediaFileNamer::class);
+
+    // The download budget is sulu_media's own upload limit: fetching more than the project
+    // is willing to store would only be refused by FileValidator a moment later.
+    $services->set(MediaDownloader::class)
+        ->arg('$httpClient', new Reference('sulu_mcp.media_upload.http_client'))
+        ->arg('$maxFilesizeInMegabytes', '%sulu_media.upload.max_filesize%')
+        ->arg('$allowedHosts', '%sulu_mcp.media_upload.allowed_hosts%');
+
+    $services->set(MediaUploadTool::class) // gated by dangerous_tools.media_upload
+        ->arg('$collectionRepository', new Reference('sulu_media.collection_repository'))
+        // UploadFileSubscriber only inspects files that arrive on a request, so the same
+        // inspectors are handed to the tool for the files it assembles itself.
+        ->arg('$fileInspectors', tagged_iterator('sulu_media.file_inspector'));
 
     // Snippet tools
     $services->set(SnippetGetTool::class);

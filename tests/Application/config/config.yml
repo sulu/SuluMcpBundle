@@ -26,6 +26,7 @@ sulu_mcp:
         delete: true
         publish: true
         block_remove: true
+        media_upload: true
 
 mcp:
     servers:
