@@ -20,7 +20,6 @@ use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\SuluMcpBundle;
 use Sulu\Mcp\UserInterface\Mcp\Tool\PingTool;
 use Sulu\Product\Infrastructure\Symfony\HttpKernel\SuluProductBundle;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\Yaml\Yaml;
 
 /**
  * SuluProductBundle is optional, and both branches are asserted from the bundle list
@@ -29,14 +28,12 @@ use Symfony\Component\Yaml\Yaml;
 #[CoversClass(SuluMcpBundle::class)]
 final class SuluMcpBundleProductGatingTest extends TestCase
 {
-    private const ALSO_DECLARED_IN_SERVICES_YAML = [ContentTypeResolver::class];
-
     public function testProductServicesAreNotRegisteredWithoutTheProductBundle(): void
     {
         $builder = $this->loadExtensionWithBundles([]);
 
         $services = $this->productServiceIds();
-        self::assertNotEmpty($services, 'services_product.yaml yielded no service ids, so the assertions below would pass vacuously.');
+        self::assertNotEmpty($services, 'The product configuration yielded no service ids, so the assertions below would pass vacuously.');
 
         foreach ($services as $id) {
             self::assertFalse(
@@ -59,21 +56,23 @@ final class SuluMcpBundleProductGatingTest extends TestCase
     }
 
     /**
+     * The service ids the product configuration adds, taken as the difference between the two
+     * containers rather than read from the configuration file, so that this stays true whatever
+     * shape the configuration takes.
+     *
      * @return list<string>
      */
     private function productServiceIds(): array
     {
-        /** @var array{services?: array<string, mixed>} $config */
-        $config = Yaml::parseFile(\dirname(__DIR__, 5) . '/config/services_product.yaml');
+        $withoutProductBundle = $this->loadExtensionWithBundles([]);
+        $withProductBundle = $this->loadExtensionWithBundles(['SuluProductBundle' => SuluProductBundle::class]);
 
-        $ids = [];
-        foreach (\array_keys($config['services'] ?? []) as $id) {
-            if (\str_starts_with($id, '_') || \in_array($id, self::ALSO_DECLARED_IN_SERVICES_YAML, true)) {
-                continue;
-            }
+        $ids = \array_values(\array_diff(
+            \array_keys($withProductBundle->getDefinitions()),
+            \array_keys($withoutProductBundle->getDefinitions()),
+        ));
 
-            $ids[] = $id;
-        }
+        \sort($ids);
 
         return $ids;
     }

@@ -37,7 +37,7 @@ class SuluMcpBundle extends AbstractBundle
 {
     /**
      * Name of the server prepended into symfony/mcp-bundle. Service ids are derived from it
-     * (`mcp.server.<name>.registry`), so config/services.yaml hardcodes the same value.
+     * (`mcp.server.<name>.registry`), so config/services.php hardcodes the same value.
      */
     public const MCP_SERVER_NAME = 'sulu';
 
@@ -153,12 +153,12 @@ class SuluMcpBundle extends AbstractBundle
             DangerousToolsPass::resolveDisabledToolNames($config['dangerous_tools']),
         );
 
-        $container->import(\dirname(__DIR__, 4) . '/config/services.yaml');
+        $container->import(\dirname(__DIR__, 4) . '/config/services.php');
 
         // Tools reach the registry only as mcp.tool-tagged services, so skipping the import
         // is all it takes to keep them out of an installation without SuluProductBundle.
         if (self::isProductBundleLoaded($builder)) {
-            $container->import(\dirname(__DIR__, 4) . '/config/services_product.yaml');
+            $container->import(\dirname(__DIR__, 4) . '/config/services_product.php');
         }
     }
 
