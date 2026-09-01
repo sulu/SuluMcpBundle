@@ -183,19 +183,21 @@ class ArticleUpdateTool
                 if ($validationError = ArticleRouteValidator::validate($normalizedContent, required: $createsLocale)) {
                     return $validationError;
                 }
-
-                if ($routeFormError = ArticleRouteValidator::assertFormMatchesTemplate(
-                    $normalizedContent,
-                    $this->articleRouteTypeResolver->resolve($effectiveTemplate),
-                )) {
-                    return $routeFormError;
-                }
                 $suluContent = ArticleRouteValidator::normalizeForSulu($normalizedContent);
                 if ($blockError = $this->blockDataValidator->validateContentTree($suluContent, 'article', $effectiveTemplate)) {
                     return $blockError;
                 }
                 $suluContent = $this->assignBlockIds($suluContent, $this->blockIdGenerator);
                 $data = \array_merge($data, $suluContent);
+            }
+
+            // After the merge, so a template change that keeps the previous routing is
+            // judged on what will actually be dispatched.
+            if ($routeFormError = ArticleRouteValidator::assertFormMatchesTemplate(
+                $data['url'] ?? null,
+                $this->articleRouteTypeResolver->resolve($effectiveTemplate),
+            )) {
+                return $routeFormError;
             }
 
             $data = $this->contentMetadataMapper->applyExcerpt($data, $excerpt, $locale);

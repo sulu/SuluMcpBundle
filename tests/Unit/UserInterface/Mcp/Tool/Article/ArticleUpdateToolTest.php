@@ -123,6 +123,47 @@ final class ArticleUpdateToolTest extends TestCase
         return $form;
     }
 
+    public function testUpdateArticleRejectsATemplateSwitchThatLeavesIncompatibleRouting(): void
+    {
+        $this->formMetadataProvider->set('article', $this->makeTypedFormMeta('page-tree-blog', 'url', 'page_tree_route'));
+
+        $article = new Article('uuid-1');
+        $this->articleRepository->getOneBy(Argument::cetera())->willReturn($article);
+
+        $dimensionContent = new ArticleDimensionContent(new Article());
+        $dimensionContent->setLocale('en');
+        $dimensionContent->setTemplateKey('simple');
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        // The article currently routes through a simple route, and nothing replaces it.
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
+            'title' => 'Existing',
+            'url' => '/existing',
+        ]);
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updateArticle('uuid-1', 'en', template: 'page-tree-blog');
+
+        $this->assertStringContainsString('routes through the page tree', $result['error'] ?? '');
+    }
+
+    /**
+     * A TypedFormMetadata whose $templateKey form declares one field of $type.
+     */
+    private function makeTypedFormMeta(string $templateKey, string $fieldName, string $type): TypedFormMetadata
+    {
+        $field = new FieldMetadata($fieldName);
+        $field->setType($type);
+
+        $form = new FormMetadata();
+        $form->addItem($field);
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm($templateKey, $form);
+
+        return $typed;
+    }
+
     public function testUpdateArticleReadsCurrentStateMergesAndDispatches(): void
     {
         $currentArticle = new Article('uuid-1');

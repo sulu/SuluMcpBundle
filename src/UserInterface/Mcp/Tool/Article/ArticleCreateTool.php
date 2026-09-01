@@ -95,14 +95,14 @@ class ArticleCreateTool
                 return $validationError;
             }
 
+            $suluContent = ArticleRouteValidator::normalizeForSulu($normalizedContent);
+
             if ($routeFormError = ArticleRouteValidator::assertFormMatchesTemplate(
-                $normalizedContent,
+                $suluContent['url'] ?? null,
                 $this->articleRouteTypeResolver->resolve($template),
             )) {
                 return $routeFormError;
             }
-
-            $suluContent = ArticleRouteValidator::normalizeForSulu($normalizedContent);
 
             if ($blockError = $this->blockDataValidator->validateContentTree($suluContent, 'article', $template)) {
                 return $blockError;
