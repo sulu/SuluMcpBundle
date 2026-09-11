@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Content;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
@@ -59,6 +60,7 @@ class ContentDeleteTool
         name: 'sulu_content_delete',
         title: 'Delete Content',
         description: 'Permanently delete a page, article, or snippet by UUID. Set "type" to "page", "article", "snippet", or "product" when SuluProductBundle is installed. Removes both draft and published versions — this cannot be undone. For pages with children, set forceRemoveChildren=true to delete the whole subtree (ignored for articles/snippets). Deleting a product of type "product_with_variants" also deletes every variant under it — there is no separate confirmation flag for that, so check sulu_product_variant_list first. Snippets may be referenced by other content; deleting one removes that shared content everywhere it is used.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
         requirements: [

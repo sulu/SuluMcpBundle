@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -39,6 +40,7 @@ class PingTool
         name: 'sulu_ping',
         title: 'Ping Server',
         description: 'Verify MCP connection and authentication. Returns server info, the authenticated user, and available webspaces.',
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     public function ping(): array
     {

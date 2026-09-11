@@ -17,6 +17,7 @@ use CmsIg\Seal\EngineInterface;
 use CmsIg\Seal\Search\Condition\Condition;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -45,6 +46,7 @@ class ContentSearchTool
         name: 'sulu_content_search',
         title: 'Search Content',
         description: 'Search published website content (articles and pages) by keyword. Searches both titles and full content text. Returns matching items with their UUID and resource type — use resourceKey to pick the right get tool (sulu_article_get or sulu_page_get) and resourceId as the UUID. Filter by type ("page" or "article") to restrict results to one content type. Filter by webspace to scope results to one site. Only published content is searchable.',
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('#context#', PermissionTypes::VIEW)],

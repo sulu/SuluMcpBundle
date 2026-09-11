@@ -16,6 +16,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Page;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Mcp\Exception\ToolCallException;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\AdminBundle\Application\BlockIdGenerator\BlockIdGeneratorInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
@@ -74,6 +75,7 @@ class PageCreateTool
         name: 'sulu_page_create',
         title: 'Create Page',
         description: 'Create a new page in a webspace. Workflow: 1) Call sulu_get_context to discover templates and their fields. 2) Call sulu_page_tree to find the parentId (UUID of the parent page under which this page should be created). 3) Choose a template key (e.g. "default") and pass its field values in "content" as a flat object: content={"article": "<p>HTML here</p>"}. Content may also include a full "blocks" tree (nested blocks allowed), e.g. content={"blocks": [{"type": "text", "content": "<p>…</p>"}, {"type": "section", "blocks": [{"type": "text", "content": "<p>…</p>"}]}]} — block _ids are assigned automatically and unknown block fields are rejected before saving. The "title" is a separate parameter — do not repeat it in content. The "url" is auto-generated from the title if omitted. The page is created as a draft — call sulu_content_publish (type: page) afterward to make it live.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     )]
     #[RequiresPermission(
         requirements: [
