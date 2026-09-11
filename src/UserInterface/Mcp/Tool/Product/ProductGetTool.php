@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Product;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
@@ -44,6 +45,7 @@ class ProductGetTool
         name: 'sulu_product_get',
         title: 'Get Product',
         description: 'Get a product by UUID, including its attribute values. Returns "productFamily" as the family UUID and "attributes" as a map keyed by the integer attribute id (e.g. {"12": "red"}) — resolve those ids to readable keys with sulu_attribute_list. Number attributes that carry a measurement unit also return a "<id>_unit" entry. Works for plain products, variant parents, and variants alike; use sulu_product_variant_list to see a parent\'s variants.',
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(requirements: [
         new PermissionRequirement(ProductAdmin::SECURITY_CONTEXT, PermissionTypes::VIEW),

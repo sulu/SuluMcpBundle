@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\TagBundle\Tag\TagInterface;
 use Sulu\Bundle\TagBundle\Tag\TagManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
@@ -39,6 +40,7 @@ class TagCreateTool
         name: 'sulu_tag_create',
         title: 'Create Tag',
         description: 'Create a new tag. Tags are flat labels used to classify content (pages, articles, media). Pass just the tag name.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     )]
     #[RequiresPermission(requirements: [
         new PermissionRequirement('sulu.settings.tags', PermissionTypes::EDIT),

@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Page;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
@@ -58,6 +59,7 @@ class PageMoveTool
         name: 'sulu_page_move',
         title: 'Move Page',
         description: 'Move a page to a different parent inside the same webspace. Use sulu_page_tree to find both the page uuid and the targetParentId. The whole subtree moves with the page. This rewrites the resource locator of the page AND of every descendant: the old addresses keep working as redirects, but they change for real, so tell the user how many pages are affected before doing this at scale — the "affectedDescendants" count in the response is that number. The change reaches the live site as soon as the move is stored; no sulu_content_publish call is needed for the new addresses (page content edits still need one). A move is not per language — one call moves the page in every language it exists in; the "locale" argument only records which translation the activity log entry refers to.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.webspaces.#context#', PermissionTypes::EDIT)],

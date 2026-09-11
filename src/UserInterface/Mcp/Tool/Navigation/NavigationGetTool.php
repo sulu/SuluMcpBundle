@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Navigation;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -39,6 +40,7 @@ class NavigationGetTool
         name: 'sulu_navigation_get',
         title: 'Get Navigation',
         description: 'Get the published navigation tree of a webspace for one navigation context. Returns nodes with title, url, targetType, and nested "children". Only published (live) pages that are assigned to the given navigation context appear — a page missing here may simply be unpublished or not assigned to the context. Call sulu_get_context (or read the sulu_webspaces resource) to discover the navigation contexts each webspace declares (commonly "main" or "footer"); the contexts themselves are defined in the webspace XML under <navigation><contexts>. Use sulu_page_tree instead when you need the full page hierarchy including drafts.',
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.webspaces.#context#', PermissionTypes::VIEW)],

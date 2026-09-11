@@ -16,6 +16,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Article;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Mcp\Exception\ToolCallException;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Article\Application\Message\ModifyArticleMessage;
 use Sulu\Article\Domain\Model\ArticleInterface;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
@@ -81,6 +82,7 @@ class ArticleUpdateTool
         name: 'sulu_article_update',
         title: 'Update Article',
         description: 'Update an existing article. Reads the current article state, merges your changes, and writes back -- so you only need to pass the fields you want to change. Pass template-specific field values in "content" as a flat object: content={"article": "<p>Updated HTML</p>"}. Content may also include a full "blocks" tree (nested blocks allowed) to replace the block content in one call — block _ids are assigned automatically and unknown block fields are rejected before saving. To change routing, pass either content={"url": "/path"} (simple route templates) or content={"page": {"path": "/blog", "uuid": "<parent-uuid>", "suffix": "slug"}} (page_tree_route templates) -- the wrong form is rejected here instead of failing inside Sulu. You can update title and template as separate parameters. Calling this with a locale the article has no content in yet creates that translation -- pass title, template and routing data in content in that case, and the result carries "created_locale": true. The article stays in draft state after updating -- call sulu_content_publish (type: article) to make changes live.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.article.articles', PermissionTypes::EDIT)],

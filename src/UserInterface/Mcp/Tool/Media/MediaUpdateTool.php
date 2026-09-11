@@ -16,6 +16,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Media;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Mcp\Exception\ToolCallException;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\MediaBundle\Api\Media;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Entity\MediaInterface;
@@ -51,6 +52,7 @@ class MediaUpdateTool
         name: 'sulu_media_update',
         title: 'Update Media',
         description: 'Update media metadata (title, description, copyright, credits, origin). Does not change the file itself — only metadata fields. Pass only the fields you want to change; the result echoes title, description and copyright as they were stored. An empty or "0" title is refused: Sulu drops it and the title would stay as it is. Calling this with a locale the media has no metadata in yet creates that translation, copying the title from the existing one unless you pass your own, and the result carries "created_locale": true.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.media.collections', PermissionTypes::EDIT)],

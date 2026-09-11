@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Product;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\AdminBundle\Application\BlockIdGenerator\BlockIdGeneratorInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
@@ -70,6 +71,7 @@ class ProductUpdateTool
         name: 'sulu_product_update',
         title: 'Update Product',
         description: 'Update an existing product. Reads the current state, merges your changes and writes back, so pass only what should change. "attributes" is a map keyed by the INTEGER attribute id (sulu_attribute_list) and is merged into the existing values — pass null for an id to clear it. Changing "productFamily" changes which attributes the product may carry. This tool does not change a product\'s type or parent: use sulu_product_variant_update for variants. The product stays a draft — call sulu_content_publish (type: product) to make changes live.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(requirements: [
         new PermissionRequirement(ProductAdmin::SECURITY_CONTEXT, PermissionTypes::EDIT),

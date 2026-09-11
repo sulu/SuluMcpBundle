@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
@@ -42,6 +43,7 @@ class CategoryCreateTool
         name: 'sulu_category_create',
         title: 'Create Category',
         description: 'Create a new category. Categories are hierarchical (tree structure) used to classify content. Pass locale, name, optional key (slug), and optional parentId to nest under an existing category.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     )]
     #[RequiresPermission(requirements: [
         new PermissionRequirement('sulu.settings.categories', PermissionTypes::VIEW),

@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Snippet;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
@@ -43,6 +44,7 @@ class SnippetGetTool
         name: 'sulu_snippet_get',
         title: 'Get Snippet',
         description: 'Get a snippet by UUID. Snippets are reusable content blocks (e.g., contact info, footer content) shared across pages. Returns full content data. Snippets are global — not scoped to a webspace.',
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(requirements: [
         new PermissionRequirement('sulu.snippet.snippets', PermissionTypes::VIEW),

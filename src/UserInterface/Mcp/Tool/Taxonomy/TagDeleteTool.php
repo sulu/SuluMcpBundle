@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\TagBundle\Tag\TagManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -36,6 +37,7 @@ class TagDeleteTool
         name: 'sulu_tag_delete',
         title: 'Delete Tag',
         description: 'Delete a tag by ID. This removes the tag but does not affect content that was tagged with it.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(requirements: [
         new PermissionRequirement('sulu.settings.tags', PermissionTypes::EDIT),

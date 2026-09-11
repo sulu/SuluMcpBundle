@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Page;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
@@ -49,6 +50,7 @@ class PageGetTool
         name: 'sulu_page_get',
         title: 'Get Page',
         description: 'Get a single page by its UUID. Returns draft metadata, template fields, block summaries (index, _id, type, title), and SEO/excerpt data. Use sulu_block_list with type="page" to fetch full block content. Always call this before sulu_page_update.',
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.webspaces.#context#', PermissionTypes::VIEW)],

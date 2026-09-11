@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Contact;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\ContactBundle\Entity\AccountRepositoryInterface;
 use Sulu\Bundle\ContactBundle\Entity\ContactRepositoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
@@ -38,6 +39,7 @@ class ContactListTool
         name: 'sulu_contact_list',
         title: 'List Contacts',
         description: 'List contacts or accounts. Set type="contact" for people or type="account" for organizations. Returns basic info (id, name). Contacts and accounts are used for author attribution and organizational references in content.',
+        annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('#context#', PermissionTypes::VIEW)],
