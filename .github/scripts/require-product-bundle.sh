@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
 
-# Adds sulu/product-bundle to composer.json for the "product bundle" workflow.
-#
-# The bundle has no release and requires the unreleased sulu/sulu 3.1. Composer honours
-# the "@dev" of its constraint only in the root package, so both dev branches are
-# required here and not in the committed composer.json. Once sulu/sulu 3.1 and the
-# product bundle are released, this script and the separate workflow can go.
+# Adds sulu/product-bundle and the sulu/sulu 3.1 it requires to composer.json for the
+# "product bundle" workflow. The bundle is optional, so neither is part of the committed
+# composer.json.
 
 set -eu
 

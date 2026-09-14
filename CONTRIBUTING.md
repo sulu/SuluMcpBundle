@@ -56,14 +56,12 @@ Never skip `composer fix` — the license header and code style are enforced by
 ## The optional product bundle
 
 `sulu/product-bundle` is a suggestion, not a dependency, and the default dependency set
-does not install it: it has no release and requires the unreleased `sulu/sulu` 3.1, and
-Composer honours dev stability flags only in the root package. So `composer lint` leaves
-PHPStan out — `src/` references the
+does not install it. So `composer lint` leaves PHPStan out — `src/` references the
 bundle's classes, and analysing without them reports each of them as unknown — and
 `composer test` skips the tests carrying `#[Group('product')]`.
 
-To work on the `sulu_product_*` tools, put the bundle in place the way CI does and use
-the commands that cover it:
+To work on the `sulu_product_*` tools, put the bundle and the `sulu/sulu` 3.1 it requires
+in place the way CI does and use the commands that cover it:
 
 ```bash
 .github/scripts/require-product-bundle.sh   # edits composer.json, do not commit it
@@ -72,8 +70,7 @@ composer lint-with-product   # composer lint + phpstan
 composer test-with-product   # phpunit, product tests included
 ```
 
-The `Test application (product bundle)` workflow runs both on every pull request. Once
-`sulu/sulu` 3.1 and the product bundle are released, the script and the split can go.
+The `Test application (product bundle)` workflow runs both on every pull request.
 
 Useful links:
 
