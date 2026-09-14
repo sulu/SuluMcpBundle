@@ -431,8 +431,8 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
             'locale' => self::LOCALE,
             'name' => 'Shirts',
             'attributes' => [
-                $shared->getId() => ['enabled' => true, 'required' => false, 'variantSpecific' => false],
-                $variantSpecific->getId() => ['enabled' => true, 'required' => false, 'variantSpecific' => true],
+                ['id' => (string) $shared->getUuid(), 'required' => false, 'variantSpecific' => false],
+                ['id' => (string) $variantSpecific->getUuid(), 'required' => false, 'variantSpecific' => true],
             ],
         ]));
         \assert($family instanceof ProductFamilyInterface);

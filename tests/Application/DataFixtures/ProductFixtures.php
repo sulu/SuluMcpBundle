@@ -81,8 +81,8 @@ class ProductFixtures extends Fixture
             'name' => 'Shirts',
             'description' => 'Shirts, sized and coloured.',
             'attributes' => [
-                $material->getId() => ['enabled' => true, 'required' => false, 'variantSpecific' => false],
-                $colour->getId() => ['enabled' => true, 'required' => true, 'variantSpecific' => true],
+                ['id' => (string) $material->getUuid(), 'required' => false, 'variantSpecific' => false],
+                ['id' => (string) $colour->getUuid(), 'required' => true, 'variantSpecific' => true],
             ],
         ]));
 

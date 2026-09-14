@@ -2,17 +2,12 @@
 
 # Adds sulu/product-bundle to composer.json for the "product bundle" workflow.
 #
-# The bundle requires an unreleased sulu/sulu from a fork. Composer honours a
-# "repositories" entry and an inline alias only in the root package, so a consumer has
-# to restate both - which is why they live here and not in the committed composer.json.
-# Once sulu/sulu#9046 is released and sulu/product-bundle requires a tag again, this
-# script shrinks to the single "composer require" at the bottom.
+# The bundle has no release and requires the unreleased sulu/sulu 3.1. Composer honours
+# the "@dev" of its constraint only in the root package, so both dev branches are
+# required here and not in the committed composer.json. Once sulu/sulu 3.1 and the
+# product bundle are released, this script and the separate workflow can go.
 
 set -eu
 
-composer config repositories.sulu-fork '{"type":"vcs","url":"https://github.com/Prokyonn/sulu.git","no-api":true,"canonical":false}'
-composer config minimum-stability dev
-composer config prefer-stable true
-
-composer require --no-update "sulu/sulu:dev-feature/content-resolver-path as 3.0.9"
+composer require --no-update "sulu/sulu:3.1.x-dev"
 composer require --no-update --dev "sulu/product-bundle:3.0.x-dev"
