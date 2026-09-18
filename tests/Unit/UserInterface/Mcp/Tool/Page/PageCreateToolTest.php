@@ -225,6 +225,54 @@ final class PageCreateToolTest extends TestCase
         $this->assertSame(['main', 'footer'], $capturedMessage->getData()['navigationContexts']);
     }
 
+    public function testCreatePageSetsTheLinkData(): void
+    {
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $capturedMessage = null;
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(function(array $args) use ($mockPage, &$capturedMessage) {
+                $capturedMessage = $args[0]->getMessage();
+
+                return $args[0]->with(new HandledStamp($mockPage, 'handler'));
+            });
+
+        $this->contentManager->resolve(Argument::cetera())->willReturn(new PageDimensionContent(new Page()));
+        $this->contentManager->normalize(Argument::cetera())->willReturn([]);
+
+        $this->tool->createPage(
+            'example',
+            'en',
+            'default',
+            'Test',
+            'parent-uuid',
+            linkData: ['provider' => 'page', 'page' => 'target-uuid'],
+        );
+
+        $this->assertInstanceOf(CreatePageMessage::class, $capturedMessage);
+        $this->assertTrue($capturedMessage->getData()['linkOn']);
+        $this->assertSame(['provider' => 'page', 'page' => 'target-uuid'], $capturedMessage->getData()['linkData']);
+    }
+
+    public function testCreatePageRejectsLinkDataWithoutAProvider(): void
+    {
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->createPage(
+            'example',
+            'en',
+            'default',
+            'Test',
+            'parent-uuid',
+            linkData: ['page' => 'target-uuid'],
+        );
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('provider', $result['error']);
+    }
+
     public function testCreatePageRejectsAnUndeclaredNavigationContext(): void
     {
         $webspace = new Webspace();

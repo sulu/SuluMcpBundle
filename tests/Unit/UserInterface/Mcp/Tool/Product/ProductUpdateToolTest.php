@@ -85,6 +85,28 @@ final class ProductUpdateToolTest extends TestCase
         $this->assertSame(['10' => 'blue', '11' => 'L'], $message->getData()['attributes']);
     }
 
+    public function testUpdateProductSetsTheShadow(): void
+    {
+        $captured = $this->givenProduct(['title' => 'Shirt']);
+
+        $this->tool->updateProduct('uuid-1', 'en', shadowOn: true, shadowLocale: 'de');
+
+        $message = $captured();
+        $this->assertInstanceOf(ModifyProductMessage::class, $message);
+        $this->assertTrue($message->getData()['shadowOn']);
+        $this->assertSame('de', $message->getData()['shadowLocale']);
+    }
+
+    public function testUpdateProductRejectsShadowingALocaleThatIsAlreadyMirrored(): void
+    {
+        $this->givenProduct(['title' => 'Shirt', 'shadowLocales' => ['fr' => 'en']]);
+
+        $result = $this->tool->updateProduct('uuid-1', 'en', shadowOn: true, shadowLocale: 'de');
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('mirrored', $result['error']);
+    }
+
     public function testUpdateProductOnlyChangesWhatWasPassed(): void
     {
         $captured = $this->givenProduct(['title' => 'Shirt', 'code' => 'SHIRT-1']);

@@ -24,6 +24,7 @@ use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
+use Sulu\Mcp\Application\Content\ShadowTrait;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
@@ -44,6 +45,7 @@ class ProductUpdateTool
     use HandleTrait;
     use BlockDataNormalizerTrait;
     use ContentNormalizerTrait;
+    use ShadowTrait;
 
     public function __construct(
         MessageBusInterface $messageBus,
@@ -94,6 +96,10 @@ class ProductUpdateTool
         ?array $excerpt = null,
         #[Schema(type: 'object', description: 'Optional SEO fields. Call sulu_get_context for the exact field list.', additionalProperties: true)]
         ?array $seo = null,
+        #[Schema(type: 'boolean', description: 'Optional "Shadow" setting: when true this locale serves the content of "shadowLocale" instead of its own. Omit to leave it unchanged, pass false to remove the shadow. Cannot be combined with a link.')]
+        ?bool $shadowOn = null,
+        #[Schema(type: 'string', description: 'The locale mirrored when shadowOn is true, e.g. "en". The eligible locales are returned as "shadowLocales" by the matching get tool.')]
+        ?string $shadowLocale = null,
     ): array {
         try {
             $product = $this->productRepository->getOneBy(
@@ -165,6 +171,12 @@ class ProductUpdateTool
 
             // Identity-level: only the variant tools may set these.
             unset($data['type'], $data['parent']);
+
+            if ($validationError = $this->validateShadow($shadowOn, $shadowLocale, $locale, $currentData)) {
+                return $validationError;
+            }
+
+            $data = $this->applyShadow($data, $shadowOn, $shadowLocale);
 
             /** @var array{locale: string} $data */
             $data = $this->stringifyKeys($data);

@@ -31,7 +31,6 @@ class SnippetListTool
         'published', 'publishedState', 'workflowPlace',
         'authored', 'author', 'created', 'changed',
         'availableLocales', 'contentLocales', 'ghostLocale',
-        'shadowOn', 'shadowLocale',
         'mainWebspace',
     ];
 
