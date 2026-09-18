@@ -243,6 +243,96 @@ final class PageUpdateToolTest extends TestCase
         $this->assertSame(['footer'], $capturedEnvelope->getMessage()->getData()['navigationContexts']);
     }
 
+    public function testUpdatePageSetsTheLinkData(): void
+    {
+        $this->setUpReadModifyWrite('uuid-1', 'en', ['template' => 'default', 'title' => 'Existing']);
+
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$capturedEnvelope): bool {
+            $capturedEnvelope = $envelope;
+
+            return true;
+        }), Argument::cetera())->shouldBeCalledOnce()
+            ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
+
+        $this->tool->updatePage('uuid-1', 'en', linkData: ['provider' => 'external', 'href' => 'https://example.com']);
+
+        $data = $capturedEnvelope->getMessage()->getData();
+        $this->assertTrue($data['linkOn']);
+        $this->assertSame(['provider' => 'external', 'href' => 'https://example.com'], $data['linkData']);
+    }
+
+    public function testUpdatePageClearsTheLinkDataWithAnEmptyObject(): void
+    {
+        $this->setUpReadModifyWrite('uuid-1', 'en', ['template' => 'default', 'title' => 'Existing']);
+
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$capturedEnvelope): bool {
+            $capturedEnvelope = $envelope;
+
+            return true;
+        }), Argument::cetera())->shouldBeCalledOnce()
+            ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
+
+        $this->tool->updatePage('uuid-1', 'en', linkData: []);
+
+        $data = $capturedEnvelope->getMessage()->getData();
+        $this->assertFalse($data['linkOn']);
+        $this->assertNull($data['linkData']);
+    }
+
+    public function testUpdatePageLeavesTheLinkDataUntouchedWhenOmitted(): void
+    {
+        $this->setUpReadModifyWrite('uuid-1', 'en', ['template' => 'default', 'title' => 'Existing']);
+
+        $mockPage = new Page('uuid-1');
+        $mockPage->setWebspaceKey('example');
+
+        $capturedEnvelope = null;
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$capturedEnvelope): bool {
+            $capturedEnvelope = $envelope;
+
+            return true;
+        }), Argument::cetera())->shouldBeCalledOnce()
+            ->willReturn(new Envelope($mockPage, [new HandledStamp($mockPage, 'handler')]));
+
+        $this->tool->updatePage('uuid-1', 'en');
+
+        $data = $capturedEnvelope->getMessage()->getData();
+        $this->assertArrayNotHasKey('linkOn', $data);
+        $this->assertArrayNotHasKey('linkData', $data);
+    }
+
+    public function testUpdatePageRejectsLinkDataWithoutAProvider(): void
+    {
+        $this->setUpReadModifyWrite('uuid-1', 'en', ['template' => 'default', 'title' => 'Existing']);
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updatePage('uuid-1', 'en', linkData: ['href' => 'https://example.com']);
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('provider', $result['error']);
+    }
+
+    public function testUpdatePageRejectsALinkOnAShadowedPage(): void
+    {
+        $this->setUpReadModifyWrite('uuid-1', 'en', ['template' => 'default', 'title' => 'Existing', 'shadowOn' => true]);
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->updatePage('uuid-1', 'en', linkData: ['provider' => 'external', 'href' => 'https://example.com']);
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('shadow', $result['error']);
+    }
+
     public function testUpdatePageLeavesTheNavigationContextsUntouchedWhenOmitted(): void
     {
         $this->setUpReadModifyWrite('uuid-1', 'en', ['template' => 'default', 'title' => 'Existing']);

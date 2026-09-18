@@ -25,6 +25,7 @@ use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
+use Sulu\Mcp\Application\Content\LinkDataTrait;
 use Sulu\Mcp\Application\Content\NavigationContextTrait;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
@@ -46,6 +47,7 @@ class PageCreateTool
 {
     use BlockDataNormalizerTrait;
     use HandleTrait;
+    use LinkDataTrait;
     use NavigationContextTrait;
 
     public function __construct(
@@ -67,6 +69,7 @@ class PageCreateTool
      * @param array<string, mixed>|null $excerpt
      * @param array<string, mixed>|null $seo
      * @param list<string>|null $navigationContexts
+     * @param array<string, mixed>|null $linkData
      *
      * @return array<string, mixed>
      */
@@ -97,6 +100,8 @@ class PageCreateTool
         ?array $seo = null,
         #[Schema(type: 'array', description: 'Optional navigation context keys to assign the page to, e.g. ["main", "footer"]. Call sulu_get_context for the keys declared by the webspace. Navigation contexts exist on pages only.', items: ['type' => 'string'])]
         ?array $navigationContexts = null,
+        #[Schema(type: 'object', description: 'Optional "Link" setting, which turns the page into a redirect instead of showing its own content. Needs a "provider" key naming the kind of target, e.g. {"provider": "page", "page": "<uuid>"} for internal content or {"provider": "external", "href": "https://example.com"}. Links exist on pages only.', additionalProperties: true)]
+        ?array $linkData = null,
     ): array {
         try {
             // An unchecked parentId could attach the page under a parent in a different
@@ -145,6 +150,13 @@ class PageCreateTool
                 }
             }
 
+            // a page being created has no shadow yet, so only the provider is checked here
+            if (null !== $linkData) {
+                if ($validationError = $this->validateLinkData($linkData, [])) {
+                    return $validationError;
+                }
+            }
+
             $data = $this->contentMetadataMapper->applyExcerpt($data, $excerpt, $locale);
             if (isset($data['error'])) {
                 return $data;
@@ -164,6 +176,7 @@ class PageCreateTool
             } else {
                 unset($data['navigationContexts']);
             }
+            $data = $this->applyLinkData($data, $linkData);
 
             $message = new CreatePageMessage($webspace, $parentId, $data);
 

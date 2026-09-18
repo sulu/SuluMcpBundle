@@ -27,6 +27,7 @@ use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
+use Sulu\Mcp\Application\Content\LinkDataTrait;
 use Sulu\Mcp\Application\Content\NavigationContextTrait;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -48,6 +49,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 class PageUpdateTool
 {
     use BlockDataNormalizerTrait;
+    use LinkDataTrait;
     use ContentLocaleTrait;
     use ContentNormalizerTrait;
     use HandleTrait;
@@ -72,6 +74,7 @@ class PageUpdateTool
      * @param array<string, mixed>|null $excerpt
      * @param array<string, mixed>|null $seo
      * @param list<string>|null $navigationContexts
+     * @param array<string, mixed>|null $linkData
      *
      * @return array<string, mixed>
      */
@@ -99,6 +102,8 @@ class PageUpdateTool
         ?array $seo = null,
         #[Schema(type: 'array', description: 'Optional navigation context keys to assign the page to, e.g. ["main", "footer"]. Replaces the current assignment; omit to leave it unchanged, pass [] to clear it. Call sulu_get_context for the keys declared by the webspace. Navigation contexts exist on pages only.', items: ['type' => 'string'])]
         ?array $navigationContexts = null,
+        #[Schema(type: 'object', description: 'Optional "Link" setting, which turns the page into a redirect instead of showing its own content. Needs a "provider" key naming the kind of target, e.g. {"provider": "page", "page": "<uuid>"} for internal content or {"provider": "external", "href": "https://example.com"}. Omit to leave it unchanged, pass {} to remove the redirect. Cannot be combined with a shadow locale. Links exist on pages only.', additionalProperties: true)]
+        ?array $linkData = null,
     ): array {
         try {
             // Read current page state to get template and existing content.
@@ -176,6 +181,12 @@ class PageUpdateTool
                 }
             }
 
+            if (null !== $linkData) {
+                if ($validationError = $this->validateLinkData($linkData, $currentData)) {
+                    return $validationError;
+                }
+            }
+
             $data = $this->contentMetadataMapper->applyExcerpt($data, $excerpt, $locale);
             if (isset($data['error'])) {
                 return $data;
@@ -200,6 +211,7 @@ class PageUpdateTool
             } else {
                 unset($data['navigationContexts']);
             }
+            $data = $this->applyLinkData($data, $linkData);
 
             $message = new ModifyPageMessage(['uuid' => $uuid], $data);
 
