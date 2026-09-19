@@ -54,7 +54,6 @@ final class ToolAnnotationsGoldenTest extends TestCase
         'sulu_attribute_list' => [true, null, null, false],
         'sulu_category_list' => [true, null, null, false],
         'sulu_tag_list' => [true, null, null, false],
-        'sulu_preview_link_generate' => [true, null, null, false],
         'sulu_article_list' => [true, null, null, false],
         'sulu_article_get' => [true, null, null, false],
         'sulu_block_list' => [true, null, null, false],
@@ -69,6 +68,9 @@ final class ToolAnnotationsGoldenTest extends TestCase
         'sulu_article_create' => [false, false, false, false],
         'sulu_tag_create' => [false, false, false, false],
         'sulu_category_create' => [false, false, false, false],
+        // Persists a new token-protected preview link on every call, granting
+        // unauthenticated access to draft content -- mutating, not read-only.
+        'sulu_preview_link_generate' => [false, false, false, false],
 
         // update / move / reorder / delete / publish-state: overwrite existing state
         'sulu_page_move' => [false, true, true, false],
@@ -84,13 +86,16 @@ final class ToolAnnotationsGoldenTest extends TestCase
         'sulu_category_delete' => [false, true, true, false],
         'sulu_preview_link_revoke' => [false, true, true, false],
         'sulu_article_update' => [false, true, true, false],
-        'sulu_block_reorder' => [false, true, true, false],
-        'sulu_block_remove' => [false, true, true, false],
         'sulu_block_update' => [false, true, true, false],
         'sulu_media_update' => [false, true, true, false],
         // Additive like create, but it mutates the parent entity's stored content
         // tree in place, so it is grouped with the other block-mutation tools.
         'sulu_block_add' => [false, true, false, false],
+        // Both accept an index-addressed form (blockIndex / newOrder) where a
+        // repeated call acts on the already-shifted state, not the original one --
+        // never idempotent regardless of which addressing form a given call used.
+        'sulu_block_remove' => [false, true, false, false],
+        'sulu_block_reorder' => [false, true, false, false],
 
         // fetches a model-supplied external URL: open world, additive (not destructive)
         'sulu_media_upload' => [false, false, false, true],
