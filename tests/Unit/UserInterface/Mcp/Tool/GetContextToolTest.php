@@ -35,6 +35,7 @@ use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
@@ -142,6 +143,7 @@ final class GetContextToolTest extends TestCase
             $checker,
             $webspacePermissionResolver,
             new ArticleSecurityContextResolver(TestGroupProvider::singleGroup()),
+            new SnippetSecurityContextResolver(TestGroupProvider::singleGroup()),
             [],
             ['sulu_ping', 'sulu_get_context'],
         );
@@ -315,6 +317,7 @@ final class GetContextToolTest extends TestCase
             $checker,
             $this->webspacePermissionResolver(),
             new ArticleSecurityContextResolver(TestGroupProvider::singleGroup()),
+            new SnippetSecurityContextResolver(TestGroupProvider::singleGroup()),
             [],
             ['sulu_ping', 'sulu_get_context'],
         );

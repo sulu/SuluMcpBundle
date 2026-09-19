@@ -30,6 +30,7 @@ use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
@@ -76,6 +77,7 @@ final class FilteredRegistryTest extends TestCase
             $checker,
             new WebspacePermissionResolver($webspaceManager, $innerChecker),
             new ArticleSecurityContextResolver(TestGroupProvider::singleGroup()),
+            new SnippetSecurityContextResolver(TestGroupProvider::singleGroup()),
             [],
             ['sulu_ping', 'sulu_get_context'],
         );

@@ -20,6 +20,9 @@ use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
+use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetGetTool;
 use Sulu\Snippet\Domain\Exception\SnippetNotFoundException;
 use Sulu\Snippet\Domain\Model\Snippet;
@@ -41,7 +44,12 @@ final class SnippetGetToolTest extends TestCase
     {
         $this->snippetRepository = $this->prophesize(SnippetRepositoryInterface::class);
         $this->contentManager = $this->prophesize(ContentManagerInterface::class);
-        $this->tool = new SnippetGetTool($this->snippetRepository->reveal(), $this->contentManager->reveal());
+        $this->tool = new SnippetGetTool(
+            $this->snippetRepository->reveal(),
+            $this->contentManager->reveal(),
+            FakeToolPermissionChecker::grantingAll(),
+            new SnippetSecurityContextResolver(new TestGroupProvider([])),
+        );
     }
 
     public function testGetSnippetReturnsNormalizedContent(): void

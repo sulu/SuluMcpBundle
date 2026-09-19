@@ -28,10 +28,15 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
+use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\Tests\Unit\Fixture\FixedBlockIdGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetUpdateTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
@@ -93,6 +98,13 @@ final class SnippetUpdateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             $adminLinkGenerator,
+            FakeToolPermissionChecker::grantingAll(),
+            new ContentSecurityContextResolver(
+                new ArticleSecurityContextResolver(new TestGroupProvider([])),
+                new SnippetSecurityContextResolver(new TestGroupProvider([])),
+                $this->contentManager->reveal(),
+            ),
+            new SnippetSecurityContextResolver(new TestGroupProvider([])),
         );
     }
 
@@ -332,6 +344,13 @@ final class SnippetUpdateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new AdminLinkGenerator($router->reveal(), [new SnippetAdminLinkProvider(new TestViewRegistry())]),
+            FakeToolPermissionChecker::grantingAll(),
+            new ContentSecurityContextResolver(
+                new ArticleSecurityContextResolver(new TestGroupProvider([])),
+                new SnippetSecurityContextResolver(new TestGroupProvider([])),
+                $this->contentManager->reveal(),
+            ),
+            new SnippetSecurityContextResolver(new TestGroupProvider([])),
         );
 
         $existingSnippet = new Snippet('uuid-1');

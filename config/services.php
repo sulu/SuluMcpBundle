@@ -49,6 +49,7 @@ use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ContactSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\EntryPoint\OAuthAuthorizeEntryPoint;
 use Sulu\Mcp\Infrastructure\Sulu\Security\EventListener\OAuthSystemStoreListener;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\EventListener\McpExceptionListener;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\EventListener\McpRequestFormatListener;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
@@ -159,6 +160,7 @@ return static function(ContainerConfigurator $container): void {
         ->arg('$contextResolvers', [
             'sulu_mcp.contact_context_resolver' => new Reference('sulu_mcp.contact_context_resolver'),
             'sulu_mcp.article_context_resolver' => new Reference('sulu_mcp.article_context_resolver'),
+            'sulu_mcp.snippet_context_resolver' => new Reference('sulu_mcp.snippet_context_resolver'),
         ])
         ->arg('$allowlist', ['sulu_ping', 'sulu_get_context']);
 
@@ -176,6 +178,10 @@ return static function(ContainerConfigurator $container): void {
     $services->set('sulu_mcp.article_context_resolver', ArticleSecurityContextResolver::class)
         ->arg('$groupProvider', new Reference('sulu_admin.metadata_group_provider'));
     $services->alias(ArticleSecurityContextResolver::class, 'sulu_mcp.article_context_resolver');
+
+    $services->set('sulu_mcp.snippet_context_resolver', SnippetSecurityContextResolver::class)
+        ->arg('$groupProvider', new Reference('sulu_admin.metadata_group_provider'));
+    $services->alias(SnippetSecurityContextResolver::class, 'sulu_mcp.snippet_context_resolver');
     $services->set(ContentSecurityContextResolver::class);
 
     // Fail-closed gate: checks the compile-time permission map before delegating.
@@ -187,6 +193,7 @@ return static function(ContainerConfigurator $container): void {
         ->arg('$contextResolvers', [
             'sulu_mcp.contact_context_resolver' => new Reference('sulu_mcp.contact_context_resolver'),
             'sulu_mcp.article_context_resolver' => new Reference('sulu_mcp.article_context_resolver'),
+            'sulu_mcp.snippet_context_resolver' => new Reference('sulu_mcp.snippet_context_resolver'),
         ])
         ->arg('$allowlist', ['sulu_ping', 'sulu_get_context'])
         ->tag('mcp.request_handler', ['priority' => 100]);
