@@ -46,4 +46,6 @@ which refuses `type="variant"`.
   Shared attributes belong on the parent and are dropped from a variant payload.
 - Required attributes split by level: variant-specific ones are required on the variant, all other
   required ones on the parent.
-- **Publishing the parent publishes its variants too.** Do not publish each variant separately.
+- **Variants are published individually**, with `sulu_content_publish(type="product", uuid, locale)`
+  on each variant's uuid, and only after the parent is published in that locale. Publishing the
+  parent leaves its variants unpublished; unpublishing the parent unpublishes its variants.
