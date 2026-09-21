@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Product;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
+use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
@@ -59,6 +60,7 @@ class ProductVariantCreateTool
         name: 'sulu_product_variant_create',
         title: 'Create Product Variant',
         description: 'Create a variant of an existing product (draft). The parent must be a product of type "product_with_variants" — a plain product or another variant is rejected, because variants cannot be nested. The variant inherits its parent\'s product family, so there is no productFamily parameter. In "attributes" pass only the variant axes: the attributes the family marks variantSpecific (see sulu_product_family_list), keyed by their INTEGER attribute id. Shared attributes belong on the parent and are dropped here; a variant-specific attribute the family marks required must be present. Publishing the PARENT with sulu_content_publish (type: product) also publishes its variants, so there is no need to publish each variant separately.',
+        annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     )]
     #[RequiresPermission(requirements: [
         new PermissionRequirement(ProductAdmin::SECURITY_CONTEXT, PermissionTypes::EDIT),
