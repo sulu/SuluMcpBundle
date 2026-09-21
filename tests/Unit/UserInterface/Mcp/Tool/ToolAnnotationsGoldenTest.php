@@ -71,6 +71,8 @@ final class ToolAnnotationsGoldenTest extends TestCase
         // Persists a new token-protected preview link on every call, granting
         // unauthenticated access to draft content -- mutating, not read-only.
         'sulu_preview_link_generate' => [false, false, false, false],
+        // Only inserts or appends; never overwrites or removes an existing block.
+        'sulu_block_add' => [false, false, false, false],
 
         // update / move / reorder / delete / publish-state: overwrite existing state
         'sulu_page_move' => [false, true, true, false],
@@ -88,9 +90,6 @@ final class ToolAnnotationsGoldenTest extends TestCase
         'sulu_article_update' => [false, true, true, false],
         'sulu_block_update' => [false, true, true, false],
         'sulu_media_update' => [false, true, true, false],
-        // Additive like create, but it mutates the parent entity's stored content
-        // tree in place, so it is grouped with the other block-mutation tools.
-        'sulu_block_add' => [false, true, false, false],
         // Both accept an index-addressed form (blockIndex / newOrder) where a
         // repeated call acts on the already-shifted state, not the original one --
         // never idempotent regardless of which addressing form a given call used.
