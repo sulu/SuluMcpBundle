@@ -107,8 +107,10 @@ class ProductFixtures extends Fixture
             'attributes' => [$material->getId() => 'cotton'],
         ]));
 
+        $variants = [];
         foreach (['red' => 'SHIRT-RED', 'blue' => 'SHIRT-BLUE'] as $option => $code) {
-            $this->dispatch(new CreateProductMessage([
+            /** @var ProductInterface $variant */
+            $variant = $this->dispatch(new CreateProductMessage([
                 'locale' => self::LOCALE,
                 'productFamily' => $familyUuid,
                 'title' => 'Classic T-Shirt ' . \ucfirst($option),
@@ -117,10 +119,14 @@ class ProductFixtures extends Fixture
                 'parent' => $parent->getUuid(),
                 'attributes' => [$colour->getId() => $option],
             ]));
+            $variants[] = $variant;
         }
 
-        // Publishing the parent cascades to its variants.
+        // A variant can only be published once its parent is.
         $this->publish($parent);
+        foreach ($variants as $variant) {
+            $this->publish($variant);
+        }
     }
 
     /**

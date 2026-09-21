@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Tests\Functional;
 
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\Attributes\Group;
+use Sulu\Bundle\SecurityBundle\Entity\User;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Domain\Model\WorkflowInterface;
@@ -53,7 +54,11 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
 {
     private const LOCALE = 'en';
 
+    private const USERNAME = 'product-author';
+
     private MessageBusInterface $messageBus;
+
+    private PermissionFixtureBuilder $permissionFixtureBuilder;
 
     protected function setUp(): void
     {
@@ -66,7 +71,7 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         $this->authenticateWithFullProductPermissions();
     }
 
-    public function testParentAndVariantsAreCreatedAndPublishedTogether(): void
+    public function testVariantsArePublishedIndividuallyOnceTheirParentIsPublished(): void
     {
         [$family, $sharedAttribute, $variantAttribute] = $this->createFamilyWithSharedAndVariantAttribute();
 
@@ -109,19 +114,36 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
 
         $variants = $this->tool(ProductVariantListTool::class)->listProductVariants(self::LOCALE, $parentUuid);
         self::assertSame(2, $variants['total']);
+        $variantUuids = \array_column($variants['variants'], 'uuid');
+
+        $refused = $this->tool(ContentPublishTool::class)->publishContent('product', $variantUuids[0], self::LOCALE);
+        self::assertArrayNotHasKey('success', $refused);
+        self::assertStringContainsString('only be published while its product is published', $refused['error'] ?? '');
 
         $published = $this->tool(ContentPublishTool::class)->publishContent('product', $parentUuid, self::LOCALE);
         self::assertTrue($published['success'] ?? false, \json_encode($published));
 
+        $this->startNextRequest();
+
+        foreach ($variantUuids as $uuid) {
+            self::assertSame(
+                WorkflowInterface::WORKFLOW_PLACE_UNPUBLISHED,
+                $this->workflowPlace($uuid),
+                'Publishing the parent leaves its variants as they are.',
+            );
+        }
+
+        $this->startNextRequest();
+
+        foreach ($variantUuids as $uuid) {
+            $publishedVariant = $this->tool(ContentPublishTool::class)->publishContent('product', $uuid, self::LOCALE);
+            self::assertTrue($publishedVariant['success'] ?? false, \json_encode($publishedVariant));
+        }
+
         $this->entityManager->clear();
 
-        foreach ($variants['variants'] as $variant) {
-            $reloaded = $this->tool(ProductGetTool::class)->getProduct(self::LOCALE, $variant['uuid']);
-            self::assertSame(
-                WorkflowInterface::WORKFLOW_PLACE_PUBLISHED,
-                $reloaded['data']['workflowPlace'] ?? null,
-                'Publishing the parent must cascade to its variants.',
-            );
+        foreach ($variantUuids as $uuid) {
+            self::assertSame(WorkflowInterface::WORKFLOW_PLACE_PUBLISHED, $this->workflowPlace($uuid));
         }
     }
 
@@ -285,17 +307,24 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
     {
         [$parentUuid, $variantUuids] = $this->createPublishedParentWithVariants();
 
+        $this->startNextRequest();
+
+        foreach ($variantUuids as $uuid) {
+            self::assertSame(WorkflowInterface::WORKFLOW_PLACE_PUBLISHED, $this->workflowPlace($uuid));
+        }
+
+        $this->startNextRequest();
+
         $unpublished = $this->tool(ContentUnpublishTool::class)->unpublishContent('product', $parentUuid, self::LOCALE);
         self::assertTrue($unpublished['success'] ?? false, \json_encode($unpublished));
 
         $this->entityManager->clear();
 
         foreach ($variantUuids as $uuid) {
-            $reloaded = $this->tool(ProductGetTool::class)->getProduct(self::LOCALE, $uuid);
             self::assertNotSame(
                 WorkflowInterface::WORKFLOW_PLACE_PUBLISHED,
-                $reloaded['data']['workflowPlace'] ?? null,
-                'VariantWorkflowCascader cascades unpublish as well as publish.',
+                $this->workflowPlace($uuid),
+                'Unpublishing the parent unpublishes its variants in that locale.',
             );
         }
     }
@@ -485,7 +514,7 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
 
     private function authenticateWithFullProductPermissions(): void
     {
-        $builder = new PermissionFixtureBuilder(
+        $this->permissionFixtureBuilder = new PermissionFixtureBuilder(
             $this->entityManager,
             self::getContainer()->get('sulu_security.mask_converter'),
             self::getContainer()->get('security.token_storage'),
@@ -500,14 +529,25 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
             PermissionTypes::LIVE => true,
         ];
 
-        $role = $builder->role('ProductAuthor', [
+        $role = $this->permissionFixtureBuilder->role('ProductAuthor', [
             'sulu.product.products' => $all,
             'sulu.product.product_families' => $all,
             'sulu.product.attributes' => $all,
             'sulu.product.attribute_groups' => $all,
         ]);
 
-        $builder->authenticate($builder->user('product-author', $role));
+        $this->permissionFixtureBuilder->authenticate($this->permissionFixtureBuilder->user(self::USERNAME, $role));
+    }
+
+    /** Only a fresh entity manager, as every tool call gets one, makes the transition load again. */
+    private function startNextRequest(): void
+    {
+        $this->entityManager->clear();
+
+        $user = $this->entityManager->getRepository(User::class)->findOneBy(['username' => self::USERNAME]);
+        self::assertInstanceOf(User::class, $user);
+
+        $this->permissionFixtureBuilder->authenticate($user);
     }
 
     /**
@@ -540,9 +580,18 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
             $variantUuids[] = $variant['uuid'];
         }
 
-        $published = $this->tool(ContentPublishTool::class)->publishContent('product', $parent['uuid'], self::LOCALE);
-        self::assertTrue($published['success'] ?? false, \json_encode($published));
+        foreach ([$parent['uuid'], ...$variantUuids] as $uuid) {
+            $published = $this->tool(ContentPublishTool::class)->publishContent('product', $uuid, self::LOCALE);
+            self::assertTrue($published['success'] ?? false, \json_encode($published));
+        }
 
         return [$parent['uuid'], $variantUuids];
+    }
+
+    private function workflowPlace(string $uuid): ?string
+    {
+        $product = $this->tool(ProductGetTool::class)->getProduct(self::LOCALE, $uuid);
+
+        return $product['data']['workflowPlace'] ?? null;
     }
 }
