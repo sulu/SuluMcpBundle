@@ -62,7 +62,7 @@ class ProductVariantUpdateTool
     #[McpTool(
         name: 'sulu_product_variant_update',
         title: 'Update Product Variant',
-        description: 'Update a variant of a product. Both the parent UUID and the variant UUID are required, and the variant must actually belong to that parent. The family stays inherited from the parent and cannot be changed here. In "attributes" pass only variant axes (the attributes the family marks variantSpecific), keyed by their INTEGER attribute id; they are merged into the existing values and shared attributes are dropped. The variant stays a draft — publishing the PARENT with sulu_content_publish (type: product) publishes its variants too.',
+        description: 'Update a variant of a product. Both the parent UUID and the variant UUID are required, and the variant must actually belong to that parent. The family stays inherited from the parent and cannot be changed here. In "attributes" pass only variant axes (the attributes the family marks variantSpecific), keyed by their INTEGER attribute id; they are merged into the existing values and shared attributes are dropped. The variant stays a draft: publish it individually with sulu_content_publish (type: product, the variant\'s uuid), which only works while its parent is published in that locale.',
     )]
     #[RequiresPermission(requirements: [
         new PermissionRequirement(ProductAdmin::SECURITY_CONTEXT, PermissionTypes::EDIT),

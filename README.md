@@ -215,8 +215,8 @@ Products are modelled with a product family that decides which attributes apply,
 level of variants: a product of type `product_with_variants` holds `variant` children. Variants
 cannot be nested. Because a variant inherits its parent's family and only carries the attributes
 the family marks `variantSpecific`, they are created with `sulu_product_variant_create` rather than
-`sulu_product_create`. Publishing the parent through `sulu_content_publish` cascades to all of its
-variants.
+`sulu_product_create`. Variants are published individually through `sulu_content_publish`, and only
+after their parent is published in that locale; unpublishing the parent unpublishes its variants.
 
 ### Authentication
 

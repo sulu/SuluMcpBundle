@@ -56,7 +56,7 @@ class ContentPublishTool
     #[McpTool(
         name: 'sulu_content_publish',
         title: 'Publish Content',
-        description: 'Publish a page, article, or snippet to make its current draft the live version. Set "type" to "page", "article", "snippet", or "product" when SuluProductBundle is installed. Content is always created/updated as a draft first — call this after creating or updating to go live. Can be called again to re-publish after edits. IMPORTANT: Always ask the user for confirmation before calling this tool — never publish without explicit user approval.',
+        description: 'Publish a page, article, or snippet to make its current draft the live version. Set "type" to "page", "article", "snippet", or "product" when SuluProductBundle is installed. A product variant is published individually, and only after its parent product is published in that locale; publishing a product leaves its variants unpublished. Content is always created/updated as a draft first — call this after creating or updating to go live. Can be called again to re-publish after edits. IMPORTANT: Always ask the user for confirmation before calling this tool — never publish without explicit user approval.',
     )]
     #[RequiresPermission(
         requirements: [
