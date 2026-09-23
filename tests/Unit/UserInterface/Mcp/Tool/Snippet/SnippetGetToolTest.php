@@ -14,11 +14,13 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Snippet;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
@@ -66,6 +68,31 @@ final class SnippetGetToolTest extends TestCase
         $this->assertSame('snippet-uuid', $result['uuid']);
         $this->assertSame('en', $result['locale']);
         $this->assertSame(['title' => 'Footer'], $result['data']);
+    }
+
+    public function testGetSnippetDeniesAUserHoldingOnlyAnotherGroup(): void
+    {
+        $tool = new SnippetGetTool(
+            $this->snippetRepository->reveal(),
+            $this->contentManager->reveal(),
+            FakeToolPermissionChecker::grantingAll()->grantingNoneExcept()->grantContext('sulu.snippet.snippets_marketing'),
+            new SnippetSecurityContextResolver(new TestGroupProvider([
+                (new FormGroup('default', 'Default'))->withTemplate('default'),
+                (new FormGroup('marketing', 'Marketing'))->withTemplate('promo'),
+            ]), true),
+        );
+
+        $dimensionContent = new SnippetDimensionContent(new Snippet());
+        $dimensionContent->setTemplateKey('default');
+
+        $this->snippetRepository->getOneBy(Argument::cetera())->willReturn(new Snippet('snippet-uuid'));
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->shouldNotBeCalled();
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('security context "sulu.snippet.snippets"');
+
+        $tool->getSnippet('en', 'snippet-uuid');
     }
 
     public function testGetSnippetReturnsErrorForNotFound(): void

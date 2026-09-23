@@ -90,7 +90,7 @@ final class ContentSecurityContextResolverTest extends TestCase
         ]);
         $resolver = new ContentSecurityContextResolver(
             new ArticleSecurityContextResolver($groupProvider),
-            new SnippetSecurityContextResolver($groupProvider),
+            new SnippetSecurityContextResolver($groupProvider, true),
             $this->prophesize(ContentManagerInterface::class)->reveal(),
         );
 

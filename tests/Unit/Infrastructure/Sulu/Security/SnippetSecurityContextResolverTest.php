@@ -27,7 +27,7 @@ final class SnippetSecurityContextResolverTest extends TestCase
         $groupProvider = new TestGroupProvider([
             (new FormGroup('default', 'Default'))->withTemplate('default'),
         ]);
-        $resolver = new SnippetSecurityContextResolver($groupProvider);
+        $resolver = new SnippetSecurityContextResolver($groupProvider, true);
 
         self::assertSame('sulu.snippet.snippets', $resolver->forTemplateKey('default'));
     }
@@ -38,7 +38,7 @@ final class SnippetSecurityContextResolverTest extends TestCase
             (new FormGroup('default', 'Default'))->withTemplate('default'),
             (new FormGroup('blog', 'Blog'))->withTemplate('blog_snippet'),
         ]);
-        $resolver = new SnippetSecurityContextResolver($groupProvider);
+        $resolver = new SnippetSecurityContextResolver($groupProvider, true);
 
         self::assertSame('sulu.snippet.snippets_blog', $resolver->forTemplateKey('blog_snippet'));
     }
@@ -49,7 +49,7 @@ final class SnippetSecurityContextResolverTest extends TestCase
             (new FormGroup('default', 'Default'))->withTemplate('default'),
             (new FormGroup('blog', 'Blog'))->withTemplate('blog_snippet'),
         ]);
-        $resolver = new SnippetSecurityContextResolver($groupProvider);
+        $resolver = new SnippetSecurityContextResolver($groupProvider, true);
 
         self::assertSame('', $resolver->forTemplateKey('orphaned_template'));
     }
@@ -59,7 +59,7 @@ final class SnippetSecurityContextResolverTest extends TestCase
         $groupProvider = new TestGroupProvider([
             (new FormGroup('default', 'Default'))->withTemplate('default'),
         ]);
-        $resolver = new SnippetSecurityContextResolver($groupProvider);
+        $resolver = new SnippetSecurityContextResolver($groupProvider, true);
 
         self::assertSame(['sulu.snippet.snippets'], $resolver->candidates());
     }
@@ -70,8 +70,26 @@ final class SnippetSecurityContextResolverTest extends TestCase
             (new FormGroup('default', 'Default'))->withTemplate('default'),
             (new FormGroup('blog', 'Blog'))->withTemplate('blog_snippet'),
         ]);
-        $resolver = new SnippetSecurityContextResolver($groupProvider);
+        $resolver = new SnippetSecurityContextResolver($groupProvider, true);
 
         self::assertSame(['sulu.snippet.snippets', 'sulu.snippet.snippets_blog'], $resolver->candidates());
+    }
+
+    /**
+     * Sulu 3.0 parses `<group>` on snippet templates but registers no group context,
+     * so a grouped template must not resolve to a context no role can be granted.
+     */
+    public function testWithoutCoreGroupContextsEveryTemplateYieldsBaseContext(): void
+    {
+        $groupProvider = new TestGroupProvider([
+            (new FormGroup('default', 'Default'))->withTemplate('default'),
+            (new FormGroup('blog', 'Blog'))->withTemplate('blog_snippet'),
+        ]);
+        $resolver = new SnippetSecurityContextResolver($groupProvider, false);
+
+        self::assertSame('sulu.snippet.snippets', $resolver->forTemplateKey('blog_snippet'));
+        self::assertSame('sulu.snippet.snippets', $resolver->forTemplateKey('orphaned_template'));
+        self::assertSame('sulu.snippet.snippets', $resolver->resolve(['template' => 'blog_snippet']));
+        self::assertSame(['sulu.snippet.snippets'], $resolver->candidates());
     }
 }

@@ -26,6 +26,7 @@ use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
@@ -35,6 +36,7 @@ use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
@@ -101,14 +103,18 @@ final class PermissionAwareCallToolHandlerTest extends TestCase
     /**
      * @param array<string, array{name: string, requirements: list<array{context: string, permission: string}>, contextArgument: ?string, contextResolver: ?string, objectResolved: bool, discoveryContexts: list<string>}> $map
      */
-    private function handler(array $map, ?WebspacePermissionResolver $webspacePermissionResolver = null): PermissionAwareCallToolHandler
-    {
+    private function handler(
+        array $map,
+        ?WebspacePermissionResolver $webspacePermissionResolver = null,
+        ?SnippetSecurityContextResolver $snippetContextResolver = null,
+    ): PermissionAwareCallToolHandler {
         return new PermissionAwareCallToolHandler(
             $this->registry->reveal(),
             new ReferenceHandler(null),
             $this->checker,
             $webspacePermissionResolver ?? $this->webspacePermissionResolver,
             new ArticleSecurityContextResolver(TestGroupProvider::singleGroup()),
+            $snippetContextResolver ?? new SnippetSecurityContextResolver(TestGroupProvider::singleGroup()),
             $map,
             [],
             ['sulu_ping', 'sulu_get_context'],
@@ -293,6 +299,56 @@ final class PermissionAwareCallToolHandlerTest extends TestCase
 
         $request = $this->request('sulu_page_get', ['uuid' => 'x']);
         $response = $handler->handle($request, $this->session());
+
+        self::assertInstanceOf(Response::class, $response);
+        $result = $response->result;
+        self::assertInstanceOf(CallToolResult::class, $result);
+        self::assertTrue($result->isError);
+    }
+
+    /**
+     * @return array<string, array{name: string, requirements: list<array{context: string, permission: string}>, contextArgument: ?string, contextResolver: ?string, objectResolved: bool, discoveryContexts: list<string>}>
+     */
+    private function snippetGetMap(): array
+    {
+        return [
+            'sulu_snippet_get' => [
+                'name' => 'sulu_snippet_get',
+                'requirements' => [['context' => 'sulu.snippet.snippets', 'permission' => PermissionTypes::VIEW]],
+                'contextArgument' => null, 'contextResolver' => null,
+                'objectResolved' => true, 'discoveryContexts' => [SnippetSecurityContextResolver::ANY_SNIPPET_GROUP_CONTEXT],
+            ],
+        ];
+    }
+
+    private function twoSnippetGroups(): SnippetSecurityContextResolver
+    {
+        return new SnippetSecurityContextResolver(new TestGroupProvider([
+            (new FormGroup('default', 'Default'))->withTemplate('default'),
+            (new FormGroup('marketing', 'Marketing'))->withTemplate('promo'),
+        ]), true);
+    }
+
+    public function testAnySnippetGroupSentinelDelegatesWhenANonDefaultGroupIsGranted(): void
+    {
+        $this->registry->getTool(Argument::any())->willThrow(new ToolNotFoundException('sulu_snippet_get'));
+        $this->checker->grantingNoneExcept()->grantContext('sulu.snippet.snippets_marketing');
+
+        $handler = $this->handler($this->snippetGetMap(), null, $this->twoSnippetGroups());
+
+        $result = $handler->handle($this->request('sulu_snippet_get', ['uuid' => 'x', 'locale' => 'en']), $this->session());
+
+        // Reached the inner handler, which reports METHOD_NOT_FOUND for the unregistered tool.
+        self::assertInstanceOf(Error::class, $result);
+    }
+
+    public function testAnySnippetGroupSentinelDeniesWhenNoGroupIsGranted(): void
+    {
+        $this->checker->grantingNoneExcept()->grantContext('sulu.article.articles');
+
+        $handler = $this->handler($this->snippetGetMap(), null, $this->twoSnippetGroups());
+
+        $response = $handler->handle($this->request('sulu_snippet_get', ['uuid' => 'x', 'locale' => 'en']), $this->session());
 
         self::assertInstanceOf(Response::class, $response);
         $result = $response->result;

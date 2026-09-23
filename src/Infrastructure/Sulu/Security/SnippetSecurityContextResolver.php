@@ -16,11 +16,16 @@ namespace Sulu\Mcp\Infrastructure\Sulu\Security;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
 use Sulu\Mcp\Application\Security\ToolContextResolverInterface;
 use Sulu\Snippet\Domain\Model\SnippetInterface;
+use Sulu\Snippet\Infrastructure\Sulu\Admin\SnippetAdmin;
 
 /**
  * Resolves a snippet's per-group security context:
  * `sulu.snippet.snippets` for the default/only group, else
  * `sulu.snippet.snippets_<groupIdentifier>`.
+ *
+ * Group contexts only exist from Sulu 3.1 on. Sulu 3.0 already parses `<group>`
+ * on snippet templates but registers the base context alone, so there every
+ * snippet resolves to `sulu.snippet.snippets`.
  *
  * @internal
  */
@@ -35,9 +40,16 @@ final readonly class SnippetSecurityContextResolver implements ToolContextResolv
 
     private const BASE_CONTEXT = 'sulu.snippet.snippets';
 
+    private bool $groupContexts;
+
+    /**
+     * @param bool|null $groupContexts whether core registers per-group snippet contexts; detected when null
+     */
     public function __construct(
         private GroupProviderInterface $groupProvider,
+        ?bool $groupContexts = null,
     ) {
+        $this->groupContexts = $groupContexts ?? \method_exists(SnippetAdmin::class, 'getSnippetSecurityContext'); // @phpstan-ignore function.alreadyNarrowedType (false on sulu/sulu 3.0)
     }
 
     public function resolve(array $arguments): string
@@ -49,6 +61,10 @@ final readonly class SnippetSecurityContextResolver implements ToolContextResolv
 
     public function forTemplateKey(string $templateKey): string
     {
+        if (!$this->groupContexts) {
+            return self::BASE_CONTEXT;
+        }
+
         $groups = $this->groupProvider->getGroups(SnippetInterface::TEMPLATE_TYPE);
         if (\count($groups) <= 1) {
             return self::BASE_CONTEXT;
@@ -69,6 +85,10 @@ final readonly class SnippetSecurityContextResolver implements ToolContextResolv
 
     public function candidates(): array
     {
+        if (!$this->groupContexts) {
+            return [self::BASE_CONTEXT];
+        }
+
         $groups = $this->groupProvider->getGroups(SnippetInterface::TEMPLATE_TYPE);
         if (\count($groups) <= 1) {
             return [self::BASE_CONTEXT];

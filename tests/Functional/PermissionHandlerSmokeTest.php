@@ -406,4 +406,37 @@ final class PermissionHandlerSmokeTest extends FunctionalTestCase
 
         $this->assertNotDeniedAtPreflight($response);
     }
+
+    /**
+     * The snippet-group sentinel must be expanded by the handler, not sent to the
+     * permission checker, which refuses any context containing `#`.
+     */
+    public function testSnippetOnlyRoleIsNotDeniedSnippetGet(): void
+    {
+        $this->grantRole('SnippetViewer', [
+            'sulu.snippet.snippets' => [PermissionTypes::VIEW => true],
+        ], 'snippet-viewer');
+
+        $response = $this->handler()->handle(
+            $this->callRequest('sulu_snippet_get', ['uuid' => 'irrelevant', 'locale' => 'en']),
+            $this->session(),
+        );
+
+        $this->assertNotDeniedAtPreflight($response);
+    }
+
+    /** Same sentinel on a tool shared by every content type. */
+    public function testSnippetOnlyRoleIsNotDeniedBlockList(): void
+    {
+        $this->grantRole('SnippetViewer', [
+            'sulu.snippet.snippets' => [PermissionTypes::VIEW => true],
+        ], 'snippet-viewer');
+
+        $response = $this->handler()->handle(
+            $this->callRequest('sulu_block_list', ['type' => 'snippet', 'uuid' => 'irrelevant', 'locale' => 'en']),
+            $this->session(),
+        );
+
+        $this->assertNotDeniedAtPreflight($response);
+    }
 }
