@@ -18,6 +18,7 @@ use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
 use Sulu\Product\Infrastructure\Symfony\HttpKernel\SuluProductBundle;
+use Sulu\Snippet\Infrastructure\Sulu\Admin\SnippetAdmin;
 use Symfony\Component\Config\Definition\Configuration;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\Config\Definition\Processor;
@@ -177,6 +178,8 @@ class SuluMcpBundle extends AbstractBundle
             DangerousToolsPass::resolveDisabledToolNames($config['dangerous_tools']),
         );
 
+        $builder->setParameter('sulu_mcp.core.snippet_group_contexts', self::hasSnippetGroupContexts());
+
         $container->import(\dirname(__DIR__, 4) . '/config/services.php');
 
         // Tools reach the registry only as mcp.tool-tagged services, so skipping the import
@@ -211,6 +214,15 @@ class SuluMcpBundle extends AbstractBundle
         $bundles = $builder->getParameter('kernel.bundles');
 
         return \is_array($bundles) && \in_array(SuluProductBundle::class, $bundles, true);
+    }
+
+    /**
+     * Per-group snippet contexts arrived with Sulu 3.1. Asked of the class rather than of
+     * `%sulu.version%`: it reads `_._._` in tests/Application, and `3.1.x-dev` sorts below `3.1`.
+     */
+    private static function hasSnippetGroupContexts(): bool
+    {
+        return \method_exists(SnippetAdmin::class, 'getSnippetSecurityContext'); // @phpstan-ignore function.alreadyNarrowedType (false on sulu/sulu 3.0)
     }
 
     public function build(ContainerBuilder $container): void

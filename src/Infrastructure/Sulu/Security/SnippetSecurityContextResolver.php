@@ -16,7 +16,6 @@ namespace Sulu\Mcp\Infrastructure\Sulu\Security;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
 use Sulu\Mcp\Application\Security\ToolContextResolverInterface;
 use Sulu\Snippet\Domain\Model\SnippetInterface;
-use Sulu\Snippet\Infrastructure\Sulu\Admin\SnippetAdmin;
 
 /**
  * Resolves a snippet's per-group security context:
@@ -25,7 +24,8 @@ use Sulu\Snippet\Infrastructure\Sulu\Admin\SnippetAdmin;
  *
  * Group contexts only exist from Sulu 3.1 on. Sulu 3.0 already parses `<group>`
  * on snippet templates but registers the base context alone, so there every
- * snippet resolves to `sulu.snippet.snippets`.
+ * snippet resolves to `sulu.snippet.snippets`. SuluMcpBundle tells which core
+ * is installed through `$groupContexts`.
  *
  * @internal
  */
@@ -40,16 +40,10 @@ final readonly class SnippetSecurityContextResolver implements ToolContextResolv
 
     private const BASE_CONTEXT = 'sulu.snippet.snippets';
 
-    private bool $groupContexts;
-
-    /**
-     * @param bool|null $groupContexts whether core registers per-group snippet contexts; detected when null
-     */
     public function __construct(
         private GroupProviderInterface $groupProvider,
-        ?bool $groupContexts = null,
+        private bool $groupContexts = true,
     ) {
-        $this->groupContexts = $groupContexts ?? \method_exists(SnippetAdmin::class, 'getSnippetSecurityContext'); // @phpstan-ignore function.alreadyNarrowedType (false on sulu/sulu 3.0)
     }
 
     public function resolve(array $arguments): string

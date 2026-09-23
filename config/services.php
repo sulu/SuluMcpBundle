@@ -180,7 +180,8 @@ return static function(ContainerConfigurator $container): void {
     $services->alias(ArticleSecurityContextResolver::class, 'sulu_mcp.article_context_resolver');
 
     $services->set('sulu_mcp.snippet_context_resolver', SnippetSecurityContextResolver::class)
-        ->arg('$groupProvider', new Reference('sulu_admin.metadata_group_provider'));
+        ->arg('$groupProvider', new Reference('sulu_admin.metadata_group_provider'))
+        ->arg('$groupContexts', '%sulu_mcp.core.snippet_group_contexts%');
     $services->alias(SnippetSecurityContextResolver::class, 'sulu_mcp.snippet_context_resolver');
     $services->set(ContentSecurityContextResolver::class);
 
