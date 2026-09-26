@@ -13,11 +13,19 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Tests\Functional;
 
+use Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetGetTool;
+use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
+use Sulu\Snippet\Application\Message\CreateSnippetMessage;
+use Sulu\Snippet\Domain\Model\SnippetInterface;
+use Symfony\Component\Messenger\Envelope;
+use Symfony\Component\Messenger\MessageBusInterface;
+use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 /**
  * Per-group snippet permissions on a MULTI-GROUP install (`default` in the default
@@ -101,6 +109,41 @@ final class SnippetGroupScopingTest extends FunctionalTestCase
         foreach (['sulu_snippet_get', 'sulu_snippet_update'] as $tool) {
             self::assertFalse($visibility->isVisible($tool, 'en'), \sprintf('%s must stay hidden from a role holding no snippet group.', $tool));
         }
+    }
+
+    /**
+     * Visibility alone would stay green if the in-body check of the tool stopped denying.
+     */
+    public function testRoleWithOnlyTheBaseSnippetContextCannotReadAMarketingSnippetWhereTheGroupExists(): void
+    {
+        $this->authenticateWithSnippetContext('sulu.snippet.snippets', 'BaseSnippetOnly', 'base-snippet-only');
+
+        $tool = self::getContainer()->get(SnippetGetTool::class);
+
+        // positive control: the same role reads a snippet of the default group
+        $defaultUuid = $this->createSnippet('default');
+        self::assertSame($defaultUuid, $tool->getSnippet('en', $defaultUuid)['uuid'] ?? null);
+
+        $promoUuid = $this->createSnippet('promo');
+
+        if (self::coreHasGroupContexts()) {
+            $this->expectException(ToolCallException::class);
+        }
+
+        self::assertSame($promoUuid, $tool->getSnippet('en', $promoUuid)['uuid'] ?? null);
+    }
+
+    private function createSnippet(string $template): string
+    {
+        $envelope = self::getContainer()->get(MessageBusInterface::class)->dispatch(new Envelope(
+            new CreateSnippetMessage(['locale' => 'en', 'template' => $template, 'title' => \ucfirst($template) . ' snippet']),
+            [new EnableFlushStamp()],
+        ));
+
+        /** @var SnippetInterface $snippet */
+        $snippet = $envelope->last(HandledStamp::class)?->getResult();
+
+        return $snippet->getUuid();
     }
 
     private function authenticateWithSnippetContext(string $context, string $roleName, string $username): void

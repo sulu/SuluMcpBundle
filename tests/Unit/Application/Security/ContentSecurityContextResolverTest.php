@@ -132,6 +132,39 @@ final class ContentSecurityContextResolverTest extends TestCase
         );
     }
 
+    public function testForEntityInLocaleResolvesSnippetGroupFromTheGhostSourceLocale(): void
+    {
+        $snippet = $this->prophesize(ContentRichEntityInterface::class)->reveal();
+
+        $sourceDimensionContent = $this->prophesize(DimensionContentInterface::class);
+        $sourceDimensionContent->willImplement(TemplateInterface::class);
+        $sourceDimensionContent->getTemplateKey(Argument::cetera())->willReturn('promo_snippet');
+
+        $contentManager = $this->prophesize(ContentManagerInterface::class);
+        $contentManager->resolve($snippet, ['locale' => 'en', 'stage' => DimensionContentInterface::STAGE_DRAFT])
+            ->willReturn($sourceDimensionContent->reveal())
+            ->shouldBeCalled();
+
+        $ghost = $this->prophesize(DimensionContentInterface::class);
+        $ghost->getLocale(Argument::cetera())->willReturn(null);
+        $ghost->getGhostLocale(Argument::cetera())->willReturn('en');
+
+        $groupProvider = new TestGroupProvider([
+            (new FormGroup('default', 'Default'))->withTemplate('default'),
+            (new FormGroup('promo', 'Promo'))->withTemplate('promo_snippet'),
+        ]);
+        $resolver = new ContentSecurityContextResolver(
+            new ArticleSecurityContextResolver($groupProvider),
+            new SnippetSecurityContextResolver($groupProvider, true),
+            $contentManager->reveal(),
+        );
+
+        self::assertSame(
+            'sulu.snippet.snippets_promo',
+            $resolver->forEntityInLocale('snippet', $snippet, $ghost->reveal(), 'de'),
+        );
+    }
+
     public function testForEntityInLocaleUsesTheRequestedLocaleWhenTheTranslationExists(): void
     {
         $article = $this->prophesize(ContentRichEntityInterface::class)->reveal();
