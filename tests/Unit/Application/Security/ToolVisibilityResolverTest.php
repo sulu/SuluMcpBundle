@@ -29,6 +29,7 @@ use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ContactSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
@@ -59,6 +60,7 @@ final class ToolVisibilityResolverTest extends TestCase
             $this->checker,
             $webspacePermissionResolver ?? $this->webspaceResolver([]),
             new ArticleSecurityContextResolver(TestGroupProvider::singleGroup()),
+            new SnippetSecurityContextResolver(TestGroupProvider::singleGroup()),
             $contextResolvers,
             ['sulu_ping', 'sulu_get_context'],
         );

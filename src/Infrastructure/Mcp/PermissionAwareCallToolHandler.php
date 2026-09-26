@@ -32,6 +32,7 @@ use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 
 /**
  * Preflight-checks the compile-time permission map, then delegates to the SDK's
@@ -57,6 +58,7 @@ final readonly class PermissionAwareCallToolHandler implements RequestHandlerInt
         private ToolPermissionCheckerInterface $permissionChecker,
         private WebspacePermissionResolver $webspacePermissionResolver,
         private ArticleSecurityContextResolver $articleContextResolver,
+        private SnippetSecurityContextResolver $snippetContextResolver,
         private array $permissionMap,
         private array $contextResolvers,
         private array $allowlist,
@@ -154,6 +156,7 @@ final readonly class PermissionAwareCallToolHandler implements RequestHandlerInt
         return match ($candidate) {
             WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT => [] !== $this->webspacePermissionResolver->permittedWebspaceKeys($permission, $locale),
             ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT => $this->anyArticleGroupGrants($permission, $locale),
+            SnippetSecurityContextResolver::ANY_SNIPPET_GROUP_CONTEXT => $this->anySnippetGroupGrants($permission, $locale),
             default => $this->permissionChecker->has($candidate, $permission, $locale),
         };
     }
@@ -165,6 +168,21 @@ final readonly class PermissionAwareCallToolHandler implements RequestHandlerInt
     private function anyArticleGroupGrants(string $permission, ?string $locale): bool
     {
         foreach ($this->articleContextResolver->candidates() as $context) {
+            if ($this->permissionChecker->has($context, $permission, $locale)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Expands the snippet-group sentinel, so a user holding only a non-default
+     * group still passes.
+     */
+    private function anySnippetGroupGrants(string $permission, ?string $locale): bool
+    {
+        foreach ($this->snippetContextResolver->candidates() as $context) {
             if ($this->permissionChecker->has($context, $permission, $locale)) {
                 return true;
             }

@@ -154,7 +154,7 @@ final class ContentLocaleCreationTest extends FunctionalTestCase
 
     public function testSnippetUpdateCreatesMissingLocale(): void
     {
-        $this->authenticateEditor();
+        $this->authenticateEditor(['sulu.webspaces.website', 'sulu.snippet.snippets']);
         $uuid = $this->createGermanSnippet();
 
         /** @var SnippetUpdateTool $tool */

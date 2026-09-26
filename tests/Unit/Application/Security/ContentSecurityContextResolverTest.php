@@ -24,6 +24,7 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Content\Domain\Model\TemplateInterface;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Page\Domain\Model\Page;
 
@@ -57,6 +58,7 @@ final class ContentSecurityContextResolverTest extends TestCase
         ]);
         $resolver = new ContentSecurityContextResolver(
             new ArticleSecurityContextResolver($groupProvider),
+            new SnippetSecurityContextResolver($groupProvider),
             $this->prophesize(ContentManagerInterface::class)->reveal(),
         );
 
@@ -78,6 +80,24 @@ final class ContentSecurityContextResolverTest extends TestCase
         $resolver = $this->resolver();
 
         self::assertSame('sulu.snippet.snippets', $resolver->forEntity('snippet', new \stdClass()));
+    }
+
+    public function testForEntityDelegatesSnippetTemplateKeyToSnippetResolver(): void
+    {
+        $groupProvider = new TestGroupProvider([
+            (new FormGroup('default', 'Default'))->withTemplate('default'),
+            (new FormGroup('blog', 'Blog'))->withTemplate('blog_snippet'),
+        ]);
+        $resolver = new ContentSecurityContextResolver(
+            new ArticleSecurityContextResolver($groupProvider),
+            new SnippetSecurityContextResolver($groupProvider, true),
+            $this->prophesize(ContentManagerInterface::class)->reveal(),
+        );
+
+        $dimensionContent = $this->prophesize(TemplateInterface::class);
+        $dimensionContent->getTemplateKey(Argument::cetera())->willReturn('blog_snippet');
+
+        self::assertSame('sulu.snippet.snippets_blog', $resolver->forEntity('snippet', new \stdClass(), $dimensionContent->reveal()));
     }
 
     public function testForEntityDefaultsToEmptyStringForUnknownType(): void
@@ -109,6 +129,39 @@ final class ContentSecurityContextResolverTest extends TestCase
         self::assertSame(
             'sulu.article.articles_blog',
             $resolver->forEntityInLocale('article', $article, $ghost->reveal(), 'de'),
+        );
+    }
+
+    public function testForEntityInLocaleResolvesSnippetGroupFromTheGhostSourceLocale(): void
+    {
+        $snippet = $this->prophesize(ContentRichEntityInterface::class)->reveal();
+
+        $sourceDimensionContent = $this->prophesize(DimensionContentInterface::class);
+        $sourceDimensionContent->willImplement(TemplateInterface::class);
+        $sourceDimensionContent->getTemplateKey(Argument::cetera())->willReturn('promo_snippet');
+
+        $contentManager = $this->prophesize(ContentManagerInterface::class);
+        $contentManager->resolve($snippet, ['locale' => 'en', 'stage' => DimensionContentInterface::STAGE_DRAFT])
+            ->willReturn($sourceDimensionContent->reveal())
+            ->shouldBeCalled();
+
+        $ghost = $this->prophesize(DimensionContentInterface::class);
+        $ghost->getLocale(Argument::cetera())->willReturn(null);
+        $ghost->getGhostLocale(Argument::cetera())->willReturn('en');
+
+        $groupProvider = new TestGroupProvider([
+            (new FormGroup('default', 'Default'))->withTemplate('default'),
+            (new FormGroup('promo', 'Promo'))->withTemplate('promo_snippet'),
+        ]);
+        $resolver = new ContentSecurityContextResolver(
+            new ArticleSecurityContextResolver($groupProvider),
+            new SnippetSecurityContextResolver($groupProvider, true),
+            $contentManager->reveal(),
+        );
+
+        self::assertSame(
+            'sulu.snippet.snippets_promo',
+            $resolver->forEntityInLocale('snippet', $snippet, $ghost->reveal(), 'de'),
         );
     }
 
@@ -174,6 +227,7 @@ final class ContentSecurityContextResolverTest extends TestCase
 
         return new ContentSecurityContextResolver(
             new ArticleSecurityContextResolver($groupProvider),
+            new SnippetSecurityContextResolver($groupProvider),
             $this->prophesize(ContentManagerInterface::class)->reveal(),
         );
     }
@@ -185,6 +239,6 @@ final class ContentSecurityContextResolverTest extends TestCase
             (new FormGroup('blog', 'Blog'))->withTemplate('blog_article'),
         ]);
 
-        return new ContentSecurityContextResolver(new ArticleSecurityContextResolver($groupProvider), $contentManager);
+        return new ContentSecurityContextResolver(new ArticleSecurityContextResolver($groupProvider), new SnippetSecurityContextResolver($groupProvider), $contentManager);
     }
 }

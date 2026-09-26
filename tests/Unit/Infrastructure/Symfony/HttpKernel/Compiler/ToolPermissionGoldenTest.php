@@ -121,7 +121,7 @@ final class ToolPermissionGoldenTest extends TestCase
         ProductVariantUpdateTool::class => ['sulu_product_variant_update', [['sulu.product.products', PermissionTypes::EDIT]]],
         ProductFamilyListTool::class => ['sulu_product_family_list', [['sulu.product.product_families', PermissionTypes::VIEW]]],
         AttributeListTool::class => ['sulu_attribute_list', [['sulu.product.attributes', PermissionTypes::VIEW]]],
-        SnippetCreateTool::class => ['sulu_snippet_create', [['sulu.snippet.snippets', PermissionTypes::EDIT], ['sulu.snippet.snippets', PermissionTypes::ADD]]],
+        SnippetCreateTool::class => ['sulu_snippet_create', [['#context#', PermissionTypes::EDIT], ['#context#', PermissionTypes::ADD]]],
         SnippetGetTool::class => ['sulu_snippet_get', [['sulu.snippet.snippets', PermissionTypes::VIEW]]],
         SnippetListTool::class => ['sulu_snippet_list', [['sulu.snippet.snippets', PermissionTypes::VIEW]]],
         SnippetUpdateTool::class => ['sulu_snippet_update', [['sulu.snippet.snippets', PermissionTypes::EDIT]]],

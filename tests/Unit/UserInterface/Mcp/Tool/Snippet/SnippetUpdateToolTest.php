@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Snippet;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
@@ -21,6 +22,7 @@ use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
@@ -28,10 +30,15 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
+use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\Tests\Unit\Fixture\FixedBlockIdGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetUpdateTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
@@ -93,6 +100,13 @@ final class SnippetUpdateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             $adminLinkGenerator,
+            FakeToolPermissionChecker::grantingAll(),
+            new ContentSecurityContextResolver(
+                new ArticleSecurityContextResolver(new TestGroupProvider([])),
+                new SnippetSecurityContextResolver(new TestGroupProvider([])),
+                $this->contentManager->reveal(),
+            ),
+            new SnippetSecurityContextResolver(new TestGroupProvider([])),
         );
     }
 
@@ -112,10 +126,68 @@ final class SnippetUpdateToolTest extends TestCase
 
         $currentDimensionContent = new SnippetDimensionContent(new Snippet());
         $currentDimensionContent->setLocale($locale);
+        $currentDimensionContent->setTemplateKey(\is_string($currentData['template'] ?? null) ? $currentData['template'] : null);
         $this->contentManager->resolve(Argument::cetera())->willReturn($currentDimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn($currentData);
 
         return $existingSnippet;
+    }
+
+    /**
+     * Rebuilds the tool over a two-group install: `default` (template "default") and
+     * `marketing` (template "promo").
+     */
+    private function useTwoSnippetGroups(FakeToolPermissionChecker $permissionChecker): void
+    {
+        $snippetContextResolver = new SnippetSecurityContextResolver(new TestGroupProvider([
+            (new FormGroup('default', 'Default'))->withTemplate('default'),
+            (new FormGroup('marketing', 'Marketing'))->withTemplate('promo'),
+        ]), true);
+
+        $router = $this->prophesize(RouterInterface::class);
+        $router->generate(Argument::cetera())->willReturn('https://example.com/admin/');
+
+        $this->tool = new SnippetUpdateTool(
+            $this->messageBus->reveal(),
+            $this->contentManager->reveal(),
+            new ContentTypeResolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            $this->blockIdGenerator,
+            new AdminLinkGenerator($router->reveal(), [new SnippetAdminLinkProvider(new TestViewRegistry())]),
+            $permissionChecker,
+            new ContentSecurityContextResolver(
+                new ArticleSecurityContextResolver(new TestGroupProvider([])),
+                $snippetContextResolver,
+                $this->contentManager->reveal(),
+            ),
+            $snippetContextResolver,
+        );
+    }
+
+    public function testUpdateSnippetDeniesAUserHoldingOnlyAnotherGroup(): void
+    {
+        $this->useTwoSnippetGroups(FakeToolPermissionChecker::grantingAll()->grantingNoneExcept()->grantContext('sulu.snippet.snippets_marketing'));
+        $this->setUpReadModifyWrite('uuid-1', 'en', ['template' => 'default', 'title' => 'Footer']);
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('security context "sulu.snippet.snippets"');
+
+        $this->tool->updateSnippet('uuid-1', 'en', 'Updated Title');
+    }
+
+    public function testUpdateSnippetDeniesAMoveIntoAGroupTheUserDoesNotHold(): void
+    {
+        $this->useTwoSnippetGroups(FakeToolPermissionChecker::grantingAll()->grantingNoneExcept()->grantContext('sulu.snippet.snippets'));
+        $this->setUpReadModifyWrite('uuid-1', 'en', ['template' => 'default', 'title' => 'Footer']);
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('security context "sulu.snippet.snippets_marketing"');
+
+        $this->tool->updateSnippet('uuid-1', 'en', null, 'promo');
     }
 
     public function testUpdateSnippetReadsCurrentStateBeforeModifying(): void
@@ -332,6 +404,13 @@ final class SnippetUpdateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new AdminLinkGenerator($router->reveal(), [new SnippetAdminLinkProvider(new TestViewRegistry())]),
+            FakeToolPermissionChecker::grantingAll(),
+            new ContentSecurityContextResolver(
+                new ArticleSecurityContextResolver(new TestGroupProvider([])),
+                new SnippetSecurityContextResolver(new TestGroupProvider([])),
+                $this->contentManager->reveal(),
+            ),
+            new SnippetSecurityContextResolver(new TestGroupProvider([])),
         );
 
         $existingSnippet = new Snippet('uuid-1');

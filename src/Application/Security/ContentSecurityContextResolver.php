@@ -18,13 +18,14 @@ use Sulu\Content\Domain\Model\ContentRichEntityInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Content\Domain\Model\TemplateInterface;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Page\Domain\Model\PageInterface;
 
 /**
  * Per-type security context for a loaded content entity:
  * page → sulu.webspaces.<key> (from the aggregate), article → per-group (from the
  * RESOLVED dimension content's template key — NOT the aggregate),
- * snippet → sulu.snippet.snippets, product → sulu.product.products.
+ * snippet → per-group as well (same mechanism as articles), product → sulu.product.products.
  *
  * The product context is spelled out here and in the unified tools' discoveryContexts rather
  * than taken from ProductAdmin::SECURITY_CONTEXT, because those files are loaded whether or
@@ -36,6 +37,7 @@ final readonly class ContentSecurityContextResolver
 {
     public function __construct(
         private ArticleSecurityContextResolver $articleContextResolver,
+        private SnippetSecurityContextResolver $snippetContextResolver,
         private ContentManagerInterface $contentManager,
     ) {
     }
@@ -49,7 +51,7 @@ final readonly class ContentSecurityContextResolver
         return match ($type) {
             'page' => $aggregate instanceof PageInterface ? 'sulu.webspaces.' . $aggregate->getWebspaceKey() : '',
             'article' => $this->articleContextResolver->forTemplateKey($dimensionContent?->getTemplateKey() ?? ''),
-            'snippet' => 'sulu.snippet.snippets',
+            'snippet' => $this->snippetContextResolver->forTemplateKey($dimensionContent?->getTemplateKey() ?? ''),
             'product' => 'sulu.product.products',
             default => '',
         };
@@ -68,7 +70,7 @@ final readonly class ContentSecurityContextResolver
     {
         $ghostLocale = $dimensionContent->getGhostLocale();
 
-        if ('article' === $type && $locale !== $dimensionContent->getLocale() && null !== $ghostLocale) {
+        if (\in_array($type, ['article', 'snippet'], true) && $locale !== $dimensionContent->getLocale() && null !== $ghostLocale) {
             $dimensionContent = $this->contentManager->resolve($aggregate, [ // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; the caller holds a bare object)
                 'locale' => $ghostLocale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,

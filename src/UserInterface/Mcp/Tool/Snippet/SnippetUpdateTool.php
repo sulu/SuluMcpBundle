@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Snippet;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
+use Mcp\Exception\ToolCallException;
 use Sulu\Bundle\AdminBundle\Application\BlockIdGenerator\BlockIdGeneratorInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
@@ -25,8 +26,12 @@ use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
 use Sulu\Snippet\Application\Message\ModifySnippetMessage;
 use Sulu\Snippet\Domain\Model\SnippetInterface;
@@ -51,6 +56,9 @@ class SnippetUpdateTool
         private readonly BlockDataValidator $blockDataValidator,
         private readonly BlockIdGeneratorInterface $blockIdGenerator,
         private readonly AdminLinkGeneratorInterface $adminLinkGenerator,
+        private readonly ToolPermissionCheckerInterface $permissionChecker,
+        private readonly ContentSecurityContextResolver $contentSecurityContextResolver,
+        private readonly SnippetSecurityContextResolver $snippetContextResolver,
     ) {
         $this->messageBus = $messageBus;
     }
@@ -65,9 +73,11 @@ class SnippetUpdateTool
         title: 'Update Snippet',
         description: 'Update an existing snippet. Reads the current snippet state, merges your changes, and writes back — so you only need to pass the fields you want to change. Pass template-specific field values in "content" as a flat object: content={"body": "<p>Updated HTML</p>"}. Content may also include a full "blocks" tree (nested blocks allowed) to replace the block content in one call — block _ids are assigned automatically and unknown block fields are rejected before saving. You can update title and template as separate parameters. Calling this with a locale the snippet has no content in yet creates that translation — pass title and template in that case, and the result carries "created_locale": true. The snippet stays in draft state after updating — call sulu_content_publish (type: snippet) to make changes live.',
     )]
-    #[RequiresPermission(requirements: [
-        new PermissionRequirement('sulu.snippet.snippets', PermissionTypes::EDIT),
-    ])]
+    #[RequiresPermission(
+        requirements: [new PermissionRequirement('sulu.snippet.snippets', PermissionTypes::EDIT)],
+        objectResolved: true,
+        discoveryContexts: [SnippetSecurityContextResolver::ANY_SNIPPET_GROUP_CONTEXT],
+    )]
     public function updateSnippet(
         string $uuid,
         string $locale,
@@ -89,6 +99,18 @@ class SnippetUpdateTool
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
+            $sourceContext = $this->contentSecurityContextResolver->forEntityInLocale(
+                'snippet',
+                $snippet,
+                $currentDimensionContent,
+                $locale,
+            );
+            $this->permissionChecker->check(
+                $sourceContext,
+                PermissionTypes::EDIT,
+                $locale,
+            );
+
             $createsLocale = self::isMissingTranslation($currentDimensionContent, $locale);
             if ($createsLocale && (null === $title || null === $template)) {
                 return self::missingTranslationError(
@@ -104,10 +126,20 @@ class SnippetUpdateTool
             // source content, only the unlocalized dimension's availableLocales/ghostLocale.
             $currentData = $createsLocale ? [] : $this->contentManager->normalize($currentDimensionContent);
 
-            // Trusted template: the `template` arg, else the current one. Snippets have no
-            // per-template security context, so this is data integrity, not a permission gate.
+            // Trusted template: the `template` arg, else the current one. Everything below must
+            // not smuggle a different value past this point (not even content.template).
             $currentTemplateKey = \is_string($currentData['template'] ?? null) ? $currentData['template'] : null;
             $effectiveTemplate = $template ?? $currentTemplateKey;
+
+            // Moving a snippet to a template of another group needs the rights on that group too.
+            $targetContext = $this->snippetContextResolver->forTemplateKey($effectiveTemplate ?? '');
+            if ($targetContext !== $sourceContext) {
+                $this->permissionChecker->check(
+                    $targetContext,
+                    PermissionTypes::EDIT,
+                    $locale,
+                );
+            }
 
             $data = \array_merge(
                 $currentData,
@@ -162,6 +194,8 @@ class SnippetUpdateTool
             }
 
             return $result;
+        } catch (PermissionDeniedException $e) {
+            throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
                 'error' => \sprintf('Failed to update snippet %s: %s', $uuid, $e->getMessage()),
