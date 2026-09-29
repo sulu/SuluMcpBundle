@@ -246,6 +246,18 @@ final class DangerousToolsPassTest extends TestCase
         self::assertSame(['named_method_tool'], $container->getParameter('sulu_mcp.disabled_tool_names'));
     }
 
+    public function testProcessGatesAnInheritedToolByTheChildClassAttribute(): void
+    {
+        $container = new ContainerBuilder();
+        $this->registerTool($container, ChildGatedInheritedToolStub::class, ChildGatedInheritedToolStub::class);
+        $container->setParameter('sulu_mcp.dangerous_tools', ['inherited_category' => false]);
+
+        (new DangerousToolsPass())->process($container);
+
+        self::assertFalse($container->hasDefinition(ChildGatedInheritedToolStub::class));
+        self::assertSame(['inherited_tool'], $container->getParameter('sulu_mcp.disabled_tool_names'));
+    }
+
     public function testProcessResolvesAClassGivenAsAParameter(): void
     {
         $container = new ContainerBuilder();
@@ -379,6 +391,20 @@ final class ClassGatedNamedMethodToolStub
     {
         return [];
     }
+}
+
+abstract class InheritedToolParentStub
+{
+    #[McpTool(name: 'inherited_tool', description: 'test double')]
+    public function doSomething(): array
+    {
+        return [];
+    }
+}
+
+#[DangerousTool('inherited_category')]
+final class ChildGatedInheritedToolStub extends InheritedToolParentStub
+{
 }
 
 final class MixedToolsStub
