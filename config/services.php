@@ -28,6 +28,7 @@ use Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 use Sulu\Mcp\Application\Metadata\FieldValueExampleProvider;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
+use Sulu\Mcp\Application\Search\WebsiteSearch;
 use Sulu\Mcp\Application\Security\AccessControlFilterFactory;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\PageDescendantPermissionChecker;
@@ -194,8 +195,9 @@ return static function(ContainerConfigurator $container): void {
     $services->set(PingTool::class)
         ->arg('$version', '%sulu_mcp.version%');
     $services->set(GetContextTool::class);
-    $services->set(ContentSearchTool::class)
+    $services->set(WebsiteSearch::class)
         ->arg('$engine', new Reference('cmsig_seal.engine.default'));
+    $services->set(ContentSearchTool::class);
 
     // MCP resources
     $services->set(FieldValueExampleProvider::class);
