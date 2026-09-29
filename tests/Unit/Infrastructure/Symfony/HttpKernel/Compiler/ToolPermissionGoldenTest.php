@@ -54,7 +54,6 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductFamilyListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductListTool;
-use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductSearchTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductUpdateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantListTool;
@@ -115,7 +114,6 @@ final class ToolPermissionGoldenTest extends TestCase
         PreviewLinkRevokeTool::class => ['sulu_preview_link_revoke', [['#context#', PermissionTypes::EDIT]]],
         ProductGetTool::class => ['sulu_product_get', [['sulu.product.products', PermissionTypes::VIEW]]],
         ProductListTool::class => ['sulu_product_list', [['sulu.product.products', PermissionTypes::VIEW]]],
-        ProductSearchTool::class => ['sulu_product_search', [['sulu.product.products', PermissionTypes::VIEW]]],
         ProductCreateTool::class => ['sulu_product_create', [['sulu.product.products', PermissionTypes::EDIT], ['sulu.product.products', PermissionTypes::ADD]]],
         ProductUpdateTool::class => ['sulu_product_update', [['sulu.product.products', PermissionTypes::EDIT]]],
         ProductVariantListTool::class => ['sulu_product_variant_list', [['sulu.product.products', PermissionTypes::VIEW]]],

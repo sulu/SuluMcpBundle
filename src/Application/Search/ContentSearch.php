@@ -21,8 +21,7 @@ use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 
 /**
  * Keyword search over the `website` SEAL index, the logic behind the `sulu_content_search` MCP
- * tool. Framework-agnostic on purpose: it depends on no MCP type, so it can be driven from any
- * caller, not only the tool adapter.
+ * tool.
  *
  * @internal
  */

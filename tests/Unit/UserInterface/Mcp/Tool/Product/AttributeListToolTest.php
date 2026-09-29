@@ -52,8 +52,7 @@ final class AttributeListToolTest extends TestCase
         $group = new AttributeGroup();
         $group->addTranslation(new AttributeGroupTranslation($group, 'en', 'Appearance'));
 
-        $attribute = $this->addAttribute($group, 12, 'colour', AttributeInterface::TYPE_TEXT, 'Colour');
-        $attribute->setFilterable(true);
+        $this->addAttribute($group, 12, 'colour', AttributeInterface::TYPE_TEXT, 'Colour');
 
         // Pinned rather than matched loosely: the listing reads a translation per group,
         // then its attributes, then a translation per attribute. Losing a select here
@@ -74,7 +73,6 @@ final class AttributeListToolTest extends TestCase
         $this->assertSame('colour', $attribute['key']);
         $this->assertSame(AttributeInterface::TYPE_TEXT, $attribute['type']);
         $this->assertSame('Colour', $attribute['name']);
-        $this->assertTrue($attribute['filterable']);
         $this->assertArrayNotHasKey('options', $attribute);
     }
 

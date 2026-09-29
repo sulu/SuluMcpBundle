@@ -16,7 +16,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Product\VariantParentResolver;
 use Sulu\Mcp\Application\Search\ContentSearch;
-use Sulu\Mcp\Application\Search\ProductSearch;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ProductAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ProductVariantAdminLinkProvider;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\AttributeListTool;
@@ -24,7 +23,6 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductFamilyListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductListTool;
-use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductSearchTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductUpdateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductVariantListTool;
@@ -46,8 +44,6 @@ return static function(ContainerConfigurator $container): void {
 
     $services->set(ContentSearch::class)
         ->arg('$productsIndexed', true);
-
-    $services->set(ProductSearch::class);
 
     $services->set(VariantParentResolver::class);
 
@@ -71,5 +67,4 @@ return static function(ContainerConfigurator $container): void {
 
     $services->set(ProductFamilyListTool::class);
     $services->set(AttributeListTool::class);
-    $services->set(ProductSearchTool::class);
 };
