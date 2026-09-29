@@ -282,13 +282,13 @@ return static function(ContainerConfigurator $container): void {
     // Page write tools
     $services->set(PageCreateTool::class);
     $services->set(PageUpdateTool::class);
-    $services->set(PageMoveTool::class); // gated by dangerous_tools.publish
-    $services->set(PageReorderTool::class); // gated by dangerous_tools.publish
+    $services->set(PageMoveTool::class);
+    $services->set(PageReorderTool::class);
 
     // Unified content tools (page | article | snippet via `type`)
-    $services->set(ContentDeleteTool::class); // gated by dangerous_tools.delete
-    $services->set(ContentPublishTool::class); // gated by dangerous_tools.publish
-    $services->set(ContentUnpublishTool::class); // gated by dangerous_tools.publish
+    $services->set(ContentDeleteTool::class);
+    $services->set(ContentPublishTool::class);
+    $services->set(ContentUnpublishTool::class);
 
     // Block management tools
     $services->set(ContentTypeResolver::class)
@@ -300,7 +300,7 @@ return static function(ContainerConfigurator $container): void {
     $services->set(BlockListTool::class);
     $services->set(BlockAddTool::class);
     $services->set(BlockUpdateTool::class);
-    $services->set(BlockRemoveTool::class); // gated by dangerous_tools.block_remove
+    $services->set(BlockRemoveTool::class);
     $services->set(BlockReorderTool::class);
 
     $services->alias(NavigationRepositoryInterface::class, 'sulu_page.navigation_repository');
@@ -320,10 +320,10 @@ return static function(ContainerConfigurator $container): void {
     // Taxonomy tools
     $services->set(TagCreateTool::class);
     $services->set(TagListTool::class);
-    $services->set(TagDeleteTool::class); // gated by dangerous_tools.delete
+    $services->set(TagDeleteTool::class);
     $services->set(CategoryCreateTool::class);
     $services->set(CategoryListTool::class);
-    $services->set(CategoryDeleteTool::class); // gated by dangerous_tools.delete
+    $services->set(CategoryDeleteTool::class);
 
     // Media tools
     $services->set(MediaListTool::class);
@@ -352,7 +352,7 @@ return static function(ContainerConfigurator $container): void {
         ->arg('$maxFilesizeInMegabytes', '%sulu_media.upload.max_filesize%')
         ->arg('$allowedHosts', '%sulu_mcp.media_upload.allowed_hosts%');
 
-    $services->set(MediaUploadTool::class) // gated by dangerous_tools.media_upload
+    $services->set(MediaUploadTool::class)
         ->arg('$collectionRepository', new Reference('sulu_media.collection_repository'))
         // UploadFileSubscriber only inspects files that arrive on a request, so the same
         // inspectors are handed to the tool for the files it assembles itself.
@@ -372,5 +372,5 @@ return static function(ContainerConfigurator $container): void {
 
     // Preview link tools
     $services->set(PreviewLinkGenerateTool::class);
-    $services->set(PreviewLinkRevokeTool::class); // gated by dangerous_tools.publish
+    $services->set(PreviewLinkRevokeTool::class);
 };

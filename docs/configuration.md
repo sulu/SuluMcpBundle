@@ -142,7 +142,7 @@ league runs a single authorization server per application, so token lifetimes, g
 
 ### `dangerous_tools.*`
 
-Four booleans gating high-impact tools. Each flag is independent — enable only what you need.
+Booleans gating high-impact tools, keyed by category. Each flag is independent — enable only what you need. The four categories below are built into this bundle; another bundle can gate its own tools under a category of its own by giving a tool method `#[DangerousTool('its_category')]` (see [`DangerousTool`](../src/Domain/Security/DangerousTool.php)) — no change to this bundle is needed for that. An unlisted category defaults to `false`; a category listed in configuration that no tool declares is rejected at compile time (a caught typo, not a silent no-op).
 
 | Flag | Tools enabled when `true` |
 |------|---------------------------|

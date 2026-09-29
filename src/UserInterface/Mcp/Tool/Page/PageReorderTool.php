@@ -22,6 +22,7 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
@@ -57,6 +58,7 @@ class PageReorderTool
         description: 'Change the position of a page among its siblings, without changing its parent. Positions are 1-based: 1 makes the page the first child of its parent. Call sulu_page_tree first — every node there carries its current "position" among its siblings, which is what you compute the new position from. This only reorders; use sulu_page_move to give a page a different parent. Reordering does not change any addresses.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
+    #[DangerousTool('publish')]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('sulu.webspaces.#context#', PermissionTypes::EDIT)],
         objectResolved: true,

@@ -13,8 +13,10 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\HttpKernel\Compiler;
 
+use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
@@ -27,7 +29,6 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryDeleteTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
-use Symfony\Component\DependencyInjection\Definition;
 
 #[CoversClass(DangerousToolsPass::class)]
 final class DangerousToolsPassTest extends TestCase
@@ -51,10 +52,12 @@ final class DangerousToolsPassTest extends TestCase
     public function testProcessRemovesOnlyDeleteCategoryWhenDeleteDisabled(): void
     {
         $container = $this->containerWithGatedDefinitions();
-        $container->setParameter('sulu_mcp.dangerous_tools.delete', false);
-        $container->setParameter('sulu_mcp.dangerous_tools.publish', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.block_remove', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.media_upload', true);
+        $container->setParameter('sulu_mcp.dangerous_tools', [
+            'delete' => false,
+            'publish' => true,
+            'block_remove' => true,
+            'media_upload' => true,
+        ]);
 
         (new DangerousToolsPass())->process($container);
 
@@ -72,15 +75,22 @@ final class DangerousToolsPassTest extends TestCase
             BlockRemoveTool::class,
             MediaUploadTool::class,
         ]);
+        self::assertSame([
+            'sulu_content_delete',
+            'sulu_tag_delete',
+            'sulu_category_delete',
+        ], $container->getParameter('sulu_mcp.disabled_tool_names'));
     }
 
     public function testProcessRemovesOnlyPublishCategoryWhenPublishDisabled(): void
     {
         $container = $this->containerWithGatedDefinitions();
-        $container->setParameter('sulu_mcp.dangerous_tools.delete', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.publish', false);
-        $container->setParameter('sulu_mcp.dangerous_tools.block_remove', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.media_upload', true);
+        $container->setParameter('sulu_mcp.dangerous_tools', [
+            'delete' => true,
+            'publish' => false,
+            'block_remove' => true,
+            'media_upload' => true,
+        ]);
 
         (new DangerousToolsPass())->process($container);
 
@@ -103,10 +113,12 @@ final class DangerousToolsPassTest extends TestCase
     public function testProcessRemovesOnlyBlockRemoveCategoryWhenBlockRemoveDisabled(): void
     {
         $container = $this->containerWithGatedDefinitions();
-        $container->setParameter('sulu_mcp.dangerous_tools.delete', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.publish', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.block_remove', false);
-        $container->setParameter('sulu_mcp.dangerous_tools.media_upload', true);
+        $container->setParameter('sulu_mcp.dangerous_tools', [
+            'delete' => true,
+            'publish' => true,
+            'block_remove' => false,
+            'media_upload' => true,
+        ]);
 
         (new DangerousToolsPass())->process($container);
 
@@ -129,10 +141,12 @@ final class DangerousToolsPassTest extends TestCase
     public function testProcessRemovesOnlyMediaUploadCategoryWhenMediaUploadDisabled(): void
     {
         $container = $this->containerWithGatedDefinitions();
-        $container->setParameter('sulu_mcp.dangerous_tools.delete', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.publish', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.block_remove', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.media_upload', false);
+        $container->setParameter('sulu_mcp.dangerous_tools', [
+            'delete' => true,
+            'publish' => true,
+            'block_remove' => true,
+            'media_upload' => false,
+        ]);
 
         (new DangerousToolsPass())->process($container);
 
@@ -155,101 +169,65 @@ final class DangerousToolsPassTest extends TestCase
     public function testProcessKeepsAllDefinitionsWhenAllFlagsTrue(): void
     {
         $container = $this->containerWithGatedDefinitions();
-        $container->setParameter('sulu_mcp.dangerous_tools.delete', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.publish', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.block_remove', true);
-        $container->setParameter('sulu_mcp.dangerous_tools.media_upload', true);
-
-        (new DangerousToolsPass())->process($container);
-
-        $this->assertDefinitionsPresent($container, self::ALL_GATED_CLASSES);
-    }
-
-    public function testProcessIsNoOpWhenParametersAreAbsent(): void
-    {
-        $container = $this->containerWithGatedDefinitions();
-
-        (new DangerousToolsPass())->process($container);
-
-        $this->assertDefinitionsPresent($container, self::ALL_GATED_CLASSES);
-    }
-
-    public function testResolveDisabledToolNamesReturnsAllToolsWhenAllFalse(): void
-    {
-        $names = DangerousToolsPass::resolveDisabledToolNames([
-            'delete' => false,
-            'publish' => false,
-            'block_remove' => false,
-            'media_upload' => false,
-        ]);
-
-        self::assertSame([
-            'sulu_content_delete',
-            'sulu_tag_delete',
-            'sulu_category_delete',
-            'sulu_content_publish',
-            'sulu_content_unpublish',
-            'sulu_preview_link_revoke',
-            'sulu_page_move',
-            'sulu_page_reorder',
-            'sulu_block_remove',
-            'sulu_media_upload',
-        ], $names);
-    }
-
-    public function testResolveDisabledToolNamesReturnsEmptyListWhenAllTrue(): void
-    {
-        $names = DangerousToolsPass::resolveDisabledToolNames([
+        $container->setParameter('sulu_mcp.dangerous_tools', [
             'delete' => true,
             'publish' => true,
             'block_remove' => true,
             'media_upload' => true,
         ]);
 
-        self::assertSame([], $names);
+        (new DangerousToolsPass())->process($container);
+
+        $this->assertDefinitionsPresent($container, self::ALL_GATED_CLASSES);
+        self::assertSame([], $container->getParameter('sulu_mcp.disabled_tool_names'));
     }
 
-    public function testResolveDisabledToolNamesReturnsOnlyDisabledCategoriesForMixedConfig(): void
+    public function testProcessDisablesEveryCategoryWhenTheParameterIsAbsent(): void
     {
-        $names = DangerousToolsPass::resolveDisabledToolNames([
+        $container = $this->containerWithGatedDefinitions();
+
+        (new DangerousToolsPass())->process($container);
+
+        foreach (self::ALL_GATED_CLASSES as $class) {
+            self::assertFalse($container->hasDefinition($class), \sprintf('Expected "%s" to have been removed.', $class));
+        }
+    }
+
+    public function testProcessGatesAThirdPartyToolByItsOwnCategory(): void
+    {
+        $container = $this->containerWithGatedDefinitions();
+        $container->register(ThirdPartyDangerousToolStub::class, ThirdPartyDangerousToolStub::class)
+            ->addTag('mcp.tool');
+        $container->setParameter('sulu_mcp.dangerous_tools', [
             'delete' => true,
-            'publish' => false,
+            'publish' => true,
             'block_remove' => true,
             'media_upload' => true,
+            'third_party_category' => false,
         ]);
 
-        self::assertSame([
-            'sulu_content_publish',
-            'sulu_content_unpublish',
-            'sulu_preview_link_revoke',
-            'sulu_page_move',
-            'sulu_page_reorder',
-        ], $names);
+        (new DangerousToolsPass())->process($container);
+
+        self::assertFalse($container->hasDefinition(ThirdPartyDangerousToolStub::class));
+        self::assertSame(['third_party_tool'], $container->getParameter('sulu_mcp.disabled_tool_names'));
     }
 
-    public function testResolveDisabledToolNamesDefaultsMissingKeysToDisabled(): void
+    public function testProcessRejectsAConfiguredCategoryNoToolDeclares(): void
     {
-        $names = DangerousToolsPass::resolveDisabledToolNames([]);
+        $container = $this->containerWithGatedDefinitions();
+        $container->setParameter('sulu_mcp.dangerous_tools', ['does_not_exist' => false]);
 
-        self::assertSame([
-            'sulu_content_delete',
-            'sulu_tag_delete',
-            'sulu_category_delete',
-            'sulu_content_publish',
-            'sulu_content_unpublish',
-            'sulu_preview_link_revoke',
-            'sulu_page_move',
-            'sulu_page_reorder',
-            'sulu_block_remove',
-            'sulu_media_upload',
-        ], $names);
+        $this->expectException(\LogicException::class);
+        $this->expectExceptionMessage('does_not_exist');
+
+        (new DangerousToolsPass())->process($container);
     }
 
     private function containerWithGatedDefinitions(): ContainerBuilder
     {
         $container = new ContainerBuilder();
         foreach (self::ALL_GATED_CLASSES as $class) {
-            $container->setDefinition($class, new Definition($class));
+            $container->register($class, $class)->addTag('mcp.tool');
         }
 
         return $container;
@@ -273,5 +251,19 @@ final class DangerousToolsPassTest extends TestCase
         foreach ($classes as $class) {
             self::assertTrue($container->hasDefinition($class), \sprintf('Expected "%s" to still be defined.', $class));
         }
+    }
+}
+
+/**
+ * Stand-in for a tool declared by another bundle entirely, gated by a category this
+ * package knows nothing about.
+ */
+final class ThirdPartyDangerousToolStub
+{
+    #[McpTool(name: 'third_party_tool', description: 'test double')]
+    #[DangerousTool('third_party_category')]
+    public function call(): array
+    {
+        return [];
     }
 }

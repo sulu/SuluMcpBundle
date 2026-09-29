@@ -13,16 +13,8 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler;
 
-use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
-use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentDeleteTool;
-use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentPublishTool;
-use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
-use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUploadTool;
-use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageMoveTool;
-use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageReorderTool;
-use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
-use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryDeleteTool;
-use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
+use Mcp\Capability\Attribute\McpTool;
+use Sulu\Mcp\Domain\Security\DangerousTool;
 use Symfony\Component\DependencyInjection\Compiler\CompilerPassInterface;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
@@ -31,82 +23,90 @@ use Symfony\Component\DependencyInjection\ContainerBuilder;
  * in bundle configuration. Must run before symfony/mcp-bundle's McpPass so the
  * removed services are absent from the `mcp.tool` tagged-service iterator.
  *
- * The disabled tool NAMES are additionally published as a container parameter and
- * consumed by `FilteredRegistry`, which refuses the same tools at registration
- * time -- covering any path that reaches the registry without going through DI.
+ * Categories are read from every `mcp.tool`-tagged service's `#[DangerousTool]`
+ * attribute rather than a fixed map, so a bundle other than this one can gate its
+ * own tools the same way. The disabled tool NAMES are additionally published as a
+ * container parameter and consumed by `FilteredRegistry`, which refuses the same
+ * tools at registration time -- covering any path that reaches the registry
+ * without going through DI. Computing that list here rather than in the bundle's
+ * `loadExtension()` is deliberate: `#[DangerousTool]` categories are only known
+ * once tool services are tagged, which happens after `loadExtension` runs.
  *
  * @internal
  */
 final class DangerousToolsPass implements CompilerPassInterface
 {
-    /**
-     * Map of dangerous-tools category -> [class-string => mcp tool name].
-     * The tool name matches each class's `#[McpTool(name: ...)]` attribute.
-     *
-     * @var array<string, array<class-string, string>>
-     */
-    private const TOOLS_BY_CATEGORY = [
-        'delete' => [
-            ContentDeleteTool::class => 'sulu_content_delete',
-            TagDeleteTool::class => 'sulu_tag_delete',
-            CategoryDeleteTool::class => 'sulu_category_delete',
-        ],
-        'publish' => [
-            ContentPublishTool::class => 'sulu_content_publish',
-            ContentUnpublishTool::class => 'sulu_content_unpublish',
-            PreviewLinkRevokeTool::class => 'sulu_preview_link_revoke',
-            PageMoveTool::class => 'sulu_page_move',
-            PageReorderTool::class => 'sulu_page_reorder',
-        ],
-        'block_remove' => [
-            BlockRemoveTool::class => 'sulu_block_remove',
-        ],
-        // Not destructive, but the only tool that makes the server fetch a model-supplied
-        // address. That egress is what the operator opts into here.
-        'media_upload' => [
-            MediaUploadTool::class => 'sulu_media_upload',
-        ],
-    ];
-
     public function process(ContainerBuilder $container): void
     {
-        foreach (self::TOOLS_BY_CATEGORY as $category => $tools) {
-            $parameter = \sprintf('sulu_mcp.dangerous_tools.%s', $category);
-            if (!$container->hasParameter($parameter) || true === $container->getParameter($parameter)) {
+        $config = $container->hasParameter('sulu_mcp.dangerous_tools')
+            ? $container->getParameter('sulu_mcp.dangerous_tools')
+            : [];
+        \assert(\is_array($config));
+
+        /** @var array<string, array<string, string>> $serviceIdsByCategory class-string|service id => tool name, keyed by category */
+        $serviceIdsByCategory = [];
+        foreach (\array_keys($container->findTaggedServiceIds('mcp.tool')) as $serviceId) {
+            $definition = $container->getDefinition($serviceId);
+            $class = $definition->getClass() ?? $serviceId;
+            if (!\class_exists($class)) {
                 continue;
             }
 
-            foreach (\array_keys($tools) as $class) {
-                if ($container->hasDefinition($class)) {
-                    $container->removeDefinition($class);
-                }
+            foreach (self::extractDangerousTools($class) as $category => $toolName) {
+                $serviceIdsByCategory[$category][$serviceId] = $toolName;
             }
         }
+
+        $unknownCategories = \array_diff(\array_keys($config), \array_keys($serviceIdsByCategory));
+        if ([] !== $unknownCategories) {
+            throw new \LogicException(\sprintf(
+                'Unknown dangerous_tools categor%s "%s": no tool declares #[DangerousTool] for %s.',
+                1 === \count($unknownCategories) ? 'y' : 'ies',
+                \implode('", "', $unknownCategories),
+                1 === \count($unknownCategories) ? 'it' : 'them',
+            ));
+        }
+
+        $disabledToolNames = [];
+        foreach ($serviceIdsByCategory as $category => $tools) {
+            if (true === ($config[$category] ?? false)) {
+                continue;
+            }
+
+            foreach ($tools as $serviceId => $toolName) {
+                if ($container->hasDefinition($serviceId)) {
+                    $container->removeDefinition($serviceId);
+                }
+                $disabledToolNames[] = $toolName;
+            }
+        }
+
+        $container->setParameter('sulu_mcp.disabled_tool_names', $disabledToolNames);
     }
 
     /**
-     * Resolve the list of MCP tool names that must be hidden given the bundle's
-     * `dangerous_tools` configuration. Called from the bundle extension to
-     * populate the `sulu_mcp.disabled_tool_names` parameter used by
-     * `FilteredRegistry`.
+     * @param class-string $class
      *
-     * @param array<string, bool> $dangerousToolsConfig
-     *
-     * @return list<string>
+     * @return iterable<string, string> tool name, keyed by category
      */
-    public static function resolveDisabledToolNames(array $dangerousToolsConfig): array
+    private static function extractDangerousTools(string $class): iterable
     {
-        $names = [];
-        foreach (self::TOOLS_BY_CATEGORY as $category => $tools) {
-            if (true === ($dangerousToolsConfig[$category] ?? false)) {
+        $reflection = new \ReflectionClass($class);
+        foreach ($reflection->getMethods() as $method) {
+            $toolAttrs = $method->getAttributes(McpTool::class);
+            $dangerousAttrs = $method->getAttributes(DangerousTool::class);
+            if ([] === $toolAttrs || [] === $dangerousAttrs) {
                 continue;
             }
 
-            foreach ($tools as $toolName) {
-                $names[] = $toolName;
-            }
-        }
+            $tool = $toolAttrs[0]->newInstance();
+            $dangerous = $dangerousAttrs[0]->newInstance();
 
-        return $names;
+            if (null === $tool->name) {
+                throw new \LogicException(\sprintf('Tool method in %s declares #[McpTool] without an explicit name.', $class));
+            }
+
+            yield $dangerous->category => $tool->name;
+        }
     }
 }

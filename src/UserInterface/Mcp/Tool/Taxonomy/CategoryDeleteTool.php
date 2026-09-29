@@ -17,6 +17,7 @@ use Mcp\Capability\Attribute\McpTool;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 
@@ -39,6 +40,7 @@ class CategoryDeleteTool
         description: 'Delete a category by ID. This removes the category and its children from the tree.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
+    #[DangerousTool('delete')]
     #[RequiresPermission(requirements: [
         new PermissionRequirement('sulu.settings.categories', PermissionTypes::VIEW),
         new PermissionRequirement('sulu.settings.categories', PermissionTypes::DELETE),

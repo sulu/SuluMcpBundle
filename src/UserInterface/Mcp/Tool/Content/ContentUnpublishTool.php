@@ -25,6 +25,7 @@ use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
@@ -60,6 +61,7 @@ class ContentUnpublishTool
         description: 'Unpublish a live page, article, or snippet — removes it from the website but keeps the draft. Set "type" to "page", "article", "snippet", or "product" when SuluProductBundle is installed. Unpublishing a product also unpublishes its variants in that locale. The content is preserved and can be re-published later with sulu_content_publish. Use this to take content offline without deleting it.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
+    #[DangerousTool('publish')]
     #[RequiresPermission(
         requirements: [
             new PermissionRequirement('#context#', PermissionTypes::EDIT),

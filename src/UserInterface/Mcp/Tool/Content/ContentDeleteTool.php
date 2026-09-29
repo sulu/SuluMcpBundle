@@ -26,6 +26,7 @@ use Sulu\Mcp\Application\Security\PageDescendantPermissionChecker;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
+use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
@@ -62,6 +63,7 @@ class ContentDeleteTool
         description: 'Permanently delete a page, article, or snippet by UUID. Set "type" to "page", "article", "snippet", or "product" when SuluProductBundle is installed. Removes both draft and published versions — this cannot be undone. For pages with children, set forceRemoveChildren=true to delete the whole subtree (ignored for articles/snippets). Deleting a product of type "product_with_variants" also deletes every variant under it — there is no separate confirmation flag for that, so check sulu_product_variant_list first. Snippets may be referenced by other content; deleting one removes that shared content everywhere it is used.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
+    #[DangerousTool('delete')]
     #[RequiresPermission(
         requirements: [
             new PermissionRequirement('#context#', PermissionTypes::EDIT),
