@@ -15,252 +15,51 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Mcp\Tool\Product;
 
 use CmsIg\Seal\Adapter\SearcherInterface;
 use CmsIg\Seal\EngineInterface;
-use CmsIg\Seal\Schema\Field\FloatField;
 use CmsIg\Seal\Schema\Field\IdentifierField;
-use CmsIg\Seal\Schema\Field\ObjectField;
-use CmsIg\Seal\Schema\Field\TextField;
 use CmsIg\Seal\Schema\Index;
 use CmsIg\Seal\Schema\Schema;
-use CmsIg\Seal\Search\Condition\EqualCondition;
-use CmsIg\Seal\Search\Condition\GreaterThanEqualCondition;
-use CmsIg\Seal\Search\Condition\InCondition;
-use CmsIg\Seal\Search\Condition\LessThanEqualCondition;
 use CmsIg\Seal\Search\Result;
-use CmsIg\Seal\Search\Search;
 use CmsIg\Seal\Search\SearchBuilder;
 use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversClass;
-use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\Attributes\Group;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
-use Prophecy\Prophecy\ObjectProphecy;
+use Sulu\Mcp\Application\Search\ProductSearch;
 use Sulu\Mcp\Application\Search\WebsiteSearch;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductSearchTool;
-use Sulu\Product\Infrastructure\Sulu\Search\Visitor\WebsiteProductAttributesReindexProviderEnhancer;
 
+/**
+ * ProductSearch (final, so Prophecy can't double it directly) is real here, built over a
+ * mocked SEAL engine and an empty schema; ProductSearchTest covers its actual search behavior
+ * in depth, this just proves the adapter threads every argument to it in the right order.
+ */
 #[CoversClass(ProductSearchTool::class)]
 #[Group('product')]
 final class ProductSearchToolTest extends TestCase
 {
     use ProphecyTrait;
 
-    /** @var ObjectProphecy<EngineInterface> */
-    private ObjectProphecy $engine;
-
-    /** @var ObjectProphecy<SearcherInterface> */
-    private ObjectProphecy $searcher;
-
-    protected function setUp(): void
+    public function testSearchDelegatesToProductSearch(): void
     {
-        $this->engine = $this->prophesize(EngineInterface::class);
-        $this->searcher = $this->prophesize(SearcherInterface::class);
-    }
+        $engine = $this->prophesize(EngineInterface::class);
+        $searcher = $this->prophesize(SearcherInterface::class);
 
-    /**
-     * Pins the duplicated sanitization/encoding against
-     * WebsiteProductAttributesReindexProviderEnhancer's real, public textValue()/numericField():
-     * a rename or a rule change there must fail this test instead of silently drifting.
-     */
-    #[DataProvider('attributeKeyProvider')]
-    public function testTextValueMatchesTheEnhancer(string $key, string $value): void
-    {
-        $expected = WebsiteProductAttributesReindexProviderEnhancer::textValue($key, $value);
+        $schema = new Schema(['website' => new Index('website', ['id' => new IdentifierField('id')])]);
+        $builder = (new SearchBuilder($schema, $searcher->reveal()))->index('website');
+        $engine->createSearchBuilder('website')->willReturn($builder);
+        $searcher->search(Argument::cetera())->willReturn(Result::createEmpty());
 
-        $this->assertSame($expected, $this->invokeTextValue($key, $value));
-    }
+        $productSearch = new ProductSearch(new WebsiteSearch($engine->reveal()), $schema);
+        $tool = new ProductSearchTool($productSearch);
 
-    #[DataProvider('attributeKeyProvider')]
-    public function testNumericFieldMatchesTheEnhancer(string $key): void
-    {
-        $expected = WebsiteProductAttributesReindexProviderEnhancer::numericField($key);
+        // No structured filters, so the empty schema (no "product" field) is never rejected.
+        $result = $tool->search('en', 'connector', 'example', null, null, null, 2, 10);
 
-        $this->assertSame($expected, $this->invokeSanitize($key));
-    }
-
-    /**
-     * @return list<array{0: string, 1: string}>
-     */
-    public static function attributeKeyProvider(): array
-    {
-        return [
-            'plain key' => ['colour', 'red'],
-            'digit-prefixed key' => ['1st-pin', 'xlr'],
-            'already sanitized key' => ['current_rating', '16'],
-            'dotted key' => ['a.b', 'x'],
-            'non-ascii key' => ['Ärger', 'x'],
-        ];
-    }
-
-    public function testSearchAlwaysFiltersByProductResourceKey(): void
-    {
-        $tool = $this->tool($this->schemaWithoutProductField());
-        $builder = $this->searchBuilder($this->schemaWithoutProductField());
-        $this->engine->createSearchBuilder('website')->willReturn($builder);
-
-        $this->searcher
-            ->search(Argument::that(fn (Search $search): bool => $this->hasEqualCondition($search, 'resourceKey', 'products')))
-            ->shouldBeCalledOnce()
-            ->willReturn(Result::createEmpty());
-
-        $tool->search('en', 'connector');
-    }
-
-    public function testSearchAppliesWebspaceAndFamilyFilters(): void
-    {
-        $tool = $this->tool($this->schemaWithProductField());
-        $builder = $this->searchBuilder($this->schemaWithProductField());
-        $this->engine->createSearchBuilder('website')->willReturn($builder);
-
-        $this->searcher
-            ->search(Argument::that(function(Search $search): bool {
-                return $this->hasEqualCondition($search, 'webspaces', 'example')
-                    && $this->hasEqualCondition($search, 'product.productFamilyId', 'family-uuid');
-            }))
-            ->shouldBeCalledOnce()
-            ->willReturn(Result::createEmpty());
-
-        $tool->search('en', null, 'example', 'family-uuid');
-    }
-
-    public function testSearchBuildsOptionFilterFromSanitizedKeyAndRawOptionKey(): void
-    {
-        $tool = $this->tool($this->schemaWithProductField());
-        $builder = $this->searchBuilder($this->schemaWithProductField());
-        $this->engine->createSearchBuilder('website')->willReturn($builder);
-
-        $this->searcher
-            ->search(Argument::that(function(Search $search): bool {
-                foreach ($search->filters as $filter) {
-                    if ($filter instanceof InCondition
-                        && 'product.attributes_text_values' === $filter->field
-                        && ['colour:red', 'colour:black'] === $filter->values
-                    ) {
-                        return true;
-                    }
-                }
-
-                return false;
-            }))
-            ->shouldBeCalledOnce()
-            ->willReturn(Result::createEmpty());
-
-        $tool->search('en', null, null, null, ['colour' => ['red', 'black']]);
-    }
-
-    public function testSearchBuildsRangeFilterForNumericAttribute(): void
-    {
-        $schema = $this->schemaWithProductField(['current_rating' => new FloatField('current_rating', multiple: true, filterable: true)]);
-        $tool = $this->tool($schema);
-        $builder = $this->searchBuilder($schema);
-        $this->engine->createSearchBuilder('website')->willReturn($builder);
-
-        $this->searcher
-            ->search(Argument::that(function(Search $search): bool {
-                $min = null;
-                $max = null;
-                foreach ($search->filters as $filter) {
-                    if ($filter instanceof GreaterThanEqualCondition && 'product.attributes_numeric_values.current_rating' === $filter->field) {
-                        $min = $filter->value;
-                    }
-                    if ($filter instanceof LessThanEqualCondition && 'product.attributes_numeric_values.current_rating' === $filter->field) {
-                        $max = $filter->value;
-                    }
-                }
-
-                return 10.0 === $min && 20.0 === $max;
-            }))
-            ->shouldBeCalledOnce()
-            ->willReturn(Result::createEmpty());
-
-        $result = $tool->search('en', null, null, null, null, ['current_rating' => ['min' => 10, 'max' => 20]]);
-
-        $this->assertArrayNotHasKey('error', $result);
-    }
-
-    public function testSearchParsesADateRangeBoundAsAUtcMidnightTimestamp(): void
-    {
-        $schema = $this->schemaWithProductField(['available_from' => new FloatField('available_from', multiple: true, filterable: true)]);
-        $tool = $this->tool($schema);
-        $builder = $this->searchBuilder($schema);
-        $this->engine->createSearchBuilder('website')->willReturn($builder);
-
-        $expected = (float) (new \DateTimeImmutable('2024-01-01', new \DateTimeZone('UTC')))->getTimestamp();
-
-        $this->searcher
-            ->search(Argument::that(function(Search $search) use ($expected): bool {
-                foreach ($search->filters as $filter) {
-                    if ($filter instanceof GreaterThanEqualCondition
-                        && 'product.attributes_numeric_values.available_from' === $filter->field
-                    ) {
-                        return $expected === $filter->value;
-                    }
-                }
-
-                return false;
-            }))
-            ->shouldBeCalledOnce()
-            ->willReturn(Result::createEmpty());
-
-        $tool->search('en', null, null, null, null, ['available_from' => ['min' => '2024-01-01']]);
-    }
-
-    public function testSearchRejectsARangeForANonFilterableAttribute(): void
-    {
-        $tool = $this->tool($this->schemaWithProductField());
-
-        $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
-
-        $result = $tool->search('en', null, null, null, null, ['unknown_key' => ['min' => 1]]);
-
-        $this->assertSame('"unknown_key" is not a filterable number or date attribute.', $result['error']);
-    }
-
-    public function testSearchRejectsStructuredFiltersWhenTheProductFieldIsNotIndexed(): void
-    {
-        $tool = $this->tool($this->schemaWithoutProductField());
-
-        $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
-
-        $result = $tool->search('en', null, null, 'family-uuid');
-
-        $this->assertSame('Product attribute filtering is not indexed.', $result['error']);
-    }
-
-    public function testSearchAllowsAPlainQueryWhenTheProductFieldIsNotIndexed(): void
-    {
-        $tool = $this->tool($this->schemaWithoutProductField());
-        $builder = $this->searchBuilder($this->schemaWithoutProductField());
-        $this->engine->createSearchBuilder('website')->willReturn($builder);
-
-        $this->searcher->search(Argument::cetera())->shouldBeCalledOnce()->willReturn(Result::createEmpty());
-
-        $result = $tool->search('en', 'connector');
-
-        $this->assertArrayNotHasKey('error', $result);
-    }
-
-    public function testSearchRejectsEmptyOptionsForAnAttribute(): void
-    {
-        $tool = $this->tool($this->schemaWithProductField());
-
-        $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
-
-        $result = $tool->search('en', null, null, null, ['colour' => []]);
-
-        $this->assertSame('Invalid options for attribute "colour".', $result['error']);
-    }
-
-    public function testSearchRejectsAnUnparsableRangeBound(): void
-    {
-        $tool = $this->tool($this->schemaWithProductField(['current_rating' => new FloatField('current_rating', multiple: true, filterable: true)]));
-
-        $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
-
-        $result = $tool->search('en', null, null, null, null, ['current_rating' => ['min' => 'not a number']]);
-
-        $this->assertSame('Invalid "min" for attribute "current_rating".', $result['error']);
+        $this->assertSame(2, $result['page']);
+        $this->assertSame(10, $result['limit']);
+        $this->assertArrayHasKey('results', $result);
     }
 
     public function testSearchMethodHasMcpToolAttribute(): void
@@ -272,70 +71,5 @@ final class ProductSearchToolTest extends TestCase
 
         $instance = $attributes[0]->newInstance();
         $this->assertSame('sulu_product_search', $instance->name);
-    }
-
-    private function tool(Schema $schema): ProductSearchTool
-    {
-        return new ProductSearchTool(new WebsiteSearch($this->engine->reveal()), $schema);
-    }
-
-    /**
-     * @param array<string, FloatField> $numericFields
-     */
-    private function schemaWithProductField(array $numericFields = []): Schema
-    {
-        $productField = new ObjectField('product', [
-            'productFamilyId' => new TextField('productFamilyId', searchable: false, filterable: true),
-            'attributes_text_values' => new TextField('attributes_text_values', multiple: true, searchable: false, filterable: true),
-            'attributes_numeric_values' => new ObjectField('attributes_numeric_values', $numericFields),
-        ]);
-
-        return new Schema(['website' => new Index('website', [
-            'id' => new IdentifierField('id'),
-            'webspaces' => new TextField('webspaces', multiple: true, searchable: false, filterable: true),
-            'resourceKey' => new TextField('resourceKey', searchable: false, filterable: true),
-            'product' => $productField,
-        ])]);
-    }
-
-    private function schemaWithoutProductField(): Schema
-    {
-        return new Schema(['website' => new Index('website', [
-            'id' => new IdentifierField('id'),
-            'webspaces' => new TextField('webspaces', multiple: true, searchable: false, filterable: true),
-            'resourceKey' => new TextField('resourceKey', searchable: false, filterable: true),
-        ])]);
-    }
-
-    private function searchBuilder(Schema $schema): SearchBuilder
-    {
-        return (new SearchBuilder($schema, $this->searcher->reveal()))->index('website');
-    }
-
-    private function hasEqualCondition(Search $search, string $field, string $value): bool
-    {
-        foreach ($search->filters as $filter) {
-            if ($filter instanceof EqualCondition && $field === $filter->field && $value === $filter->value) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private function invokeTextValue(string $attributeKey, string $optionKey): string
-    {
-        $method = new \ReflectionMethod(ProductSearchTool::class, 'textValue');
-
-        /** @var string */
-        return $method->invoke(null, $attributeKey, $optionKey);
-    }
-
-    private function invokeSanitize(string $key): string
-    {
-        $method = new \ReflectionMethod(ProductSearchTool::class, 'sanitizeAttributeKey');
-
-        /** @var string */
-        return $method->invoke(null, $key);
     }
 }
