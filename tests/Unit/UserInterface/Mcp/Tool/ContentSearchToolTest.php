@@ -20,7 +20,6 @@ use CmsIg\Seal\Schema\Index;
 use CmsIg\Seal\Schema\Schema;
 use CmsIg\Seal\Search\Condition\EqualCondition;
 use CmsIg\Seal\Search\Condition\InCondition;
-use CmsIg\Seal\Search\Condition\NotEqualCondition;
 use CmsIg\Seal\Search\Result;
 use CmsIg\Seal\Search\Search;
 use CmsIg\Seal\Search\SearchBuilder;
@@ -329,9 +328,9 @@ final class ContentSearchToolTest extends TestCase
         $this->searcher
             ->search(Argument::that(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
-                    if ($filter instanceof NotEqualCondition
+                    if ($filter instanceof InCondition
                         && 'resourceKey' === $filter->field
-                        && 'products' === $filter->value
+                        && ['pages', 'articles'] === $filter->values
                     ) {
                         return true;
                     }
@@ -357,69 +356,9 @@ final class ContentSearchToolTest extends TestCase
         $this->searcher
             ->search(Argument::that(function(Search $search): bool {
                 foreach ($search->filters as $filter) {
-                    if ($filter instanceof NotEqualCondition && 'resourceKey' === $filter->field) {
-                        return false;
-                    }
-                }
-
-                return true;
-            }))
-            ->shouldBeCalledOnce()
-            ->willReturn($this->createEmptyResult());
-
-        $tool->search('hello', 'en');
-    }
-
-    public function testTypeProductsIsRejectedWhenProductsAreNotIndexed(): void
-    {
-        // Default construction (productsIndexed=false), same as when SuluProductBundle isn't installed.
-        $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
-
-        $result = $this->tool->search('hello', 'en', null, 'products');
-
-        $this->assertSame(
-            [
-                'error' => 'Unsupported content type "product".',
-                'hint' => 'Requires SuluProductBundle to be installed.',
-            ],
-            $result,
-        );
-    }
-
-    public function testTypeProductsIsDeniedWithoutProductPermission(): void
-    {
-        $this->permissionChecker->has('sulu.product.products', PermissionTypes::VIEW, 'en')->willReturn(false);
-
-        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal(), true);
-
-        $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
-
-        $result = $tool->search('hello', 'en', null, 'products');
-
-        $this->assertSame(
-            [
-                'error' => 'Permission denied: no accessible security context grants the required permissions.',
-                'hint' => 'Requires VIEW on "sulu.product.products".',
-            ],
-            $result,
-        );
-    }
-
-    public function testTypeProductsSearchesWithProductPermission(): void
-    {
-        $builder = $this->createSearchBuilder();
-
-        $this->engine->createSearchBuilder('website')->willReturn($builder);
-        $this->permissionChecker->has('sulu.product.products', PermissionTypes::VIEW, 'en')->willReturn(true);
-
-        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal(), true);
-
-        $this->searcher
-            ->search(Argument::that(function(Search $search): bool {
-                foreach ($search->filters as $filter) {
-                    if ($filter instanceof EqualCondition
+                    if ($filter instanceof InCondition
                         && 'resourceKey' === $filter->field
-                        && 'products' === $filter->value
+                        && ['pages', 'articles', 'products'] === $filter->values
                     ) {
                         return true;
                     }
@@ -430,6 +369,6 @@ final class ContentSearchToolTest extends TestCase
             ->shouldBeCalledOnce()
             ->willReturn($this->createEmptyResult());
 
-        $tool->search('hello', 'en', null, 'products');
+        $tool->search('hello', 'en');
     }
 }

@@ -84,28 +84,14 @@ class ContentSearchTool
             return ['results' => [], 'total' => 0, 'hint' => \sprintf('Webspace "%s" is not readable with your permissions.', $webspace)];
         }
 
-        // Products land in the same `website` index as pages/articles, indexed whenever
-        // SuluProductBundle is installed regardless of "additional_product_filters". An untyped
-        // search or an explicit type="products" would otherwise leak them to anyone with
-        // webspace VIEW. The product security context is separate and has to be checked here.
         $resourceKey = null !== $type ? (self::TYPE_MAP[$type] ?? $type) : null;
 
-        if (self::PRODUCT_RESOURCE_KEY === $resourceKey && !$this->productsIndexed) {
-            return [
-                'error' => 'Unsupported content type "product".',
-                'hint' => 'Requires SuluProductBundle to be installed.',
-            ];
-        }
-
+        // Products land in the same `website` index as pages/articles, indexed whenever
+        // SuluProductBundle is installed regardless of "additional_product_filters". An untyped
+        // search would otherwise leak them to anyone with webspace VIEW, so they're allowlisted
+        // in alongside pages/articles only once the caller also holds the product security context.
         $canSeeProducts = $this->productsIndexed
             && $this->permissionChecker->has(self::PRODUCT_SECURITY_CONTEXT, PermissionTypes::VIEW, $locale);
-
-        if (self::PRODUCT_RESOURCE_KEY === $resourceKey && !$canSeeProducts) {
-            return [
-                'error' => 'Permission denied: no accessible security context grants the required permissions.',
-                'hint' => \sprintf('Requires VIEW on "%s".', self::PRODUCT_SECURITY_CONTEXT),
-            ];
-        }
 
         try {
             $builder = $this->engine->createSearchBuilder('website')
@@ -117,8 +103,12 @@ class ContentSearchTool
 
             if (null !== $resourceKey) {
                 $builder->addFilter(Condition::equal('resourceKey', $resourceKey));
-            } elseif (!$canSeeProducts) {
-                $builder->addFilter(Condition::notEqual('resourceKey', self::PRODUCT_RESOURCE_KEY));
+            } else {
+                $visibleResourceKeys = \array_values(self::TYPE_MAP);
+                if ($canSeeProducts) {
+                    $visibleResourceKeys[] = self::PRODUCT_RESOURCE_KEY;
+                }
+                $builder->addFilter(Condition::in('resourceKey', $visibleResourceKeys));
             }
 
             $result = $builder->getResult();
