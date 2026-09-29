@@ -17,6 +17,7 @@ use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Product\VariantParentResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ProductAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ProductVariantAdminLinkProvider;
+use Sulu\Mcp\UserInterface\Mcp\Tool\ContentSearchTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\AttributeListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductFamilyListTool;
@@ -40,6 +41,12 @@ return static function(ContainerConfigurator $container): void {
 
     $services->set(ContentTypeResolver::class)
         ->arg('$productRepository', new Reference(ProductRepositoryInterface::class));
+
+    // Redefines the whole service (a redefinition replaces it entirely, so $engine is bound
+    // again here too) to also flag products as indexed and searchable.
+    $services->set(ContentSearchTool::class)
+        ->arg('$engine', new Reference('cmsig_seal.engine.default'))
+        ->arg('$productsIndexed', true);
 
     $services->set(VariantParentResolver::class);
 

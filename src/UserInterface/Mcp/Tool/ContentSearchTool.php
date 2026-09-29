@@ -19,6 +19,7 @@ use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
@@ -33,9 +34,16 @@ class ContentSearchTool
         'article' => 'articles',
     ];
 
+    // Spelled out literally, not via ProductInterface::RESOURCE_KEY/ProductAdmin::SECURITY_CONTEXT:
+    // this class is registered whether or not SuluProductBundle is installed.
+    private const PRODUCT_RESOURCE_KEY = 'products';
+    private const PRODUCT_SECURITY_CONTEXT = 'sulu.product.products';
+
     public function __construct(
         private readonly EngineInterface $engine,
         private readonly WebspacePermissionResolver $webspacePermissionResolver,
+        private readonly ToolPermissionCheckerInterface $permissionChecker,
+        private readonly bool $productsIndexed = false,
     ) {
     }
 
@@ -65,15 +73,38 @@ class ContentSearchTool
     ): array {
         // The `website` index carries only `webspaces`, no securityContext,
         // so per-object ACL filtering isn't possible here. Constraining to the webspaces
-        // the caller may EDIT is the best available mirror.
+        // the caller may VIEW is the best available mirror.
         $permitted = $this->webspacePermissionResolver->permittedWebspaceKeys(PermissionTypes::VIEW, $locale);
         if ([] === $permitted) {
-            return ['items' => [], 'total' => 0, 'hint' => 'No webspaces are readable with your permissions.'];
+            return ['results' => [], 'total' => 0, 'hint' => 'No webspaces are readable with your permissions.'];
         }
 
         $effective = null !== $webspace ? \array_values(\array_intersect($permitted, [$webspace])) : $permitted;
         if ([] === $effective) {
-            return ['items' => [], 'total' => 0, 'hint' => \sprintf('Webspace "%s" is not readable with your permissions.', $webspace)];
+            return ['results' => [], 'total' => 0, 'hint' => \sprintf('Webspace "%s" is not readable with your permissions.', $webspace)];
+        }
+
+        // Products land in the same `website` index as pages/articles, indexed whenever
+        // SuluProductBundle is installed regardless of "additional_product_filters". An untyped
+        // search or an explicit type="products" would otherwise leak them to anyone with
+        // webspace VIEW. The product security context is separate and has to be checked here.
+        $resourceKey = null !== $type ? (self::TYPE_MAP[$type] ?? $type) : null;
+
+        if (self::PRODUCT_RESOURCE_KEY === $resourceKey && !$this->productsIndexed) {
+            return [
+                'error' => 'Unsupported content type "product".',
+                'hint' => 'Requires SuluProductBundle to be installed.',
+            ];
+        }
+
+        $canSeeProducts = $this->productsIndexed
+            && $this->permissionChecker->has(self::PRODUCT_SECURITY_CONTEXT, PermissionTypes::VIEW, $locale);
+
+        if (self::PRODUCT_RESOURCE_KEY === $resourceKey && !$canSeeProducts) {
+            return [
+                'error' => 'Permission denied: no accessible security context grants the required permissions.',
+                'hint' => \sprintf('Requires VIEW on "%s".', self::PRODUCT_SECURITY_CONTEXT),
+            ];
         }
 
         try {
@@ -84,9 +115,10 @@ class ContentSearchTool
                 ->limit($limit)
                 ->offset(($page - 1) * $limit);
 
-            if (null !== $type) {
-                $resourceKey = self::TYPE_MAP[$type] ?? $type;
+            if (null !== $resourceKey) {
                 $builder->addFilter(Condition::equal('resourceKey', $resourceKey));
+            } elseif (!$canSeeProducts) {
+                $builder->addFilter(Condition::notEqual('resourceKey', self::PRODUCT_RESOURCE_KEY));
             }
 
             $result = $builder->getResult();
