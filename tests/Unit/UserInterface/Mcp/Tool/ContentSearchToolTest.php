@@ -37,6 +37,8 @@ use Sulu\Component\Webspace\Webspace;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 use Sulu\Mcp\UserInterface\Mcp\Tool\ContentSearchTool;
 
@@ -54,6 +56,8 @@ final class ContentSearchToolTest extends TestCase
     /** @var ObjectProphecy<ToolPermissionCheckerInterface> */
     private ObjectProphecy $permissionChecker;
 
+    private ArticleSecurityContextResolver $articleContextResolver;
+
     private ContentSearchTool $tool;
 
     protected function setUp(): void
@@ -61,11 +65,15 @@ final class ContentSearchToolTest extends TestCase
         $this->engine = $this->prophesize(EngineInterface::class);
         $this->searcher = $this->prophesize(SearcherInterface::class);
         $this->permissionChecker = $this->prophesize(ToolPermissionCheckerInterface::class);
+        $this->articleContextResolver = new ArticleSecurityContextResolver(TestGroupProvider::singleGroup());
         // Grants EDIT on 'example' so existing happy-path tests are unaffected by the webspace filter.
+        // Grants VIEW on the article context so existing happy-path tests are unaffected by the
+        // article gate; tests that need to exercise the deny path re-stub this to false.
         // productsIndexed defaults to false, same as when SuluProductBundle isn't installed. None
         // of the existing tests below exercise a product resourceKey, so $permissionChecker->has()
-        // is never reached (short-circuited) and needs no stub.
-        $this->tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal());
+        // for the product context is never reached (short-circuited) and needs no stub.
+        $this->permissionChecker->has('sulu.article.articles', PermissionTypes::VIEW, 'en')->willReturn(true);
+        $this->tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal(), $this->articleContextResolver);
     }
 
     /**
@@ -236,7 +244,7 @@ final class ContentSearchToolTest extends TestCase
 
     public function testSearchReturnsEmptyResultsWhenNoWebspaceIsPermitted(): void
     {
-        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver([]), $this->permissionChecker->reveal());
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver([]), $this->permissionChecker->reveal(), $this->articleContextResolver);
 
         $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
 
@@ -250,7 +258,7 @@ final class ContentSearchToolTest extends TestCase
 
     public function testSearchReturnsEmptyResultsWhenRequestedWebspaceIsNotPermitted(): void
     {
-        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal());
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal(), $this->articleContextResolver);
 
         $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
 
@@ -266,7 +274,7 @@ final class ContentSearchToolTest extends TestCase
     {
         $builder = $this->createSearchBuilder();
 
-        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example', 'blog']), $this->permissionChecker->reveal());
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example', 'blog']), $this->permissionChecker->reveal(), $this->articleContextResolver);
 
         $this->engine->createSearchBuilder('website')->willReturn($builder);
 
@@ -293,7 +301,7 @@ final class ContentSearchToolTest extends TestCase
     {
         $builder = $this->createSearchBuilder();
 
-        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example', 'blog']), $this->permissionChecker->reveal());
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example', 'blog']), $this->permissionChecker->reveal(), $this->articleContextResolver);
 
         $this->engine->createSearchBuilder('website')->willReturn($builder);
 
@@ -323,7 +331,7 @@ final class ContentSearchToolTest extends TestCase
         $this->engine->createSearchBuilder('website')->willReturn($builder);
         $this->permissionChecker->has('sulu.product.products', PermissionTypes::VIEW, 'en')->willReturn(false);
 
-        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal(), true);
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal(), $this->articleContextResolver, true);
 
         $this->searcher
             ->search(Argument::that(function(Search $search): bool {
@@ -351,7 +359,7 @@ final class ContentSearchToolTest extends TestCase
         $this->engine->createSearchBuilder('website')->willReturn($builder);
         $this->permissionChecker->has('sulu.product.products', PermissionTypes::VIEW, 'en')->willReturn(true);
 
-        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal(), true);
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal(), $this->articleContextResolver, true);
 
         $this->searcher
             ->search(Argument::that(function(Search $search): bool {
@@ -359,6 +367,53 @@ final class ContentSearchToolTest extends TestCase
                     if ($filter instanceof InCondition
                         && 'resourceKey' === $filter->field
                         && ['pages', 'articles', 'products'] === $filter->values
+                    ) {
+                        return true;
+                    }
+                }
+
+                return false;
+            }))
+            ->shouldBeCalledOnce()
+            ->willReturn($this->createEmptyResult());
+
+        $tool->search('hello', 'en');
+    }
+
+    public function testTypeArticleIsDeniedWithoutArticlePermission(): void
+    {
+        $this->permissionChecker->has('sulu.article.articles', PermissionTypes::VIEW, 'en')->willReturn(false);
+
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal(), $this->articleContextResolver);
+
+        $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $tool->search('hello', 'en', null, 'article');
+
+        $this->assertSame(
+            [
+                'error' => 'Permission denied: no accessible security context grants the required permissions.',
+                'hint' => 'Requires VIEW on "sulu.article.articles" (or the matching article group context).',
+            ],
+            $result,
+        );
+    }
+
+    public function testUntypedSearchExcludesArticlesWithoutArticlePermission(): void
+    {
+        $builder = $this->createSearchBuilder();
+
+        $this->engine->createSearchBuilder('website')->willReturn($builder);
+        $this->permissionChecker->has('sulu.article.articles', PermissionTypes::VIEW, 'en')->willReturn(false);
+
+        $tool = new ContentSearchTool($this->engine->reveal(), $this->webspaceResolver(['example']), $this->permissionChecker->reveal(), $this->articleContextResolver);
+
+        $this->searcher
+            ->search(Argument::that(function(Search $search): bool {
+                foreach ($search->filters as $filter) {
+                    if ($filter instanceof InCondition
+                        && 'resourceKey' === $filter->field
+                        && ['pages'] === $filter->values
                     ) {
                         return true;
                     }

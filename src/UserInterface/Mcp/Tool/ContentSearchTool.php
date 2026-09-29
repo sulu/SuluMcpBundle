@@ -23,6 +23,7 @@ use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
+use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 
 /**
  * @internal
@@ -39,10 +40,13 @@ class ContentSearchTool
     private const PRODUCT_RESOURCE_KEY = 'products';
     private const PRODUCT_SECURITY_CONTEXT = 'sulu.product.products';
 
+    private const ARTICLE_RESOURCE_KEY = 'articles';
+
     public function __construct(
         private readonly EngineInterface $engine,
         private readonly WebspacePermissionResolver $webspacePermissionResolver,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
+        private readonly ArticleSecurityContextResolver $articleContextResolver,
         private readonly bool $productsIndexed = false,
     ) {
     }
@@ -86,10 +90,20 @@ class ContentSearchTool
 
         $resourceKey = null !== $type ? (self::TYPE_MAP[$type] ?? $type) : null;
 
-        // Products land in the same `website` index as pages/articles, indexed whenever
-        // SuluProductBundle is installed regardless of "additional_product_filters". An untyped
-        // search would otherwise leak them to anyone with webspace VIEW, so they're allowlisted
-        // in alongside pages/articles only once the caller also holds the product security context.
+        // Pages, articles and products all land in the same `website` index. A page's
+        // security context is its webspace, already checked above. Articles and products
+        // each carry their own, separate security context, so both need an extra check
+        // here: an untyped search only surfaces them once the caller holds it, and an
+        // explicit type="article" is refused outright rather than silently filtered away.
+        $canSeeArticles = $this->hasArticlePermission($locale);
+
+        if (self::ARTICLE_RESOURCE_KEY === $resourceKey && !$canSeeArticles) {
+            return [
+                'error' => 'Permission denied: no accessible security context grants the required permissions.',
+                'hint' => 'Requires VIEW on "sulu.article.articles" (or the matching article group context).',
+            ];
+        }
+
         $canSeeProducts = $this->productsIndexed
             && $this->permissionChecker->has(self::PRODUCT_SECURITY_CONTEXT, PermissionTypes::VIEW, $locale);
 
@@ -104,7 +118,10 @@ class ContentSearchTool
             if (null !== $resourceKey) {
                 $builder->addFilter(Condition::equal('resourceKey', $resourceKey));
             } else {
-                $visibleResourceKeys = \array_values(self::TYPE_MAP);
+                $visibleResourceKeys = [self::TYPE_MAP['page']];
+                if ($canSeeArticles) {
+                    $visibleResourceKeys[] = self::ARTICLE_RESOURCE_KEY;
+                }
                 if ($canSeeProducts) {
                     $visibleResourceKeys[] = self::PRODUCT_RESOURCE_KEY;
                 }
@@ -139,5 +156,21 @@ class ContentSearchTool
                 'hint' => 'Only published content is indexed. Verify the locale is correct and type is "page" or "article" (or omit to search both).',
             ];
         }
+    }
+
+    /**
+     * The `website` index carries no template, so per-group filtering the way
+     * ArticleListTool does isn't possible here: VIEW on any one article group is
+     * enough to see article results at all.
+     */
+    private function hasArticlePermission(string $locale): bool
+    {
+        foreach ($this->articleContextResolver->candidates() as $context) {
+            if ($this->permissionChecker->has($context, PermissionTypes::VIEW, $locale)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }
