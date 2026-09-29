@@ -138,7 +138,7 @@ final class DangerousToolsPass implements CompilerPassInterface
         $reflection = new \ReflectionMethod($class, $method);
 
         $attributes = $reflection->getAttributes($attributeClass, \ReflectionAttribute::IS_INSTANCEOF);
-        if ([] === $attributes && '__invoke' === $method) {
+        if ([] === $attributes) {
             $attributes = $reflection->getDeclaringClass()->getAttributes($attributeClass, \ReflectionAttribute::IS_INSTANCEOF);
         }
 

@@ -234,6 +234,18 @@ final class DangerousToolsPassTest extends TestCase
         self::assertSame(['invokable_tool'], $container->getParameter('sulu_mcp.disabled_tool_names'));
     }
 
+    public function testProcessGatesANamedMethodToolDeclaredOnTheClass(): void
+    {
+        $container = new ContainerBuilder();
+        $this->registerTool($container, ClassGatedNamedMethodToolStub::class, ClassGatedNamedMethodToolStub::class);
+        $container->setParameter('sulu_mcp.dangerous_tools', ['named_method_category' => false]);
+
+        (new DangerousToolsPass())->process($container);
+
+        self::assertFalse($container->hasDefinition(ClassGatedNamedMethodToolStub::class));
+        self::assertSame(['named_method_tool'], $container->getParameter('sulu_mcp.disabled_tool_names'));
+    }
+
     public function testProcessResolvesAClassGivenAsAParameter(): void
     {
         $container = new ContainerBuilder();
@@ -351,6 +363,19 @@ final class ThirdPartyDangerousToolStub
 final class InvokableDangerousToolStub
 {
     public function __invoke(): array
+    {
+        return [];
+    }
+}
+
+/**
+ * A class-level #[DangerousTool] on a class whose tool is a named method, not __invoke().
+ */
+#[DangerousTool('named_method_category')]
+final class ClassGatedNamedMethodToolStub
+{
+    #[McpTool(name: 'named_method_tool', description: 'test double')]
+    public function doSomething(): array
     {
         return [];
     }
