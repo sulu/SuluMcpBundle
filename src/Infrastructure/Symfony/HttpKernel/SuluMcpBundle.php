@@ -54,19 +54,6 @@ class SuluMcpBundle extends AbstractBundle
      */
     private const FALLBACK_VERSION = 'unknown';
 
-    /**
-     * Categories this bundle's own tools declare; an unlisted category defaults to false
-     * the same way, whether it comes from this bundle or from elsewhere.
-     *
-     * @var array<string, bool>
-     */
-    private const BUILT_IN_DANGEROUS_TOOLS_DEFAULTS = [
-        'delete' => false,
-        'publish' => false,
-        'block_remove' => false,
-        'media_upload' => false,
-    ];
-
     protected string $extensionAlias = 'sulu_mcp';
 
     public function getPath(): string
@@ -97,7 +84,8 @@ class SuluMcpBundle extends AbstractBundle
                 ->end()
                 ->arrayNode('dangerous_tools')
                     ->useAttributeAsKey('name')
-                    ->info('Opt-in flags for tools with hard-to-reverse side effects, keyed by the category each tool declares via #[DangerousTool] (built in: delete, publish, block_remove, media_upload). An unlisted category defaults to false; a listed one that no tool declares is a configuration error.')
+                    ->normalizeKeys(false)
+                    ->info('Enables tools with hard-to-reverse effects per #[DangerousTool] category (built in: delete, publish, block_remove, media_upload). Unlisted categories stay off; one that no tool declares fails the build.')
                     ->booleanPrototype()->end()
                 ->end()
                 ->arrayNode('media_upload')
@@ -158,20 +146,12 @@ class SuluMcpBundle extends AbstractBundle
         $builder->setParameter('sulu_mcp.server_url', $config['server_url']);
         $builder->setParameter('sulu_mcp.mcp_path', $config['mcp_path']);
         $builder->setParameter('sulu_mcp.oauth.scopes', self::SCOPES);
-        $builder->setParameter(
-            'sulu_mcp.dangerous_tools',
-            \array_replace(self::BUILT_IN_DANGEROUS_TOOLS_DEFAULTS, $config['dangerous_tools']),
-        );
+        $builder->setParameter('sulu_mcp.dangerous_tools', $config['dangerous_tools']);
 
         $builder->setParameter('sulu_mcp.media_upload.allowed_hosts', \array_map(
             static fn (string $host): string => \strtolower($host),
             $config['media_upload']['allowed_hosts'],
         ));
-
-        // Placeholder: DangerousToolsPass (added below) overwrites this with the real list once
-        // tool services are tagged, which happens after this method runs. Set here too so the
-        // parameter always exists, even before the compiler pass runs.
-        $builder->setParameter('sulu_mcp.disabled_tool_names', []);
 
         $container->import(\dirname(__DIR__, 4) . '/config/services.php');
 

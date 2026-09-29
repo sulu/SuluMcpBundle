@@ -77,7 +77,7 @@ final class SuluMcpBundleTest extends TestCase
         );
     }
 
-    public function testLoadMergesDangerousToolsConfigOverTheBuiltInDefaults(): void
+    public function testLoadKeepsTheDashesOfADangerousToolsCategory(): void
     {
         $container = $this->container();
 
@@ -89,38 +89,15 @@ final class SuluMcpBundleTest extends TestCase
                 'server_url' => 'https://sulu.example.com',
                 'dangerous_tools' => [
                     'delete' => true,
-                    'a_third_party_category' => true,
+                    'ai-generate' => true,
                 ],
             ],
         ], $container);
 
         self::assertSame(
-            [
-                'delete' => true,
-                'publish' => false,
-                'block_remove' => false,
-                'media_upload' => false,
-                'a_third_party_category' => true,
-            ],
+            ['delete' => true, 'ai-generate' => true],
             $container->getParameter('sulu_mcp.dangerous_tools'),
         );
-    }
-
-    /**
-     * DangerousToolsPass computes the actual disabled-tool-names list from #[DangerousTool]
-     * attributes on tagged services; loadExtension() cannot do that itself (see there), so this
-     * only pins the safe placeholder it must not skip setting.
-     */
-    public function testLoadDoesNotLeaveDisabledToolNamesUnset(): void
-    {
-        $container = $this->container();
-
-        $extension = (new SuluMcpBundle())->getContainerExtension();
-        self::assertNotNull($extension);
-
-        $extension->load([['server_url' => 'https://sulu.example.com']], $container);
-
-        self::assertTrue($container->hasParameter('sulu_mcp.disabled_tool_names'));
     }
 
     public function testLoadAppliesConfigurationDefaults(): void
@@ -134,10 +111,7 @@ final class SuluMcpBundleTest extends TestCase
 
         self::assertSame('/admin/mcp', $container->getParameter('sulu_mcp.mcp_path'));
         self::assertSame(['mcp:tools', 'mcp:resources'], $container->getParameter('sulu_mcp.oauth.scopes'));
-        self::assertSame(
-            ['delete' => false, 'publish' => false, 'block_remove' => false, 'media_upload' => false],
-            $container->getParameter('sulu_mcp.dangerous_tools'),
-        );
+        self::assertSame([], $container->getParameter('sulu_mcp.dangerous_tools'));
         self::assertSame([], $container->getParameter('sulu_mcp.media_upload.allowed_hosts'));
     }
 

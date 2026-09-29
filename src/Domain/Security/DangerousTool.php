@@ -14,13 +14,10 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Domain\Security;
 
 /**
- * Declares the "dangerous_tools" category that gates a tool method, additive to
- * `#[RequiresPermission]`: `DangerousToolsPass` removes the tool's service definition
- * entirely when its category is not enabled in configuration, rather than restricting
- * who may call it. A category is free-form and does not have to be declared anywhere
- * else; a config key with no matching category is rejected as a typo at compile time.
+ * Removes the tool from the container unless its `dangerous_tools` category is enabled.
+ * A configured category that no tool declares fails the build.
  */
-#[\Attribute(\Attribute::TARGET_METHOD)]
+#[\Attribute(\Attribute::TARGET_METHOD | \Attribute::TARGET_CLASS)]
 final readonly class DangerousTool
 {
     public function __construct(

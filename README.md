@@ -166,7 +166,7 @@ rather than a missing-tool error.
 
 Tools with hard-to-reverse effects are **disabled by default** and enabled per category through the `dangerous_tools`
 configuration. When a category is disabled its tools are removed from the container at compile time, so they never
-appear to a client at all. The three categories below are this bundle's own; a tool from another bundle can declare
+appear to a client at all. The four categories below are this bundle's own; a tool from another bundle can declare
 its own category with `#[DangerousTool('its_category')]` and gets the same opt-in gate, without any change here.
 
 ```yaml
