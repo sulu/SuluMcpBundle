@@ -41,7 +41,7 @@ class ContentSearchTool
     #[McpTool(
         name: 'sulu_content_search',
         title: 'Search Content',
-        description: 'Search published website content (articles, pages, and products when SuluProductBundle is installed) by keyword. Searches titles and full content text, including product code, family and attribute values as free text, not as a structured attribute filter. Use sulu_product_search for that. Returns matching items with their UUID and resource type. Use resourceKey to pick the right get tool (sulu_article_get, sulu_page_get, or sulu_product_get, which also resolves a variant) and resourceId as the UUID. Filter by type ("page", "article" or "product") to restrict results to one content type. Filter by webspace to scope results to one site. Only published content is searchable.',
+        description: 'Search published website content (articles, pages, and products when SuluProductBundle is installed) by keyword. Searches titles and full content text, including product code and family as free text, not a structured attribute filter. Returns matching items with their UUID and resource type. Use resourceKey to pick the right get tool (sulu_article_get, sulu_page_get, or sulu_product_get, which also resolves a variant) and resourceId as the UUID. Filter by type ("page", "article" or "product") to restrict results to one content type. Filter by webspace to scope results to one site. Only published content is searchable.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
