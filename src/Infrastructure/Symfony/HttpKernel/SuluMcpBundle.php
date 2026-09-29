@@ -18,6 +18,7 @@ use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
 use Sulu\Product\Infrastructure\Symfony\HttpKernel\SuluProductBundle;
+use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
 use Symfony\Component\Config\Definition\Configuration;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\Config\Definition\Processor;
@@ -178,6 +179,12 @@ class SuluMcpBundle extends AbstractBundle
         );
 
         $container->import(\dirname(__DIR__, 4) . '/config/services.php');
+
+        // Agent-side counterparts of the MCP tools, only importable once symfony/ai-agent's
+        // own #[AsTool] attribute class can be resolved.
+        if (ContainerBuilder::willBeAvailable('symfony/ai-agent', AsTool::class, ['sulu/mcp-bundle'])) {
+            $container->import(\dirname(__DIR__, 4) . '/config/services_agent.php');
+        }
 
         // Tools reach the registry only as mcp.tool-tagged services, so skipping the import
         // is all it takes to keep them out of an installation without SuluProductBundle.

@@ -53,10 +53,12 @@
         "phpstan/phpstan-symfony": "^2.0",
         "phpstan/phpstan-doctrine": "^2.0",
         "spaze/phpstan-disallowed-calls": "^4.7",
-        "phpspec/prophecy-phpunit": "^2.0"
+        "phpspec/prophecy-phpunit": "^2.0",
+        "symfony/ai-agent": "^0.14.1"
     },
     "suggest": {
-        "sulu/product-bundle": "Enables the sulu_product_* MCP tools and type=\"product\" on the unified content tools"
+        "sulu/product-bundle": "Enables the sulu_product_* MCP tools and type=\"product\" on the unified content tools",
+        "symfony/ai-agent": "Exposes sulu_content_search as an agent tool for symfony/ai-agent, in addition to MCP"
     },
     "autoload": {
         "psr-4": {
@@ -74,11 +76,11 @@
     "scripts": {
         "test": [
             "Composer\\Config::disableProcessTimeout",
-            "vendor/bin/phpunit --exclude-group product"
+            "vendor/bin/phpunit --exclude-group product,ai-agent"
         ],
         "test-with-product": [
             "Composer\\Config::disableProcessTimeout",
-            "vendor/bin/phpunit"
+            "vendor/bin/phpunit --exclude-group ai-agent"
         ],
         "test-with-coverage": "@test --coverage-php var/reports/coverage.cov --coverage-cobertura=var/cobertura-coverage.xml --coverage-html var/reports/html --log-junit var/reports/junit.xml",
         "bootstrap-test-environment": [
