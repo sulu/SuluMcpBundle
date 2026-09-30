@@ -161,7 +161,7 @@ final readonly class ArticleContentTypeExtension implements ContentTypeExtension
         return '';
     }
 
-    private function queryTemplateKey(ContentRichEntityInterface $aggregate, string $locale): ?string
+    private function queryTemplateKey(object $aggregate, string $locale): ?string
     {
         $dimensionContent = $this->entityManager->getRepository(ArticleDimensionContentInterface::class)->findOneBy([
             'article' => $aggregate,
