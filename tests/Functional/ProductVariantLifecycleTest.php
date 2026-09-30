@@ -49,7 +49,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 #[CoversNothing]
-#[Group('products')]
+#[Group('product')]
 final class ProductVariantLifecycleTest extends FunctionalTestCase
 {
     private const LOCALE = 'en';
