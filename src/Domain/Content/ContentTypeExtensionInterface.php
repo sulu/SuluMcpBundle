@@ -42,20 +42,9 @@ interface ContentTypeExtensionInterface
     public function getViewSecurityContexts(): array;
 
     /**
-     * $templateKey is only passed when {@see requiresResolvedContent()} is true.
+     * Resolves what it needs from the loaded draft aggregate itself, e.g. an article's template group.
      */
-    public function getEntitySecurityContext(object $aggregate, ?string $templateKey): string;
-
-    public function requiresResolvedContent(): bool;
-
-    public function getAclObjectType(): ?string;
-
-    public function getWebspaceKey(object $aggregate): ?string;
-
-    /**
-     * Throws a PermissionDeniedException, called after the permission on the entity itself passed.
-     */
-    public function assertCanRemove(string $uuid): void;
+    public function getSecurity(object $aggregate): ContentSecurity;
 
     /**
      * $loadGhost also matches an entity in a locale it has no content in.

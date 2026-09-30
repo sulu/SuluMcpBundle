@@ -63,7 +63,7 @@ final class BlockListToolTest extends TestCase
         $this->contentManager = $this->prophesize(ContentManagerInterface::class);
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
         $groupProvider = new TestGroupProvider([]);
-        $this->contentSecurityContextResolver = ContentTypes::securityResolver($this->contentManager->reveal(), $groupProvider);
+        $this->contentSecurityContextResolver = ContentTypes::securityResolver($groupProvider);
         $this->tool = new BlockListTool(
             ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal(), $groupProvider),
             $this->contentManager->reveal(),
@@ -253,11 +253,10 @@ final class BlockListToolTest extends TestCase
         $source = new ArticleDimensionContent(new Article());
         $source->setLocale('de');
         $source->setTemplateKey('blog_article');
+        $article->addDimensionContent($source);
 
         $this->contentManager->resolve(Argument::any(), ['locale' => 'en', 'stage' => DimensionContentInterface::STAGE_DRAFT])
             ->willReturn($ghost);
-        $this->contentManager->resolve(Argument::any(), ['locale' => 'de', 'stage' => DimensionContentInterface::STAGE_DRAFT])
-            ->willReturn($source);
 
         $permissionChecker = FakeToolPermissionChecker::grantingAll()
             ->grantingNoneExcept()
@@ -267,7 +266,7 @@ final class BlockListToolTest extends TestCase
             ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
             $this->contentManager->reveal(),
             $permissionChecker,
-            ContentTypes::securityResolver($this->contentManager->reveal(), new TestGroupProvider([
+            ContentTypes::securityResolver(new TestGroupProvider([
                 (new FormGroup('default', 'Default'))->withTemplate('default'),
                 (new FormGroup('blog', 'Blog'))->withTemplate('blog_article'),
             ])),

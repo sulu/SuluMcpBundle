@@ -17,8 +17,11 @@ use Sulu\Article\Application\Message\ApplyWorkflowTransitionArticleMessage;
 use Sulu\Article\Application\Message\ModifyArticleMessage;
 use Sulu\Article\Application\Message\RemoveArticleMessage;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
+use Sulu\Content\Domain\Model\ContentRichEntityInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Content\Domain\Model\TemplateInterface;
 use Sulu\Content\Infrastructure\Doctrine\DimensionContentQueryEnhancer;
+use Sulu\Mcp\Domain\Content\ContentSecurity;
 use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 
@@ -53,28 +56,9 @@ final readonly class ArticleContentTypeExtension implements ContentTypeExtension
         return $this->articleContextResolver->candidates();
     }
 
-    public function getEntitySecurityContext(object $aggregate, ?string $templateKey): string
+    public function getSecurity(object $aggregate): ContentSecurity
     {
-        return $this->articleContextResolver->forTemplateKey($templateKey ?? '');
-    }
-
-    public function requiresResolvedContent(): bool
-    {
-        return true;
-    }
-
-    public function getAclObjectType(): ?string
-    {
-        return null;
-    }
-
-    public function getWebspaceKey(object $aggregate): ?string
-    {
-        return null;
-    }
-
-    public function assertCanRemove(string $uuid): void
-    {
+        return new ContentSecurity($this->articleContextResolver->forTemplateKey($this->templateKeyOf($aggregate)));
     }
 
     public function createRemoveMessage(string $uuid, string $locale, bool $forceRemoveChildren = false): object
@@ -129,5 +113,26 @@ final readonly class ArticleContentTypeExtension implements ContentTypeExtension
     public function createTransitionMessage(string $uuid, string $locale, string $transition): object
     {
         return new ApplyWorkflowTransitionArticleMessage(['uuid' => $uuid], $locale, $transition);
+    }
+
+    /**
+     * A ghost has no template key of its own, but the aggregate carries the content it is a ghost of.
+     */
+    private function templateKeyOf(object $aggregate): string
+    {
+        if (!$aggregate instanceof ContentRichEntityInterface) {
+            return '';
+        }
+
+        foreach ($aggregate->getDimensionContents() as $dimensionContent) {
+            if (DimensionContentInterface::STAGE_DRAFT === $dimensionContent->getStage()
+                && $dimensionContent instanceof TemplateInterface
+                && null !== $dimensionContent->getTemplateKey()
+            ) {
+                return $dimensionContent->getTemplateKey();
+            }
+        }
+
+        return '';
     }
 }

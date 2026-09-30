@@ -19,9 +19,6 @@ use Mcp\Exception\ToolCallException;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
-use Sulu\Content\Application\ContentManager\ContentManagerInterface;
-use Sulu\Content\Domain\Model\DimensionContentInterface;
-use Sulu\Content\Domain\Model\TemplateInterface;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
@@ -45,7 +42,6 @@ class PreviewLinkGenerateTool
         private readonly PreviewLinkManagerInterface $previewLinkManager,
         private readonly RouterInterface $router,
         private readonly ContentTypeResolver $contentTypeResolver,
-        private readonly ContentManagerInterface $contentManager,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
         private readonly ContentSecurityContextResolver $contentSecurityContextResolver,
     ) {
@@ -88,27 +84,20 @@ class PreviewLinkGenerateTool
                 ];
             }
 
-            $extension = $this->contentTypeResolver->get($type);
-            $dimensionContent = $extension->requiresResolvedContent()
-                ? $this->contentManager->resolve($entity, ['locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT]) // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
-                : null;
+            $security = $this->contentSecurityContextResolver->forEntity($type, $entity);
 
             // Preview links are gated on EDIT, stricter than the admin UI's VIEW.
             $this->permissionChecker->check(
-                $this->contentSecurityContextResolver->forEntity(
-                    $type,
-                    $entity,
-                    $dimensionContent instanceof TemplateInterface ? $dimensionContent : null,
-                ),
+                $security->context,
                 PermissionTypes::EDIT,
                 $locale,
-                $extension->getAclObjectType(),
-                null !== $extension->getAclObjectType() ? $uuid : null,
+                $security->aclObjectType,
+                null !== $security->aclObjectType ? $uuid : null,
             );
 
             // The token is rendered later under this webspace's portal/theme/routes, so
             // it is a context the caller must be allowed to use -- not just a label.
-            $entityWebspace = $extension->getWebspaceKey($entity);
+            $entityWebspace = $security->webspaceKey;
             if (null !== $entityWebspace && $webspace !== $entityWebspace) {
                 throw new PermissionDeniedException('sulu.webspaces.' . $webspace, PermissionTypes::EDIT, $locale);
             }

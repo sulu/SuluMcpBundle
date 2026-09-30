@@ -18,7 +18,6 @@ use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\AccessControl\AccessControlRepositoryInterface;
-use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
@@ -90,9 +89,9 @@ final class ContentTypes
     /**
      * @param list<ContentTypeExtensionInterface> $extensions
      */
-    public static function securityResolver(ContentManagerInterface $contentManager, GroupProviderInterface|ArticleSecurityContextResolver|null $groupProvider = null, array $extensions = []): ContentSecurityContextResolver
+    public static function securityResolver(GroupProviderInterface|ArticleSecurityContextResolver|null $groupProvider = null, array $extensions = []): ContentSecurityContextResolver
     {
-        return new ContentSecurityContextResolver($contentManager, self::inertResolver($extensions, $groupProvider));
+        return new ContentSecurityContextResolver(self::inertResolver($extensions, $groupProvider));
     }
 
     private static function descendantChecker(PageRepositoryInterface $pageRepository): PageDescendantPermissionChecker

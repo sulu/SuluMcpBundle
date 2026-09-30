@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Tests\Unit\Fixture;
 
+use Sulu\Mcp\Domain\Content\ContentSecurity;
 use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 
 /**
@@ -49,28 +50,9 @@ final class FakeContentTypeExtension implements ContentTypeExtensionInterface
         return [$this->securityContext];
     }
 
-    public function getEntitySecurityContext(object $aggregate, ?string $templateKey): string
+    public function getSecurity(object $aggregate): ContentSecurity
     {
-        return $this->securityContext;
-    }
-
-    public function requiresResolvedContent(): bool
-    {
-        return false;
-    }
-
-    public function getAclObjectType(): ?string
-    {
-        return null;
-    }
-
-    public function getWebspaceKey(object $aggregate): ?string
-    {
-        return null;
-    }
-
-    public function assertCanRemove(string $uuid): void
-    {
+        return new ContentSecurity($this->securityContext);
     }
 
     public function loadDraft(string $uuid, string $locale, bool $loadGhost = false): ?object

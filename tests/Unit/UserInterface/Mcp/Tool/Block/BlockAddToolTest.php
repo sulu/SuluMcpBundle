@@ -92,7 +92,7 @@ final class BlockAddToolTest extends TestCase
         $this->formMetadataProvider->setDefault(new FormMetadata());
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
         $groupProvider = new TestGroupProvider([]);
-        $this->contentSecurityContextResolver = ContentTypes::securityResolver($this->contentManager->reveal(), $groupProvider);
+        $this->contentSecurityContextResolver = ContentTypes::securityResolver($groupProvider);
         $this->tool = new BlockAddTool(
             $this->messageBus->reveal(),
             ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal(), $groupProvider),

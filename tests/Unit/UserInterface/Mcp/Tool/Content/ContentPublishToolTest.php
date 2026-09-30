@@ -23,7 +23,6 @@ use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Model\ArticleDimensionContent;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
-use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
@@ -55,9 +54,6 @@ final class ContentPublishToolTest extends TestCase
     /** @var ObjectProphecy<SnippetRepositoryInterface> */
     private ObjectProphecy $snippetRepository;
 
-    /** @var ObjectProphecy<ContentManagerInterface> */
-    private ObjectProphecy $contentManager;
-
     private FakeToolPermissionChecker $permissionChecker;
     private ContentPublishTool $tool;
 
@@ -67,16 +63,14 @@ final class ContentPublishToolTest extends TestCase
         $this->pageRepository = $this->prophesize(PageRepositoryInterface::class);
         $this->articleRepository = $this->prophesize(ArticleRepositoryInterface::class);
         $this->snippetRepository = $this->prophesize(SnippetRepositoryInterface::class);
-        $this->contentManager = $this->prophesize(ContentManagerInterface::class);
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
         $groupProvider = new TestGroupProvider([]);
 
         $this->tool = new ContentPublishTool(
             $this->messageBus->reveal(),
             ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal(), $groupProvider),
-            $this->contentManager->reveal(),
             $this->permissionChecker,
-            ContentTypes::securityResolver($this->contentManager->reveal(), $groupProvider),
+            ContentTypes::securityResolver($groupProvider),
         );
     }
 
@@ -160,7 +154,7 @@ final class ContentPublishToolTest extends TestCase
         if ('article' === $type) {
             $dimensionContent = new ArticleDimensionContent($entity);
             $dimensionContent->setTemplateKey('default');
-            $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+            $entity->addDimensionContent($dimensionContent);
         }
     }
 }

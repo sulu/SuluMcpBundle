@@ -22,14 +22,12 @@ use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
-use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
 use Sulu\Page\Domain\Model\Page;
-use Sulu\Page\Domain\Model\PageDimensionContent;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Sulu\Snippet\Application\Message\ApplyWorkflowTransitionSnippetMessage;
 use Sulu\Snippet\Domain\Model\Snippet;
@@ -54,9 +52,6 @@ final class ContentUnpublishToolTest extends TestCase
     /** @var ObjectProphecy<SnippetRepositoryInterface> */
     private ObjectProphecy $snippetRepository;
 
-    /** @var ObjectProphecy<ContentManagerInterface> */
-    private ObjectProphecy $contentManager;
-
     private FakeToolPermissionChecker $permissionChecker;
     private ContentUnpublishTool $tool;
 
@@ -66,16 +61,14 @@ final class ContentUnpublishToolTest extends TestCase
         $this->pageRepository = $this->prophesize(PageRepositoryInterface::class);
         $this->articleRepository = $this->prophesize(ArticleRepositoryInterface::class);
         $this->snippetRepository = $this->prophesize(SnippetRepositoryInterface::class);
-        $this->contentManager = $this->prophesize(ContentManagerInterface::class);
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
         $groupProvider = new TestGroupProvider([]);
 
         $this->tool = new ContentUnpublishTool(
             $this->messageBus->reveal(),
             ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal(), $groupProvider),
-            $this->contentManager->reveal(),
             $this->permissionChecker,
-            ContentTypes::securityResolver($this->contentManager->reveal(), $groupProvider),
+            ContentTypes::securityResolver($groupProvider),
         );
     }
 
@@ -154,9 +147,9 @@ final class ContentUnpublishToolTest extends TestCase
         };
 
         if ('article' === $type) {
-            $dimensionContent = new PageDimensionContent(new Page());
+            $dimensionContent = new ArticleDimensionContent($entity);
             $dimensionContent->setTemplateKey('default');
-            $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+            $entity->addDimensionContent($dimensionContent);
         }
     }
 }

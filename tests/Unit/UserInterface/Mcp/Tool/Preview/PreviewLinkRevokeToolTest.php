@@ -22,15 +22,14 @@ use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Domain\Model\Article;
+use Sulu\Article\Domain\Model\ArticleDimensionContent;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
-use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
 use Sulu\Page\Domain\Model\Page;
-use Sulu\Page\Domain\Model\PageDimensionContent;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
 
@@ -48,9 +47,6 @@ final class PreviewLinkRevokeToolTest extends TestCase
     /** @var ObjectProphecy<ArticleRepositoryInterface> */
     private ObjectProphecy $articleRepository;
 
-    /** @var ObjectProphecy<ContentManagerInterface> */
-    private ObjectProphecy $contentManager;
-
     private FakeToolPermissionChecker $permissionChecker;
     private PreviewLinkRevokeTool $tool;
 
@@ -59,7 +55,6 @@ final class PreviewLinkRevokeToolTest extends TestCase
         $this->previewLinkManager = $this->prophesize(PreviewLinkManagerInterface::class);
         $this->pageRepository = $this->prophesize(PageRepositoryInterface::class);
         $this->articleRepository = $this->prophesize(ArticleRepositoryInterface::class);
-        $this->contentManager = $this->prophesize(ContentManagerInterface::class);
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
         $groupProvider = new TestGroupProvider([]);
 
@@ -68,9 +63,8 @@ final class PreviewLinkRevokeToolTest extends TestCase
         $this->tool = new PreviewLinkRevokeTool(
             $this->previewLinkManager->reveal(),
             ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $snippetRepository->reveal(), $groupProvider),
-            $this->contentManager->reveal(),
             $this->permissionChecker,
-            ContentTypes::securityResolver($this->contentManager->reveal(), $groupProvider),
+            ContentTypes::securityResolver($groupProvider),
         );
     }
 
@@ -83,9 +77,9 @@ final class PreviewLinkRevokeToolTest extends TestCase
         } else {
             $article = new Article('article-uuid');
             $this->articleRepository->getOneBy(Argument::cetera())->willReturn($article);
-            $dimensionContent = new PageDimensionContent(new Page());
+            $dimensionContent = new ArticleDimensionContent($article);
             $dimensionContent->setTemplateKey('default');
-            $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+            $article->addDimensionContent($dimensionContent);
         }
     }
 

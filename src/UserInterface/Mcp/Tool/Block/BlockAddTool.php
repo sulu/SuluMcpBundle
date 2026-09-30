@@ -104,18 +104,13 @@ class BlockAddTool
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
 
-            $context = $this->contentSecurityContextResolver->forEntityInLocale(
-                $type,
-                $entity,
-                $dimensionContent,
-                $locale,
-            );
+            $security = $this->contentSecurityContextResolver->forEntity($type, $entity);
             $this->permissionChecker->check(
-                $context,
+                $security->context,
                 PermissionTypes::EDIT,
                 $locale,
-                $extension->getAclObjectType(),
-                null !== $extension->getAclObjectType() ? $uuid : null,
+                $security->aclObjectType,
+                null !== $security->aclObjectType ? $uuid : null,
             );
 
             if ($missingTranslation = self::missingBlockTranslationError($dimensionContent, $type, $uuid, $locale)) {

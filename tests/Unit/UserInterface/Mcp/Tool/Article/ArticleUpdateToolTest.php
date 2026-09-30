@@ -108,7 +108,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $this->articleContextResolver,
-            ContentTypes::securityResolver($this->contentManager->reveal(), $this->articleContextResolver),
+            ContentTypes::securityResolver($this->articleContextResolver),
         );
     }
 
@@ -133,6 +133,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('simple');
+        $article->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         // The article currently routes through a simple route, and nothing replaces it.
         $this->contentManager->normalize(Argument::cetera())->willReturn([
@@ -174,6 +175,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('blog');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old Title', 'template' => 'blog']);
 
@@ -204,6 +206,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('blog');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old Title', 'template' => 'blog']);
 
@@ -231,6 +234,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('blog');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old Title', 'template' => 'blog']);
 
@@ -252,6 +256,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'article' => '<p>Old</p>']);
 
@@ -296,6 +301,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
 
         $this->permissionChecker->denyAll();
@@ -329,7 +335,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
-            ContentTypes::securityResolver($this->contentManager->reveal(), $contextResolver),
+            ContentTypes::securityResolver($contextResolver),
         );
 
         $currentArticle = new Article();
@@ -338,6 +344,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
 
         // User has EDIT on the base group (source context) but not on the blog group (target context).
@@ -372,7 +379,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
-            ContentTypes::securityResolver($this->contentManager->reveal(), $contextResolver),
+            ContentTypes::securityResolver($contextResolver),
         );
 
         $currentArticle = new Article();
@@ -382,6 +389,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'article']);
 
@@ -421,7 +429,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
-            ContentTypes::securityResolver($this->contentManager->reveal(), $contextResolver),
+            ContentTypes::securityResolver($contextResolver),
         );
 
         $currentArticle = new Article();
@@ -431,6 +439,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'article']);
 
@@ -479,7 +488,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
-            ContentTypes::securityResolver($this->contentManager->reveal(), $contextResolver),
+            ContentTypes::securityResolver($contextResolver),
         );
 
         $currentArticle = new Article();
@@ -489,6 +498,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'article']);
 
@@ -520,6 +530,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'article']);
 
@@ -561,7 +572,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
-            ContentTypes::securityResolver($this->contentManager->reveal(), $contextResolver),
+            ContentTypes::securityResolver($contextResolver),
         );
 
         $currentArticle = new Article();
@@ -571,6 +582,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'article']);
 
@@ -598,6 +610,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn([]);
 
@@ -620,6 +633,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn([
             'title' => 'Old',
@@ -670,6 +684,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn([]);
 
@@ -691,6 +706,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('blog');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'blog']);
 
@@ -762,7 +778,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $this->articleContextResolver,
-            ContentTypes::securityResolver($this->contentManager->reveal(), $this->articleContextResolver),
+            ContentTypes::securityResolver($this->articleContextResolver),
         );
 
         $currentArticle = new Article();
@@ -771,6 +787,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('blog');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'blog']);
 
@@ -797,6 +814,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('article');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn([
             'title' => 'New Title',
@@ -827,6 +845,7 @@ final class ArticleUpdateToolTest extends TestCase
         $dimensionContent = new ArticleDimensionContent(new Article());
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey('blog');
+        $currentArticle->addDimensionContent($dimensionContent);
         $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
         $this->contentManager->normalize(Argument::cetera())->willReturn(['title' => 'Old', 'template' => 'blog']);
 
@@ -865,7 +884,8 @@ final class ArticleUpdateToolTest extends TestCase
      */
     private function setUpGhostLocale(array $translatedLocales = ['de'], string $sourceTemplateKey = 'article'): void
     {
-        $this->articleRepository->getOneBy(Argument::cetera())->willReturn(new Article('uuid-1'));
+        $article = new Article('uuid-1');
+        $this->articleRepository->getOneBy(Argument::cetera())->willReturn($article);
 
         $ghostDimensionContent = new ArticleDimensionContent(new Article());
         $ghostDimensionContent->setGhostLocale($translatedLocales[0]);
@@ -876,6 +896,7 @@ final class ArticleUpdateToolTest extends TestCase
         $sourceDimensionContent = new ArticleDimensionContent(new Article());
         $sourceDimensionContent->setLocale($translatedLocales[0]);
         $sourceDimensionContent->setTemplateKey($sourceTemplateKey);
+        $article->addDimensionContent($sourceDimensionContent);
 
         $this->contentManager->resolve(Argument::cetera())->willReturn($ghostDimensionContent);
         $this->contentManager->resolve(
@@ -995,7 +1016,7 @@ final class ArticleUpdateToolTest extends TestCase
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->permissionChecker,
             $contextResolver,
-            ContentTypes::securityResolver($this->contentManager->reveal(), $contextResolver),
+            ContentTypes::securityResolver($contextResolver),
         );
     }
 }

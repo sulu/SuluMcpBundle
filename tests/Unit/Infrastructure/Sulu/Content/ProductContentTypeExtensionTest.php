@@ -20,6 +20,8 @@ use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Domain\Content\ContentSecurity;
+use Sulu\Mcp\Domain\Content\RemovalGuardInterface;
 use Sulu\Mcp\Infrastructure\Sulu\Content\ProductContentTypeExtension;
 use Sulu\Product\Application\Message\ApplyWorkflowTransitionProductMessage;
 use Sulu\Product\Application\Message\ModifyProductMessage;
@@ -45,11 +47,9 @@ final class ProductContentTypeExtensionTest extends TestCase
         $this->extension = new ProductContentTypeExtension($this->productRepository->reveal());
     }
 
-    public function testAProductCanAlwaysBeRemoved(): void
+    public function testAProductHasNoRemovalGuard(): void
     {
-        $this->expectNotToPerformAssertions();
-
-        $this->extension->assertCanRemove('any-uuid');
+        $this->assertNotInstanceOf(RemovalGuardInterface::class, $this->extension);
     }
 
     public function testGetTypeReturnsProduct(): void
@@ -70,10 +70,7 @@ final class ProductContentTypeExtensionTest extends TestCase
     public function testSecurityContextsMatchProductAdmin(): void
     {
         $this->assertSame([ProductAdmin::SECURITY_CONTEXT], $this->extension->getViewSecurityContexts());
-        $this->assertSame(ProductAdmin::SECURITY_CONTEXT, $this->extension->getEntitySecurityContext(new \stdClass(), null));
-        $this->assertFalse($this->extension->requiresResolvedContent());
-        $this->assertNull($this->extension->getAclObjectType());
-        $this->assertNull($this->extension->getWebspaceKey(new \stdClass()));
+        $this->assertEquals(new ContentSecurity(ProductAdmin::SECURITY_CONTEXT), $this->extension->getSecurity(new \stdClass()));
     }
 
     public function testLoadDraftQueriesTheDraftStageWithAdminSelects(): void

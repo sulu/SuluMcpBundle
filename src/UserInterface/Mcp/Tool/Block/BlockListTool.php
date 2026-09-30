@@ -76,25 +76,19 @@ class BlockListTool
             return ['error' => \sprintf('%s not found: %s', \ucfirst($type), $uuid)];
         }
 
-        $extension = $this->contentTypeResolver->get($type);
         $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
             'locale' => $locale,
             'stage' => DimensionContentInterface::STAGE_DRAFT,
         ]);
 
         try {
-            $context = $this->contentSecurityContextResolver->forEntityInLocale(
-                $type,
-                $entity,
-                $dimensionContent,
-                $locale,
-            );
+            $security = $this->contentSecurityContextResolver->forEntity($type, $entity);
             $this->permissionChecker->check(
-                $context,
+                $security->context,
                 PermissionTypes::VIEW,
                 $locale,
-                $extension->getAclObjectType(),
-                null !== $extension->getAclObjectType() ? $uuid : null,
+                $security->aclObjectType,
+                null !== $security->aclObjectType ? $uuid : null,
             );
 
             if ($missingTranslation = self::missingBlockTranslationError($dimensionContent, $type, $uuid, $locale)) {

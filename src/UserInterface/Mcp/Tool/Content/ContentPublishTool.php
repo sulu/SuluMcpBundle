@@ -17,9 +17,6 @@ use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
-use Sulu\Content\Application\ContentManager\ContentManagerInterface;
-use Sulu\Content\Domain\Model\DimensionContentInterface;
-use Sulu\Content\Domain\Model\TemplateInterface;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
@@ -45,7 +42,6 @@ class ContentPublishTool
     public function __construct(
         MessageBusInterface $messageBus,
         private readonly ContentTypeResolver $contentTypeResolver,
-        private readonly ContentManagerInterface $contentManager,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
         private readonly ContentSecurityContextResolver $contentSecurityContextResolver,
     ) {
@@ -88,22 +84,14 @@ class ContentPublishTool
                 ];
             }
 
-            $extension = $this->contentTypeResolver->get($type);
-            $dimensionContent = $extension->requiresResolvedContent()
-                ? $this->contentManager->resolve($entity, ['locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT]) // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadForTransition() returns a bare object)
-                : null;
-            $context = $this->contentSecurityContextResolver->forEntity(
-                $type,
-                $entity,
-                $dimensionContent instanceof TemplateInterface ? $dimensionContent : null,
-            );
+            $security = $this->contentSecurityContextResolver->forEntity($type, $entity);
 
             $this->permissionChecker->check(
-                $context,
+                $security->context,
                 [PermissionTypes::EDIT, PermissionTypes::LIVE],
                 $locale,
-                $extension->getAclObjectType(),
-                null !== $extension->getAclObjectType() ? $uuid : null,
+                $security->aclObjectType,
+                null !== $security->aclObjectType ? $uuid : null,
             );
 
             $message = $this->contentTypeResolver->createTransitionMessage($type, $uuid, $locale, 'publish');

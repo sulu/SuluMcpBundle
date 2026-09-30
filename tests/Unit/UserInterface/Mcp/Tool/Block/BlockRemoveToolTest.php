@@ -77,7 +77,7 @@ final class BlockRemoveToolTest extends TestCase
         $this->contentManager = $this->prophesize(ContentManagerInterface::class);
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
         $groupProvider = new TestGroupProvider([]);
-        $this->contentSecurityContextResolver = ContentTypes::securityResolver($this->contentManager->reveal(), $groupProvider);
+        $this->contentSecurityContextResolver = ContentTypes::securityResolver($groupProvider);
         $this->tool = new BlockRemoveTool(
             $this->messageBus->reveal(),
             ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal(), $groupProvider),

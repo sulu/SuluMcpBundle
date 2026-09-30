@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Infrastructure\Sulu\Content;
 
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Content\Infrastructure\Doctrine\DimensionContentQueryEnhancer;
+use Sulu\Mcp\Domain\Content\ContentSecurity;
 use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Domain\Content\NotSearchableContentTypeInterface;
 use Sulu\Snippet\Application\Message\ApplyWorkflowTransitionSnippetMessage;
@@ -54,28 +55,9 @@ final readonly class SnippetContentTypeExtension implements ContentTypeExtension
         return [self::SECURITY_CONTEXT];
     }
 
-    public function getEntitySecurityContext(object $aggregate, ?string $templateKey): string
+    public function getSecurity(object $aggregate): ContentSecurity
     {
-        return self::SECURITY_CONTEXT;
-    }
-
-    public function requiresResolvedContent(): bool
-    {
-        return false;
-    }
-
-    public function getAclObjectType(): ?string
-    {
-        return null;
-    }
-
-    public function getWebspaceKey(object $aggregate): ?string
-    {
-        return null;
-    }
-
-    public function assertCanRemove(string $uuid): void
-    {
+        return new ContentSecurity(self::SECURITY_CONTEXT);
     }
 
     public function createRemoveMessage(string $uuid, string $locale, bool $forceRemoveChildren = false): object

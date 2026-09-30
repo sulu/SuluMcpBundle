@@ -16,7 +16,9 @@ namespace Sulu\Mcp\Infrastructure\Sulu\Content;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Content\Infrastructure\Doctrine\DimensionContentQueryEnhancer;
 use Sulu\Mcp\Application\Security\PageDescendantPermissionChecker;
+use Sulu\Mcp\Domain\Content\ContentSecurity;
 use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
+use Sulu\Mcp\Domain\Content\RemovalGuardInterface;
 use Sulu\Page\Application\Message\ApplyWorkflowTransitionPageMessage;
 use Sulu\Page\Application\Message\ModifyPageMessage;
 use Sulu\Page\Application\Message\RemovePageMessage;
@@ -27,7 +29,7 @@ use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 /**
  * @internal
  */
-final readonly class PageContentTypeExtension implements ContentTypeExtensionInterface
+final readonly class PageContentTypeExtension implements ContentTypeExtensionInterface, RemovalGuardInterface
 {
     public function __construct(
         private PageRepositoryInterface $repository,
@@ -55,24 +57,13 @@ final readonly class PageContentTypeExtension implements ContentTypeExtensionInt
         return [];
     }
 
-    public function getEntitySecurityContext(object $aggregate, ?string $templateKey): string
+    public function getSecurity(object $aggregate): ContentSecurity
     {
-        return $aggregate instanceof PageInterface ? 'sulu.webspaces.' . $aggregate->getWebspaceKey() : '';
-    }
+        if (!$aggregate instanceof PageInterface) {
+            return new ContentSecurity('', Page::class);
+        }
 
-    public function requiresResolvedContent(): bool
-    {
-        return false;
-    }
-
-    public function getAclObjectType(): string
-    {
-        return Page::class;
-    }
-
-    public function getWebspaceKey(object $aggregate): ?string
-    {
-        return $aggregate instanceof PageInterface ? $aggregate->getWebspaceKey() : null;
+        return new ContentSecurity('sulu.webspaces.' . $aggregate->getWebspaceKey(), Page::class, $aggregate->getWebspaceKey());
     }
 
     public function assertCanRemove(string $uuid): void
