@@ -16,6 +16,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
+use Sulu\Bundle\CategoryBundle\Domain\Exception\RemoveCategoryDependantResourcesFoundException;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -37,7 +38,7 @@ class CategoryDeleteTool
     #[McpTool(
         name: 'sulu_category_delete',
         title: 'Delete Category',
-        description: 'Delete a category by ID. This removes the category and its children from the tree.',
+        description: 'Delete a category by ID. The category must have no children: delete them first (deepest first), otherwise the call fails. Use sulu_category_list to find the children.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[DangerousTool('delete')]
@@ -56,9 +57,16 @@ class CategoryDeleteTool
                 'deleted' => true,
             ];
         } catch (\Throwable $e) {
+            if ($e instanceof RemoveCategoryDependantResourcesFoundException) {
+                return [
+                    'error' => \sprintf('Category %d has %d descendant categories and cannot be deleted.', $id, $e->getDependantResourcesCount()),
+                    'hint' => 'Delete the descendants first, deepest first (use sulu_category_list to find them), then delete this category.',
+                ];
+            }
+
             return [
                 'error' => \sprintf('Failed to delete category %d: %s', $id, $e->getMessage()),
-                'hint' => 'Verify the category id exists (use sulu_category_list). Deleting a category also deletes its children.',
+                'hint' => 'Verify the category id exists (use sulu_category_list). A category with children cannot be deleted.',
             ];
         }
     }

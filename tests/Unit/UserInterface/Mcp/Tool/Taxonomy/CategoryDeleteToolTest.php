@@ -20,6 +20,7 @@ use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
+use Sulu\Bundle\CategoryBundle\Domain\Exception\RemoveCategoryDependantResourcesFoundException;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\CategoryDeleteTool;
 
 #[CoversClass(CategoryDeleteTool::class)]
@@ -59,6 +60,16 @@ final class CategoryDeleteToolTest extends TestCase
         $this->assertTrue(\array_key_exists('hint', $result));
         $this->assertIsString($result['hint']);
         $this->assertNotEmpty($result['hint']);
+    }
+
+    public function testDeleteCategoryExplainsThatChildrenBlockTheDeletion(): void
+    {
+        $this->categoryManager->delete(7)->willThrow(new RemoveCategoryDependantResourcesFoundException(['id' => 7, 'resourceKey' => 'categories'], [], 2));
+
+        $result = $this->tool->deleteCategory(7);
+
+        $this->assertSame('Category 7 has 2 descendant categories and cannot be deleted.', $result['error']);
+        $this->assertStringContainsString('Delete the descendants first', $result['hint']);
     }
 
     public function testMethodHasMcpToolAttribute(): void
