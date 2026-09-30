@@ -25,10 +25,8 @@ use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
-use Sulu\Mcp\Application\Content\ContentTypeResolver;
-use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
-use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
 use Sulu\Page\Domain\Model\Page;
@@ -69,10 +67,10 @@ final class PreviewLinkRevokeToolTest extends TestCase
 
         $this->tool = new PreviewLinkRevokeTool(
             $this->previewLinkManager->reveal(),
-            new ContentTypeResolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $snippetRepository->reveal()),
+            ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $snippetRepository->reveal(), $groupProvider),
             $this->contentManager->reveal(),
             $this->permissionChecker,
-            new ContentSecurityContextResolver(new ArticleSecurityContextResolver($groupProvider), $this->contentManager->reveal()),
+            ContentTypes::securityResolver($this->contentManager->reveal(), $groupProvider),
         );
     }
 

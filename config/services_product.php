@@ -13,11 +13,10 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
-use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Product\VariantParentResolver;
-use Sulu\Mcp\Application\Search\ContentSearch;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ProductAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ProductVariantAdminLinkProvider;
+use Sulu\Mcp\Infrastructure\Sulu\Content\ProductContentTypeExtension;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\AttributeListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Product\ProductFamilyListTool;
@@ -39,11 +38,9 @@ return static function(ContainerConfigurator $container): void {
             ->autowire()
             ->autoconfigure();
 
-    $services->set(ContentTypeResolver::class)
-        ->arg('$productRepository', new Reference(ProductRepositoryInterface::class));
-
-    $services->set(ContentSearch::class)
-        ->arg('$productsIndexed', true);
+    $services->set(ProductContentTypeExtension::class)
+        ->arg('$productRepository', new Reference(ProductRepositoryInterface::class))
+        ->tag('sulu_mcp.content_type_extension');
 
     $services->set(VariantParentResolver::class);
 

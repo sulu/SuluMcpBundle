@@ -25,6 +25,7 @@ use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
+use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -76,6 +77,7 @@ final class FilteredRegistryTest extends TestCase
             $checker,
             new WebspacePermissionResolver($webspaceManager, $innerChecker),
             new ArticleSecurityContextResolver(TestGroupProvider::singleGroup()),
+            new ContentTypeExtensionRegistry([]),
             [],
             ['sulu_ping', 'sulu_get_context'],
         );

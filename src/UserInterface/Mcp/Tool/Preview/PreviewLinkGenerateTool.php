@@ -30,8 +30,6 @@ use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
-use Sulu\Page\Domain\Model\Page;
-use Sulu\Page\Domain\Model\PageInterface;
 use Symfony\Component\Routing\Exception\RouteNotFoundException;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Routing\RouterInterface;
@@ -90,7 +88,8 @@ class PreviewLinkGenerateTool
                 ];
             }
 
-            $dimensionContent = 'article' === $type
+            $extension = $this->contentTypeResolver->get($type);
+            $dimensionContent = $extension->requiresResolvedContent()
                 ? $this->contentManager->resolve($entity, ['locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT]) // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
                 : null;
 
@@ -103,13 +102,14 @@ class PreviewLinkGenerateTool
                 ),
                 PermissionTypes::EDIT,
                 $locale,
-                'page' === $type ? Page::class : null,
-                'page' === $type ? $uuid : null,
+                $extension->getAclObjectType(),
+                null !== $extension->getAclObjectType() ? $uuid : null,
             );
 
             // The token is rendered later under this webspace's portal/theme/routes, so
             // it is a context the caller must be allowed to use -- not just a label.
-            if ('page' === $type && $entity instanceof PageInterface && $webspace !== $entity->getWebspaceKey()) {
+            $entityWebspace = $extension->getWebspaceKey($entity);
+            if (null !== $entityWebspace && $webspace !== $entityWebspace) {
                 throw new PermissionDeniedException('sulu.webspaces.' . $webspace, PermissionTypes::EDIT, $locale);
             }
             $this->permissionChecker->check('sulu.webspaces.' . $webspace, PermissionTypes::EDIT, $locale);

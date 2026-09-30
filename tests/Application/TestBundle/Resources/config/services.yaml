@@ -4,3 +4,6 @@ services:
             $groups: []
 
     Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry: ~
+
+    Sulu\Mcp\Tests\Application\TestBundle\ContentType\WidgetContentTypeExtension:
+        tags: ['sulu_mcp.content_type_extension']

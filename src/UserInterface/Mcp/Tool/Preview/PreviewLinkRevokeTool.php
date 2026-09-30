@@ -31,7 +31,6 @@ use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
-use Sulu\Page\Domain\Model\Page;
 
 /**
  * @internal
@@ -79,7 +78,8 @@ class PreviewLinkRevokeTool
                 ];
             }
 
-            $dimensionContent = 'article' === $type
+            $extension = $this->contentTypeResolver->get($type);
+            $dimensionContent = $extension->requiresResolvedContent()
                 ? $this->contentManager->resolve($entity, ['locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT]) // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
                 : null;
 
@@ -92,8 +92,8 @@ class PreviewLinkRevokeTool
                 ),
                 PermissionTypes::EDIT,
                 $locale,
-                'page' === $type ? Page::class : null,
-                'page' === $type ? $uuid : null,
+                $extension->getAclObjectType(),
+                null !== $extension->getAclObjectType() ? $uuid : null,
             );
 
             $resourceKey = self::TYPE_MAP[$type] ?? $type;

@@ -25,6 +25,7 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
+use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
@@ -34,10 +35,11 @@ use Sulu\Mcp\Application\Search\WebsiteSearch;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
-use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
 use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 use Sulu\Mcp\UserInterface\Mcp\Tool\ContentSearchTool;
+use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 
 /**
  * ContentSearch (final, so Prophecy can't double it directly) is real here, built over a
@@ -68,10 +70,9 @@ final class ContentSearchToolTest extends TestCase
         $engine->createSearchBuilder('website')->willReturn($builder);
         $searcher->search(Argument::cetera())->willReturn(Result::createEmpty());
 
-        $articleContextResolver = new ArticleSecurityContextResolver(TestGroupProvider::singleGroup());
         $permissionChecker = $this->prophesize(ToolPermissionCheckerInterface::class);
         $permissionChecker->has(Argument::cetera())->willReturn(true);
-        $contentSearch = new ContentSearch(new WebsiteSearch($engine->reveal()), $webspaceResolver, $permissionChecker->reveal(), $articleContextResolver);
+        $contentSearch = new ContentSearch(new WebsiteSearch($engine->reveal()), $webspaceResolver, $permissionChecker->reveal(), ContentTypes::registry($this->prophesize(PageRepositoryInterface::class)->reveal(), $this->prophesize(ArticleRepositoryInterface::class)->reveal(), TestGroupProvider::singleGroup()));
         $tool = new ContentSearchTool($contentSearch);
 
         $result = $tool->search('hello', 'en', 'example', 'page', 2, 10);

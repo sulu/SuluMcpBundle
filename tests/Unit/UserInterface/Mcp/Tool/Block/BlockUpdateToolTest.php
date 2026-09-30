@@ -33,9 +33,9 @@ use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
-use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\Tests\Unit\Fixture\FixedBlockIdGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockUpdateTool;
@@ -90,10 +90,10 @@ final class BlockUpdateToolTest extends TestCase
         $this->formMetadataProvider->setDefault(new FormMetadata());
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
         $groupProvider = new TestGroupProvider([]);
-        $this->contentSecurityContextResolver = new ContentSecurityContextResolver(new ArticleSecurityContextResolver($groupProvider), $this->contentManager->reveal());
+        $this->contentSecurityContextResolver = ContentTypes::securityResolver($this->contentManager->reveal(), $groupProvider);
         $this->tool = new BlockUpdateTool(
             $this->messageBus->reveal(),
-            new ContentTypeResolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
+            ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal(), $groupProvider),
             $this->contentManager->reveal(),
             $this->blockIdGenerator,
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),

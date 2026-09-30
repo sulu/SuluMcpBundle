@@ -15,37 +15,25 @@ namespace Sulu\Mcp\Application\Search;
 
 use CmsIg\Seal\Search\Condition\Condition;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
-use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
+use Sulu\Mcp\Domain\Content\NotSearchableContentTypeInterface;
 
 /**
- * Keyword search over the `website` SEAL index, the logic behind the `sulu_content_search` MCP
- * tool.
+ * Keyword search over the `website` index. A whitelist: an indexed resourceKey no extension
+ * registered stays invisible instead of leaking to anyone with webspace VIEW.
  *
  * @internal
  */
 final class ContentSearch
 {
-    private const TYPE_MAP = [
-        'page' => 'pages',
-        'article' => 'articles',
-        'product' => 'products',
-    ];
-
-    // Spelled out literally, not via ProductInterface::RESOURCE_KEY/ProductAdmin::SECURITY_CONTEXT:
-    // this class is instantiated whether or not SuluProductBundle is installed.
-    private const PRODUCT_RESOURCE_KEY = 'products';
-    private const PRODUCT_SECURITY_CONTEXT = 'sulu.product.products';
-
-    private const ARTICLE_RESOURCE_KEY = 'articles';
-
     public function __construct(
         private readonly WebsiteSearch $websiteSearch,
         private readonly WebspacePermissionResolver $webspacePermissionResolver,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
-        private readonly ArticleSecurityContextResolver $articleContextResolver,
-        private readonly bool $productsIndexed = false,
+        private readonly ContentTypeExtensionRegistry $extensionRegistry,
     ) {
     }
 
@@ -73,38 +61,33 @@ final class ContentSearch
             return ['results' => [], 'total' => 0, 'hint' => \sprintf('Webspace "%s" is not readable with your permissions.', $webspace)];
         }
 
-        $resourceKey = null !== $type ? (self::TYPE_MAP[$type] ?? $type) : null;
-
-        // Pages, articles and products all land in the same `website` index. A page's
-        // security context is its webspace, already checked above. Articles and products
-        // each carry their own, separate security context, so both need an extra check
-        // here: an untyped search only surfaces them once the caller holds it, and an
-        // explicit type="article"/"product" is refused outright rather than silently
-        // filtered away.
-        $canSeeArticles = $this->hasArticlePermission($locale);
-
-        if (self::ARTICLE_RESOURCE_KEY === $resourceKey && !$canSeeArticles) {
-            return [
-                'error' => 'Permission denied: no accessible security context grants the required permissions.',
-                'hint' => 'Requires VIEW on "sulu.article.articles" (or the matching article group context).',
-            ];
+        // A type without view contexts (pages) is governed by the webspace check above.
+        $visibleResourceKeys = [];
+        foreach ($this->extensionRegistry->searchable() as $extension) {
+            if ($this->canView($extension, $locale)) {
+                $visibleResourceKeys[] = $extension->getResourceKey();
+            }
         }
 
-        $canSeeProducts = $this->productsIndexed
-            && $this->permissionChecker->has(self::PRODUCT_SECURITY_CONTEXT, PermissionTypes::VIEW, $locale);
+        $resourceKey = null;
+        if (null !== $type) {
+            $extension = $this->extensionRegistry->find($type);
+            if (null === $extension || $extension instanceof NotSearchableContentTypeInterface) {
+                return [
+                    'error' => \sprintf('Unsupported content type "%s".', $type),
+                    'hint' => \sprintf('Supported: %s.', \implode(', ', $this->extensionRegistry->searchableTypes())),
+                ];
+            }
 
-        if (self::PRODUCT_RESOURCE_KEY === $resourceKey && !$this->productsIndexed) {
-            return [
-                'error' => 'Unsupported content type "product".',
-                'hint' => 'Requires SuluProductBundle to be installed.',
-            ];
-        }
+            $resourceKey = $extension->getResourceKey();
+            if (!\in_array($resourceKey, $visibleResourceKeys, true)) {
+                $contexts = \array_map(static fn (string $context): string => \sprintf('"%s"', $context), $extension->getViewSecurityContexts());
 
-        if (self::PRODUCT_RESOURCE_KEY === $resourceKey && !$canSeeProducts) {
-            return [
-                'error' => 'Permission denied: no accessible security context grants the required permissions.',
-                'hint' => \sprintf('Requires VIEW on "%s".', self::PRODUCT_SECURITY_CONTEXT),
-            ];
+                return [
+                    'error' => 'Permission denied: no accessible security context grants the required permissions.',
+                    'hint' => \sprintf('Requires VIEW on %s.', 1 === \count($contexts) ? $contexts[0] : 'one of ' . \implode(', ', $contexts)),
+                ];
+            }
         }
 
         try {
@@ -114,13 +97,6 @@ final class ContentSearch
             if (null !== $resourceKey) {
                 $builder->addFilter(Condition::equal('resourceKey', $resourceKey));
             } else {
-                $visibleResourceKeys = [self::TYPE_MAP['page']];
-                if ($canSeeArticles) {
-                    $visibleResourceKeys[] = self::ARTICLE_RESOURCE_KEY;
-                }
-                if ($canSeeProducts) {
-                    $visibleResourceKeys[] = self::PRODUCT_RESOURCE_KEY;
-                }
                 $builder->addFilter(Condition::in('resourceKey', $visibleResourceKeys));
             }
 
@@ -128,19 +104,25 @@ final class ContentSearch
         } catch (\Throwable $e) {
             return [
                 'error' => \sprintf('Content search failed: %s', $e->getMessage()),
-                'hint' => 'Only published content is indexed. Verify the locale is correct and type is "page", "article" or "product" (or omit to search all).',
+                'hint' => \sprintf(
+                    'Only published content is indexed. Verify the locale is correct and type is one of %s (or omit to search all).',
+                    \implode(', ', \array_map(static fn (string $t): string => \sprintf('"%s"', $t), $this->extensionRegistry->searchableTypes())),
+                ),
             ];
         }
     }
 
     /**
-     * The `website` index carries no template, so per-group filtering the way
-     * ArticleListTool does isn't possible here: VIEW on any one article group is
-     * enough to see article results at all.
+     * The index carries no template, so VIEW on any one context (e.g. one article group) suffices.
      */
-    private function hasArticlePermission(string $locale): bool
+    private function canView(ContentTypeExtensionInterface $extension, string $locale): bool
     {
-        foreach ($this->articleContextResolver->candidates() as $context) {
+        $contexts = $extension->getViewSecurityContexts();
+        if ([] === $contexts) {
+            return true;
+        }
+
+        foreach ($contexts as $context) {
             if ($this->permissionChecker->has($context, PermissionTypes::VIEW, $locale)) {
                 return true;
             }

@@ -24,7 +24,7 @@ use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
  */
 #[AsTool(
     name: 'sulu_content_search',
-    description: 'Search published website content (articles, pages, and products when SuluProductBundle is installed) by keyword. Searches titles and full content text, including product code and family as free text, not a structured attribute filter. Returns matching items with their UUID and resource type. Filter by type ("page", "article" or "product") to restrict results to one content type. Filter by webspace to scope results to one site. Only published content is searchable.',
+    description: 'Search published website content (articles, pages, and any type a bundle registers) by keyword. Searches titles and full content text as free text, not a structured attribute filter. Returns matching items with their UUID and resource type. Filter by type ("page", "article" or another registered type) to restrict results to one content type. Filter by webspace to scope results to one site. Only published content is searchable.',
 )]
 final class ContentSearchTool
 {
@@ -38,8 +38,8 @@ final class ContentSearchTool
      * @param string $locale IETF locale of the request, e.g. "en", "de".
      * @param string|null $webspace Webspace key to restrict results to one site (e.g.
      *                              "example"). Omit to search all webspaces.
-     * @param string|null $type Content type to search: "page", "article" or "product"
-     *                          (only when SuluProductBundle is installed). Omit to search all.
+     * @param string|null $type Content type to search: "page", "article" or another
+     *                          type a bundle registers. Omit to search all.
      * @param int $page page number, 1-based
      * @param int $limit maximum number of results per page
      *

@@ -28,8 +28,8 @@ use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
-use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockRemoveTool;
 use Sulu\Page\Application\Message\ModifyPageMessage;
@@ -77,10 +77,10 @@ final class BlockRemoveToolTest extends TestCase
         $this->contentManager = $this->prophesize(ContentManagerInterface::class);
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
         $groupProvider = new TestGroupProvider([]);
-        $this->contentSecurityContextResolver = new ContentSecurityContextResolver(new ArticleSecurityContextResolver($groupProvider), $this->contentManager->reveal());
+        $this->contentSecurityContextResolver = ContentTypes::securityResolver($this->contentManager->reveal(), $groupProvider);
         $this->tool = new BlockRemoveTool(
             $this->messageBus->reveal(),
-            new ContentTypeResolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
+            ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal(), $groupProvider),
             $this->contentManager->reveal(),
             $this->permissionChecker,
             $this->contentSecurityContextResolver,

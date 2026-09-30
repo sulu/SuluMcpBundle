@@ -24,10 +24,8 @@ use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Model\ArticleDimensionContent;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
-use Sulu\Mcp\Application\Content\ContentTypeResolver;
-use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
-use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentPublishTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
@@ -75,10 +73,10 @@ final class ContentPublishToolTest extends TestCase
 
         $this->tool = new ContentPublishTool(
             $this->messageBus->reveal(),
-            new ContentTypeResolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
+            ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal(), $groupProvider),
             $this->contentManager->reveal(),
             $this->permissionChecker,
-            new ContentSecurityContextResolver(new ArticleSecurityContextResolver($groupProvider), $this->contentManager->reveal()),
+            ContentTypes::securityResolver($this->contentManager->reveal(), $groupProvider),
         );
     }
 

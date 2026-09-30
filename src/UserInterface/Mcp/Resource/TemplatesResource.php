@@ -17,6 +17,7 @@ use Mcp\Capability\Attribute\McpResource;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
+use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 
@@ -29,6 +30,7 @@ class TemplatesResource
         private readonly MetadataProviderInterface $formMetadataProvider,
         private readonly FieldNormalizer $fieldNormalizer,
         private readonly MetadataLocaleResolver $localeResolver,
+        private readonly ContentTypeResolver $contentTypeResolver,
     ) {
     }
 
@@ -36,7 +38,7 @@ class TemplatesResource
     #[McpResource(
         uri: 'sulu://templates',
         name: 'sulu_templates',
-        description: 'Available Sulu templates grouped by content type. Top-level keys are `page`, `article`, and `snippet` (any type with no templates installed is omitted). Each entry maps a template key to its field schema. Use the template key when creating or updating content of that type. Block fields list their allowed types with fields inlined, except types referencing a global block, which carry `globalBlock: <name>`; their field definitions are listed once in sulu://global_blocks.',
+        description: 'Available Sulu templates grouped by content type. Top-level keys are `page`, `article`, `snippet`, and any type a bundle registers (any type with no templates installed is omitted). Each entry maps a template key to its field schema. Use the template key when creating or updating content of that type. Block fields list their allowed types with fields inlined, except types referencing a global block, which carry `globalBlock: <name>`; their field definitions are listed once in sulu://global_blocks.',
         mimeType: 'application/json',
     )]
     public function getTemplates(): array
@@ -44,10 +46,10 @@ class TemplatesResource
         $locale = $this->localeResolver->resolve();
 
         $result = [];
-        foreach (['page', 'article', 'snippet', 'product'] as $contentType) {
-            $templates = $this->loadTemplatesByType($contentType, $locale);
+        foreach ($this->contentTypeResolver->all() as $extension) {
+            $templates = $this->loadTemplatesByType($extension->getTemplateType(), $locale);
             if ([] !== $templates) {
-                $result[$contentType] = $templates;
+                $result[$extension->getType()] = $templates;
             }
         }
 

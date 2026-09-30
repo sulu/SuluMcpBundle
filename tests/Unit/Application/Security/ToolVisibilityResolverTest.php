@@ -23,6 +23,7 @@ use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Component\Webspace\Webspace;
+use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Security\ToolContextResolverInterface;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
@@ -30,6 +31,7 @@ use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ContactSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 
@@ -53,12 +55,14 @@ final class ToolVisibilityResolverTest extends TestCase
         array $map,
         ?WebspacePermissionResolver $webspacePermissionResolver = null,
         array $contextResolvers = [],
+        ?ContentTypeExtensionRegistry $extensionRegistry = null,
     ): ToolVisibilityResolver {
         return new ToolVisibilityResolver(
             $map,
             $this->checker,
             $webspacePermissionResolver ?? $this->webspaceResolver([]),
             new ArticleSecurityContextResolver(TestGroupProvider::singleGroup()),
+            $extensionRegistry ?? new ContentTypeExtensionRegistry([]),
             $contextResolvers,
             ['sulu_ping', 'sulu_get_context'],
         );
@@ -232,6 +236,42 @@ final class ToolVisibilityResolverTest extends TestCase
         );
 
         self::assertFalse($resolver->isVisible('sulu_page_get'));
+    }
+
+    public function testAnyExtensionSentinelVisibleWhenAnExtensionIsGranted(): void
+    {
+        $this->checker->grantingNoneExcept()->grant('sulu.widget.widgets', PermissionTypes::VIEW);
+        $resolver = $this->resolver(
+            [
+                'sulu_content_delete' => [
+                    'name' => 'sulu_content_delete',
+                    'requirements' => [['context' => '#context#', 'permission' => PermissionTypes::VIEW]],
+                    'contextArgument' => null, 'contextResolver' => null,
+                    'objectResolved' => true, 'discoveryContexts' => [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT],
+                ],
+            ],
+            extensionRegistry: new ContentTypeExtensionRegistry([new FakeContentTypeExtension()]),
+        );
+
+        self::assertTrue($resolver->isVisible('sulu_content_delete'));
+    }
+
+    public function testAnyExtensionSentinelHiddenWhenNoExtensionIsGranted(): void
+    {
+        $this->checker->denyAll();
+        $resolver = $this->resolver(
+            [
+                'sulu_content_delete' => [
+                    'name' => 'sulu_content_delete',
+                    'requirements' => [['context' => '#context#', 'permission' => PermissionTypes::VIEW]],
+                    'contextArgument' => null, 'contextResolver' => null,
+                    'objectResolved' => true, 'discoveryContexts' => [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT],
+                ],
+            ],
+            extensionRegistry: new ContentTypeExtensionRegistry([new FakeContentTypeExtension()]),
+        );
+
+        self::assertFalse($resolver->isVisible('sulu_content_delete'));
     }
 
     public function testDescribeReturnsReasonWhenUnavailable(): void

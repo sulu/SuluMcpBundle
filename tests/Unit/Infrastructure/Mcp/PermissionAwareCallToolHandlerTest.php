@@ -31,11 +31,13 @@ use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceCollection;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Component\Webspace\Webspace;
+use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 
@@ -101,14 +103,18 @@ final class PermissionAwareCallToolHandlerTest extends TestCase
     /**
      * @param array<string, array{name: string, requirements: list<array{context: string, permission: string}>, contextArgument: ?string, contextResolver: ?string, objectResolved: bool, discoveryContexts: list<string>}> $map
      */
-    private function handler(array $map, ?WebspacePermissionResolver $webspacePermissionResolver = null): PermissionAwareCallToolHandler
-    {
+    private function handler(
+        array $map,
+        ?WebspacePermissionResolver $webspacePermissionResolver = null,
+        ?ContentTypeExtensionRegistry $extensionRegistry = null,
+    ): PermissionAwareCallToolHandler {
         return new PermissionAwareCallToolHandler(
             $this->registry->reveal(),
             new ReferenceHandler(null),
             $this->checker,
             $webspacePermissionResolver ?? $this->webspacePermissionResolver,
             new ArticleSecurityContextResolver(TestGroupProvider::singleGroup()),
+            $extensionRegistry ?? new ContentTypeExtensionRegistry([]),
             $map,
             [],
             ['sulu_ping', 'sulu_get_context'],
@@ -292,6 +298,55 @@ final class PermissionAwareCallToolHandlerTest extends TestCase
         );
 
         $request = $this->request('sulu_page_get', ['uuid' => 'x']);
+        $response = $handler->handle($request, $this->session());
+
+        self::assertInstanceOf(Response::class, $response);
+        $result = $response->result;
+        self::assertInstanceOf(CallToolResult::class, $result);
+        self::assertTrue($result->isError);
+    }
+
+    public function testAnyExtensionSentinelDelegatesWhenAnExtensionIsGranted(): void
+    {
+        $this->checker->grantingNoneExcept()->grant('sulu.widget.widgets', PermissionTypes::VIEW);
+        $this->registry->getTool(Argument::any())->willThrow(new ToolNotFoundException('sulu_content_delete'));
+
+        $handler = $this->handler(
+            [
+                'sulu_content_delete' => [
+                    'name' => 'sulu_content_delete',
+                    'requirements' => [['context' => '#context#', 'permission' => PermissionTypes::VIEW]],
+                    'contextArgument' => null, 'contextResolver' => null,
+                    'objectResolved' => true, 'discoveryContexts' => [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT],
+                ],
+            ],
+            extensionRegistry: new ContentTypeExtensionRegistry([new FakeContentTypeExtension()]),
+        );
+
+        $request = $this->request('sulu_content_delete', ['uuid' => 'x']);
+        $result = $handler->handle($request, $this->session());
+
+        // Reached the inner handler, which reports METHOD_NOT_FOUND for the unregistered tool.
+        self::assertInstanceOf(Error::class, $result);
+    }
+
+    public function testAnyExtensionSentinelDeniesWhenNoExtensionIsGranted(): void
+    {
+        $this->checker->denyAll();
+
+        $handler = $this->handler(
+            [
+                'sulu_content_delete' => [
+                    'name' => 'sulu_content_delete',
+                    'requirements' => [['context' => '#context#', 'permission' => PermissionTypes::VIEW]],
+                    'contextArgument' => null, 'contextResolver' => null,
+                    'objectResolved' => true, 'discoveryContexts' => [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT],
+                ],
+            ],
+            extensionRegistry: new ContentTypeExtensionRegistry([new FakeContentTypeExtension()]),
+        );
+
+        $request = $this->request('sulu_content_delete', ['uuid' => 'x']);
         $response = $handler->handle($request, $this->session());
 
         self::assertInstanceOf(Response::class, $response);

@@ -26,12 +26,12 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
-use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
 use Sulu\Mcp\Tests\Unit\Fixture\FixedBlockIdGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Snippet\SnippetUpdateTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
@@ -89,7 +89,7 @@ final class SnippetUpdateToolTest extends TestCase
         $this->tool = new SnippetUpdateTool(
             $this->messageBus->reveal(),
             $this->contentManager->reveal(),
-            new ContentTypeResolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
+            ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             $adminLinkGenerator,
@@ -328,7 +328,7 @@ final class SnippetUpdateToolTest extends TestCase
         $this->tool = new SnippetUpdateTool(
             $this->messageBus->reveal(),
             $this->contentManager->reveal(),
-            new ContentTypeResolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
+            ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new AdminLinkGenerator($router->reveal(), [new SnippetAdminLinkProvider(new TestViewRegistry())]),

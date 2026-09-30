@@ -25,6 +25,8 @@ use Sulu\Bundle\AdminBundle\Metadata\MetadataInterface;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
 use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
@@ -39,7 +41,7 @@ final class TemplateResourceTest extends TestCase
     protected function setUp(): void
     {
         $this->formMetadataProvider = new ArrayMetadataProvider();
-        $this->resource = new TemplatesResource($this->formMetadataProvider, new FieldNormalizer(), new MetadataLocaleResolver(new TokenStorage(), 'en'));
+        $this->resource = new TemplatesResource($this->formMetadataProvider, new FieldNormalizer(), new MetadataLocaleResolver(new TokenStorage(), 'en'), ContentTypes::inertResolver());
     }
 
     public function testGetTemplatesReturnsTemplatesGroupedByContentType(): void
@@ -120,6 +122,31 @@ final class TemplateResourceTest extends TestCase
         $this->assertArrayHasKey('blog', $result['article']);
         $this->assertArrayHasKey('teaser', $result['snippet']);
         $this->assertSame('headline', $result['article']['blog']['fields'][0]['name']);
+    }
+
+    public function testGetTemplatesIncludesARegisteredExtensionType(): void
+    {
+        $resource = new TemplatesResource(
+            $this->formMetadataProvider,
+            new FieldNormalizer(),
+            new MetadataLocaleResolver(new TokenStorage(), 'en'),
+            ContentTypes::inertResolver([new FakeContentTypeExtension()]),
+        );
+
+        $field = new FieldMetadata('title');
+        $field->setType('text_line');
+        $form = new FormMetadata();
+        $form->setKey('default');
+        $form->addItem($field);
+        $widgetMetadata = new TypedFormMetadata();
+        $widgetMetadata->addForm('default', $form);
+
+        $this->formMetadataProvider->set('widget', $widgetMetadata);
+
+        $result = $resource->getTemplates();
+
+        $this->assertArrayHasKey('widget', $result);
+        $this->assertArrayHasKey('default', $result['widget']);
     }
 
     public function testGetTemplatesOmitsContentTypesWithoutMetadata(): void

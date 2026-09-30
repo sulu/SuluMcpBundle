@@ -27,6 +27,7 @@ use Mcp\Server\Handler\Request\RequestHandlerInterface;
 use Mcp\Server\Session\SessionInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Security\ToolContextResolverInterface;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -57,6 +58,7 @@ final readonly class PermissionAwareCallToolHandler implements RequestHandlerInt
         private ToolPermissionCheckerInterface $permissionChecker,
         private WebspacePermissionResolver $webspacePermissionResolver,
         private ArticleSecurityContextResolver $articleContextResolver,
+        private ContentTypeExtensionRegistry $extensionRegistry,
         private array $permissionMap,
         private array $contextResolvers,
         private array $allowlist,
@@ -154,6 +156,7 @@ final readonly class PermissionAwareCallToolHandler implements RequestHandlerInt
         return match ($candidate) {
             WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT => [] !== $this->webspacePermissionResolver->permittedWebspaceKeys($permission, $locale),
             ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT => $this->anyArticleGroupGrants($permission, $locale),
+            ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT => $this->anyExtensionGrants($permission, $locale),
             default => $this->permissionChecker->has($candidate, $permission, $locale),
         };
     }
@@ -167,6 +170,19 @@ final readonly class PermissionAwareCallToolHandler implements RequestHandlerInt
         foreach ($this->articleContextResolver->candidates() as $context) {
             if ($this->permissionChecker->has($context, $permission, $locale)) {
                 return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function anyExtensionGrants(string $permission, ?string $locale): bool
+    {
+        foreach ($this->extensionRegistry->searchable() as $extension) {
+            foreach ($extension->getViewSecurityContexts() as $context) {
+                if ($this->permissionChecker->has($context, $permission, $locale)) {
+                    return true;
+                }
             }
         }
 

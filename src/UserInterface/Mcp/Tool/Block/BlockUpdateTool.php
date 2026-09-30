@@ -25,6 +25,7 @@ use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
+use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
@@ -34,7 +35,6 @@ use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
-use Sulu\Page\Domain\Model\Page;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\HandleTrait;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -75,7 +75,7 @@ class BlockUpdateTool
     #[RequiresPermission(
         requirements: [new PermissionRequirement('#context#', PermissionTypes::EDIT)],
         objectResolved: true,
-        discoveryContexts: ['sulu.snippet.snippets', 'sulu.product.products', ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
+        discoveryContexts: ['sulu.snippet.snippets', ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function updateBlock(
         string $type,
@@ -112,6 +112,7 @@ class BlockUpdateTool
                 return ['error' => \sprintf('%s not found: %s', \ucfirst($type), $uuid)];
             }
 
+            $extension = $this->contentTypeResolver->get($type);
             $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
@@ -127,8 +128,8 @@ class BlockUpdateTool
                 $context,
                 PermissionTypes::EDIT,
                 $locale,
-                'page' === $type ? Page::class : null,
-                'page' === $type ? $uuid : null,
+                $extension->getAclObjectType(),
+                null !== $extension->getAclObjectType() ? $uuid : null,
             );
 
             if ($missingTranslation = self::missingBlockTranslationError($dimensionContent, $type, $uuid, $locale)) {
@@ -171,7 +172,7 @@ class BlockUpdateTool
                 ? $currentData['template']
                 : null;
             $blockPath = $this->blockTypePath($currentData, $foundProperty, $foundIndices);
-            if (null !== $blockType && $validationError = $this->blockDataValidator->validate($type, $templateKey, $blockType, $blockPath, $blockData)) {
+            if (null !== $blockType && $validationError = $this->blockDataValidator->validate($extension->getTemplateType(), $templateKey, $blockType, $blockPath, $blockData)) {
                 return $validationError;
             }
 

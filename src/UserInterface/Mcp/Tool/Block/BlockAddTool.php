@@ -25,6 +25,7 @@ use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
+use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
@@ -34,7 +35,6 @@ use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
-use Sulu\Page\Domain\Model\Page;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\HandleTrait;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -69,13 +69,13 @@ class BlockAddTool
     #[McpTool(
         name: 'sulu_block_add',
         title: 'Add Block',
-        description: 'Add a content block to a page, article, or snippet. Pass "type" ("page", "article", "snippet", or "product" when SuluProductBundle is installed) and the entity "uuid". Blocks are typed components (e.g. "text", "image", "quote") defined by the project. Workflow: 1) Call sulu_get_context to see available block types and their fields. 2) Find the block property name in the template (e.g. "blocks" or "content"). 3) Pass blockType, blockProperty, and blockData as a flat object mapping the block-type\'s template field names to values, e.g. blockData={"title": "Heading", "description": "<p>Body</p>"}. Unknown keys are rejected against the template schema; the internal {name, value} storage shape is rejected too. The block is appended or inserted at `position` (0-based). To add a block inside another, pass parentBlockId with the parent\'s _id. The entity must be re-published after adding blocks.',
+        description: 'Add a content block to a page, article, snippet, or any type a bundle registers. Pass "type" ("page", "article", "snippet", or another registered type) and the entity "uuid". Blocks are typed components (e.g. "text", "image", "quote") defined by the project. Workflow: 1) Call sulu_get_context to see available block types and their fields. 2) Find the block property name in the template (e.g. "blocks" or "content"). 3) Pass blockType, blockProperty, and blockData as a flat object mapping the block-type\'s template field names to values, e.g. blockData={"title": "Heading", "description": "<p>Body</p>"}. Unknown keys are rejected against the template schema; the internal {name, value} storage shape is rejected too. The block is appended or inserted at `position` (0-based). To add a block inside another, pass parentBlockId with the parent\'s _id. The entity must be re-published after adding blocks.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     )]
     #[RequiresPermission(
         requirements: [new PermissionRequirement('#context#', PermissionTypes::EDIT)],
         objectResolved: true,
-        discoveryContexts: ['sulu.snippet.snippets', 'sulu.product.products', ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
+        discoveryContexts: ['sulu.snippet.snippets', ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function addBlock(
         string $type,
@@ -98,6 +98,7 @@ class BlockAddTool
                 return ['error' => \sprintf('%s not found: %s', \ucfirst($type), $uuid)];
             }
 
+            $extension = $this->contentTypeResolver->get($type);
             $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
@@ -113,8 +114,8 @@ class BlockAddTool
                 $context,
                 PermissionTypes::EDIT,
                 $locale,
-                'page' === $type ? Page::class : null,
-                'page' === $type ? $uuid : null,
+                $extension->getAclObjectType(),
+                null !== $extension->getAclObjectType() ? $uuid : null,
             );
 
             if ($missingTranslation = self::missingBlockTranslationError($dimensionContent, $type, $uuid, $locale)) {
@@ -146,10 +147,10 @@ class BlockAddTool
                 ? $currentData['template']
                 : null;
             $nestedProperty = null !== $parentPath
-                ? $this->nestedTargetProperty($currentData, $type, $templateKey, $blockType, $parentPath)
+                ? $this->nestedTargetProperty($currentData, $extension->getTemplateType(), $templateKey, $blockType, $parentPath)
                 : null;
             $blockPath = $this->newBlockTypePath($currentData, $blockProperty, $blockType, $parentPath, $nestedProperty);
-            if ($validationError = $this->blockDataValidator->validate($type, $templateKey, $blockType, $blockPath, $blockData)) {
+            if ($validationError = $this->blockDataValidator->validate($extension->getTemplateType(), $templateKey, $blockType, $blockPath, $blockData)) {
                 return $validationError;
             }
 

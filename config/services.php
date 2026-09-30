@@ -20,6 +20,7 @@ use Sulu\Mcp\Application\Article\ArticleGroupResolver;
 use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
+use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Media\MediaDownloader;
 use Sulu\Mcp\Application\Media\MediaFileNamer;
@@ -37,6 +38,7 @@ use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Infrastructure\League\EventListener\OAuthAuthorizationListener;
 use Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry;
 use Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler;
@@ -47,6 +49,9 @@ use Sulu\Mcp\Infrastructure\Sulu\AdminLink\MediaAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\PageAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\TagAdminLinkProvider;
+use Sulu\Mcp\Infrastructure\Sulu\Content\ArticleContentTypeExtension;
+use Sulu\Mcp\Infrastructure\Sulu\Content\PageContentTypeExtension;
+use Sulu\Mcp\Infrastructure\Sulu\Content\SnippetContentTypeExtension;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ContactSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\EntryPoint\OAuthAuthorizeEntryPoint;
@@ -117,7 +122,9 @@ return static function(ContainerConfigurator $container): void {
             ->autowire()
             ->autoconfigure()
         ->instanceof(AdminLinkProviderInterface::class)
-            ->tag('sulu_mcp.admin_link_provider');
+            ->tag('sulu_mcp.admin_link_provider')
+        ->instanceof(ContentTypeExtensionInterface::class)
+            ->tag('sulu_mcp.content_type_extension');
 
     // Providers need sulu_admin.view_registry, which only exists in the admin
     // container, hence the sulu.context tag. The generator itself is
@@ -151,6 +158,13 @@ return static function(ContainerConfigurator $container): void {
     $services->alias(ToolPermissionCheckerInterface::class, ToolPermissionChecker::class);
     $services->set(WebspacePermissionResolver::class);
 
+    $services->set(PageContentTypeExtension::class);
+    $services->set(ArticleContentTypeExtension::class);
+    $services->set(SnippetContentTypeExtension::class);
+
+    $services->set(ContentTypeExtensionRegistry::class)
+        ->arg('$extensions', tagged_iterator('sulu_mcp.content_type_extension'));
+
     $services->set(AccessControlFilterFactory::class)
         ->arg('$security', new Reference('security.helper'))
         ->arg('$permissions', '%sulu_security.permissions%');
@@ -158,6 +172,7 @@ return static function(ContainerConfigurator $container): void {
     // $contextResolvers is keyed the same way as PermissionAwareCallToolHandler's.
     $services->set(ToolVisibilityResolver::class)
         ->arg('$permissionMap', '%sulu_mcp.tool_permissions%')
+        ->arg('$extensionRegistry', new Reference(ContentTypeExtensionRegistry::class))
         ->arg('$contextResolvers', [
             'sulu_mcp.contact_context_resolver' => new Reference('sulu_mcp.contact_context_resolver'),
             'sulu_mcp.article_context_resolver' => new Reference('sulu_mcp.article_context_resolver'),
@@ -185,6 +200,7 @@ return static function(ContainerConfigurator $container): void {
         ->arg('$registry', new Reference('mcp.server.sulu.registry'))
         ->arg('$referenceHandler', new Reference('sulu_mcp.reference_handler'))
         ->arg('$webspacePermissionResolver', new Reference(WebspacePermissionResolver::class))
+        ->arg('$extensionRegistry', new Reference(ContentTypeExtensionRegistry::class))
         ->arg('$permissionMap', '%sulu_mcp.tool_permissions%')
         ->arg('$contextResolvers', [
             'sulu_mcp.contact_context_resolver' => new Reference('sulu_mcp.contact_context_resolver'),
@@ -289,14 +305,13 @@ return static function(ContainerConfigurator $container): void {
     $services->set(PageMoveTool::class);
     $services->set(PageReorderTool::class);
 
-    // Unified content tools (page | article | snippet via `type`)
+    // Unified content tools
     $services->set(ContentDeleteTool::class);
     $services->set(ContentPublishTool::class);
     $services->set(ContentUnpublishTool::class);
 
     // Block management tools
-    $services->set(ContentTypeResolver::class)
-        ->arg('$productRepository', null); // overridden in services_product.php
+    $services->set(ContentTypeResolver::class);
     $services->set(ContentMetadataMapper::class)
         ->arg('$formMetadataProvider', new Reference('sulu_admin.form_metadata_provider'));
     $services->set(BlockDataValidator::class)
