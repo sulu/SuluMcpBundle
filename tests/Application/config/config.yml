@@ -65,6 +65,5 @@ services:
 
     Sulu\Mcp\Tests\Application\DataFixtures\:
         resource: '../DataFixtures/'
-        exclude: '../DataFixtures/ProductFixtures.php'
         autowire: true
         autoconfigure: true

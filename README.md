@@ -182,7 +182,7 @@ sulu_mcp:
 
 ### Available tools
 
-40 tools spanning the core Sulu domains, plus 9 more when `sulu/product-bundle` is installed:
+40 tools spanning the core Sulu domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
@@ -196,28 +196,17 @@ sulu_mcp:
 | Preview | 2 | `sulu_preview_link_generate`, `sulu_preview_link_revoke` |
 | Navigation | 1 | `sulu_navigation_get` |
 | Contact | 1 | `sulu_contact_list` |
-| Products *(optional)* | 9 | `sulu_product_create`, `sulu_product_update`, `sulu_product_get`, `sulu_product_list`, `sulu_product_variant_*`, `sulu_product_family_list`, `sulu_attribute_list` — require [`sulu/product-bundle`](https://github.com/sulu/SuluProductBundle) |
 | Misc | 3 | `sulu_content_search`, `sulu_get_context`, `sulu_ping` |
 
-The block and unified content tools operate on pages, articles, snippets — and products, when
-`sulu/product-bundle` is installed — alike through a `resourceKey` parameter.
+The block and unified content tools operate on every registered content type through a `resourceKey`
+parameter. Pages, articles and snippets come with the bundle.
 
-#### Products (optional)
+#### Content type extensions
 
-The product tools appear only when [`sulu/product-bundle`](https://github.com/sulu/SuluProductBundle)
-is installed and registered in `bundles.php`; without it they are hidden from `tools/list`. The
-bundle has no 3.x release yet, so it installs from its branch:
-
-```bash
-composer require sulu/product-bundle:3.0.x-dev
-```
-
-Products are modelled with a product family that decides which attributes apply, and support one
-level of variants: a product of type `product_with_variants` holds `variant` children. Variants
-cannot be nested. Because a variant inherits its parent's family and only carries the attributes
-the family marks `variantSpecific`, they are created with `sulu_product_variant_create` rather than
-`sulu_product_create`. Variants are published individually through `sulu_content_publish`, and only
-after their parent is published in that locale; unpublishing the parent unpublishes its variants.
+Another bundle adds a type by implementing `Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface`.
+A service implementing it is tagged by autoconfiguration, and the unified tools, block tools, preview
+tools and `sulu_content_search` then pick it up. [`sulu/product-bundle`](https://github.com/sulu/SuluProductBundle)
+does this for products and ships its own product tools.
 
 ### Authentication
 

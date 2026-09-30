@@ -19,7 +19,6 @@ use Sulu\Bundle\TestBundle\Kernel\SuluTestKernel;
 use Sulu\Bundle\TestBundle\SuluTestBundle;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\SuluMcpBundle;
 use Sulu\Mcp\Tests\Application\TestBundle\TestBundle;
-use Sulu\Product\Infrastructure\Symfony\HttpKernel\SuluProductBundle;
 use Sulu\Snippet\Infrastructure\Symfony\HttpKernel\SuluSnippetBundle;
 use Symfony\AI\McpBundle\McpBundle;
 use Symfony\Bundle\SecurityBundle\SecurityBundle;
@@ -36,10 +35,6 @@ class Kernel extends SuluTestKernel
 
         $bundles[] = new SuluArticleBundle();
         $bundles[] = new SuluSnippetBundle();
-        if (\class_exists(SuluProductBundle::class)) {
-            $bundles[] = new SuluProductBundle();
-        }
-
         $bundles[] = new McpBundle();
         $bundles[] = new LeagueOAuth2ServerBundle();
         $bundles[] = new SuluMcpBundle();
@@ -64,10 +59,6 @@ class Kernel extends SuluTestKernel
         $loader->load(SuluTestBundle::getConfigDir() . '/context_' . $this->getContext() . '.yml');
 
         $loader->load(__DIR__ . '/config/config_' . $this->getContext() . '.yml');
-
-        if (\class_exists(SuluProductBundle::class)) {
-            $loader->load(__DIR__ . '/config/config_product.yml');
-        }
     }
 }
 
