@@ -13,8 +13,10 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\UserInterface\Agent\Tool;
 
+use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Search\ContentSearch;
 use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
+use Symfony\AI\Platform\Contract\JsonSchema\Attribute\Schema;
 
 /**
  * Wraps ContentSearch for a symfony/ai-agent Toolbox: the agent-side counterpart to
@@ -24,7 +26,7 @@ use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
  */
 #[AsTool(
     name: 'sulu_content_search',
-    description: 'Search published website content by keyword, across the resource keys "pages", "articles" and any resource key a bundle registers. Searches titles and full content text as free text, not a structured attribute filter. Returns matching items with their UUID and resource key. Pass "resourceKey" ("pages", "articles" or a registered resource key) to restrict results to one content type. Filter by webspace to scope results to one site. Only published content is searchable.',
+    description: 'Search published website content by keyword, across the resource keys {resourceKeys}. Searches titles and full content text as free text, not a structured attribute filter. Returns matching items with their UUID and resource key. Pass "resourceKey" to restrict results to one content type. Filter by webspace to scope results to one site. Only published content is searchable.',
 )]
 final class ContentSearchTool
 {
@@ -38,9 +40,6 @@ final class ContentSearchTool
      * @param string $locale IETF locale of the request, e.g. "en", "de".
      * @param string|null $webspace Webspace key to restrict results to one site (e.g.
      *                              "example"). Omit to search all webspaces.
-     * @param string|null $resourceKey ResourceKey of the content type to search: "pages",
-     *                                 "articles" or the resource key a bundle registers.
-     *                                 Omit to search all.
      * @param int $page page number, 1-based
      * @param int $limit maximum number of results per page
      *
@@ -50,6 +49,7 @@ final class ContentSearchTool
         string $query,
         string $locale,
         ?string $webspace = null,
+        #[Schema(description: 'ResourceKey of the content type to search: {resourceKeys}. Omit to search all.', enum: [ContentTypeSchemaExpander::RESOURCE_KEYS])]
         ?string $resourceKey = null,
         int $page = 1,
         int $limit = 20,

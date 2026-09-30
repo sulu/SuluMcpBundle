@@ -13,8 +13,10 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Sulu\Mcp\Infrastructure\Agent\ContentTypeToolFactory;
 use Sulu\Mcp\UserInterface\Agent\Tool\ContentSearchTool;
 use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /*
  * Imported by SuluMcpBundle only when symfony/ai-agent is installed: these classes carry its
@@ -27,6 +29,11 @@ return static function(ContainerConfigurator $container): void {
         ->defaults()
             ->autowire()
             ->autoconfigure();
+
+    // Inert without AiBundle: there is no ai.tool_factory to decorate.
+    $services->set(ContentTypeToolFactory::class)
+        ->decorate('ai.tool_factory', null, 0, ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+        ->arg('$inner', service('.inner'));
 
     foreach ([ContentSearchTool::class] as $toolClass) {
         $attribute = (new \ReflectionClass($toolClass))->getAttributes(AsTool::class)[0]->newInstance();
