@@ -247,10 +247,11 @@ final class BlockListToolTest extends TestCase
 
         // A ghost carries no template key, so the article's group comes from the locale it
         // is a ghost of -- otherwise the context is unresolvable and fails closed.
-        $ghost = new ArticleDimensionContent(new Article());
+        $ghost = new ArticleDimensionContent($article);
         $ghost->setGhostLocale('de');
         $ghost->addAvailableLocale('de');
-        $source = new ArticleDimensionContent(new Article());
+        $article->addDimensionContent($ghost);
+        $source = new ArticleDimensionContent($article);
         $source->setLocale('de');
         $source->setTemplateKey('blog_article');
         $article->addDimensionContent($source);

@@ -27,6 +27,7 @@ use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkRevokeTool;
 use Sulu\Page\Domain\Model\Page;
@@ -81,6 +82,36 @@ final class PreviewLinkRevokeToolTest extends TestCase
             $dimensionContent->setTemplateKey('default');
             $article->addDimensionContent($dimensionContent);
         }
+    }
+
+    public function testRevokeRejectsATypeMarkedNotSearchable(): void
+    {
+        $this->previewLinkManager->revoke(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->revokePreviewLink('snippet', 'snippet-uuid', 'en');
+
+        $this->assertStringContainsString('cannot be previewed', $result['error']);
+    }
+
+    public function testRevokeRejectsAnUnknownType(): void
+    {
+        $this->previewLinkManager->revoke(Argument::cetera())->shouldNotBeCalled();
+
+        $this->assertStringContainsString('cannot be previewed', $this->tool->revokePreviewLink('nope', 'snippet-uuid', 'en')['error']);
+    }
+
+    public function testRevokeResolvesTheResourceKeyFromAnExtension(): void
+    {
+        $this->previewLinkManager->revoke('widgets', 'w-1', 'en')->shouldBeCalledOnce();
+
+        $tool = new PreviewLinkRevokeTool(
+            $this->previewLinkManager->reveal(),
+            ContentTypes::inertResolver([new FakeContentTypeExtension(draft: new \stdClass())]),
+            $this->permissionChecker,
+            ContentTypes::securityResolver(null, [new FakeContentTypeExtension(draft: new \stdClass())]),
+        );
+
+        $this->assertSame('widgets', $tool->revokePreviewLink('widget', 'w-1', 'en')['resourceKey']);
     }
 
     public function testRevokePreviewLinkSuccess(): void

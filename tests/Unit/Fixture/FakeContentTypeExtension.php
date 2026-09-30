@@ -50,7 +50,7 @@ final class FakeContentTypeExtension implements ContentTypeExtensionInterface
         return [$this->securityContext];
     }
 
-    public function getSecurity(object $aggregate): ContentSecurity
+    public function getSecurity(object $aggregate, string $locale): ContentSecurity
     {
         return new ContentSecurity($this->securityContext);
     }

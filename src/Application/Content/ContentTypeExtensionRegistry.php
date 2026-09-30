@@ -44,8 +44,19 @@ final class ContentTypeExtensionRegistry
         $byType = [];
         $byResourceKey = [];
         foreach ($extensions as $extension) {
-            $byType[$extension->getType()] = $extension;
-            $byResourceKey[$extension->getResourceKey()] = $extension;
+            $type = $extension->getType();
+            $resourceKey = $extension->getResourceKey();
+
+            if (isset($byType[$type])) {
+                throw new \LogicException(\sprintf('Content type "%s" is registered twice, by "%s" and "%s".', $type, $byType[$type]::class, $extension::class));
+            }
+
+            if (isset($byResourceKey[$resourceKey])) {
+                throw new \LogicException(\sprintf('Resource key "%s" is registered twice, by "%s" and "%s".', $resourceKey, $byResourceKey[$resourceKey]::class, $extension::class));
+            }
+
+            $byType[$type] = $extension;
+            $byResourceKey[$resourceKey] = $extension;
         }
 
         $this->byType = $byType;

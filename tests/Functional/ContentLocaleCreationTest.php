@@ -22,6 +22,7 @@ use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Infrastructure\Sulu\Content\ArticleContentTypeExtension;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleUpdateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageUpdateTool;
@@ -170,10 +171,11 @@ final class ContentLocaleCreationTest extends FunctionalTestCase
 
     public function testArticleUpdateCreatesMissingLocale(): void
     {
-        $this->authenticateEditor(['sulu.webspaces.website', 'sulu.article.articles_blog']);
         $pageUuid = $this->createGermanPage();
         $this->translatePageToEnglish($pageUuid);
         $uuid = $this->createGermanArticle($pageUuid);
+        $this->entityManager->clear();
+        $this->authenticateEditor(['sulu.webspaces.website', 'sulu.article.articles_blog']);
 
         /** @var ArticleUpdateTool $tool */
         $tool = self::getContainer()->get(ArticleUpdateTool::class);
@@ -211,6 +213,21 @@ final class ContentLocaleCreationTest extends FunctionalTestCase
         self::assertSame('English Article', $normalized['title'] ?? null);
         self::assertSame('<p>English body</p>', $normalized['article'] ?? null);
         self::assertSame('/english-article', $normalized['url']['suffix'] ?? null);
+    }
+
+    public function testGhostArticleSecurityComesFromTheSourceLocaleOnAClearedEntityManager(): void
+    {
+        $pageUuid = $this->createGermanPage();
+        $uuid = $this->createGermanArticle($pageUuid);
+        $this->entityManager->clear();
+        $this->authenticateEditor(['sulu.webspaces.website', 'sulu.article.articles_blog']);
+
+        /** @var ArticleContentTypeExtension $extension */
+        $extension = self::getContainer()->get(ArticleContentTypeExtension::class);
+        $ghost = $extension->loadDraft($uuid, 'en', true);
+        self::assertNotNull($ghost);
+
+        self::assertSame('sulu.article.articles_blog', $extension->getSecurity($ghost, 'en')->context);
     }
 
     public function testArticleUpdateDeniesCreatingALocaleForAnotherGroup(): void

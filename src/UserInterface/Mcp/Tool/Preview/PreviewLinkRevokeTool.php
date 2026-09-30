@@ -23,6 +23,7 @@ use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Domain\Content\NotSearchableContentTypeInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -34,8 +35,6 @@ use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
  */
 class PreviewLinkRevokeTool
 {
-    private const TYPE_MAP = ['page' => 'pages', 'article' => 'articles'];
-
     public function __construct(
         private readonly PreviewLinkManagerInterface $previewLinkManager,
         private readonly ContentTypeResolver $contentTypeResolver,
@@ -65,6 +64,14 @@ class PreviewLinkRevokeTool
         string $uuid,
         string $locale,
     ): array {
+        $extension = $this->contentTypeResolver->find($type);
+        if (null === $extension || $extension instanceof NotSearchableContentTypeInterface) {
+            return [
+                'error' => \sprintf('Type "%s" cannot be previewed.', $type),
+                'hint' => 'Use a previewable type such as "page" or "article".',
+            ];
+        }
+
         try {
             $entity = $this->contentTypeResolver->loadDraft($type, $uuid, $locale);
             if (null === $entity) {
@@ -74,7 +81,7 @@ class PreviewLinkRevokeTool
                 ];
             }
 
-            $security = $this->contentSecurityContextResolver->forEntity($type, $entity);
+            $security = $this->contentSecurityContextResolver->forEntity($type, $entity, $locale);
 
             // Preview links are gated on EDIT, stricter than the admin UI's VIEW.
             $this->permissionChecker->check(
@@ -85,7 +92,7 @@ class PreviewLinkRevokeTool
                 null !== $security->aclObjectType ? $uuid : null,
             );
 
-            $resourceKey = self::TYPE_MAP[$type] ?? $type;
+            $resourceKey = $extension->getResourceKey();
             $this->previewLinkManager->revoke($resourceKey, $uuid, $locale);
 
             return [

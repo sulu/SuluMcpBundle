@@ -14,8 +14,8 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Domain\Content;
 
 /**
- * A content type the unified tools work on. Tag an implementation `sulu_mcp.content_type_extension`
- * (autoconfigured) to plug a type in.
+ * A content type the unified tools work on. A service implementing this is tagged
+ * `sulu_mcp.content_type_extension` by autoconfiguration. Without autoconfigure, add the tag by hand.
  */
 interface ContentTypeExtensionInterface
 {
@@ -43,8 +43,9 @@ interface ContentTypeExtensionInterface
 
     /**
      * Resolves what it needs from the loaded draft aggregate itself, e.g. an article's template group.
+     * $locale is the locale the aggregate was loaded for. It may be a ghost of another locale.
      */
-    public function getSecurity(object $aggregate): ContentSecurity;
+    public function getSecurity(object $aggregate, string $locale): ContentSecurity;
 
     /**
      * $loadGhost also matches an entity in a locale it has no content in.

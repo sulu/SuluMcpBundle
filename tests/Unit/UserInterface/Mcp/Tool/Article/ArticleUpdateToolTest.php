@@ -887,13 +887,14 @@ final class ArticleUpdateToolTest extends TestCase
         $article = new Article('uuid-1');
         $this->articleRepository->getOneBy(Argument::cetera())->willReturn($article);
 
-        $ghostDimensionContent = new ArticleDimensionContent(new Article());
+        $ghostDimensionContent = new ArticleDimensionContent($article);
         $ghostDimensionContent->setGhostLocale($translatedLocales[0]);
         foreach ($translatedLocales as $translatedLocale) {
             $ghostDimensionContent->addAvailableLocale($translatedLocale);
         }
+        $article->addDimensionContent($ghostDimensionContent);
 
-        $sourceDimensionContent = new ArticleDimensionContent(new Article());
+        $sourceDimensionContent = new ArticleDimensionContent($article);
         $sourceDimensionContent->setLocale($translatedLocales[0]);
         $sourceDimensionContent->setTemplateKey($sourceTemplateKey);
         $article->addDimensionContent($sourceDimensionContent);

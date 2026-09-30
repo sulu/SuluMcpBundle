@@ -64,7 +64,7 @@ class ContentUnpublishTool
             new PermissionRequirement('#context#', PermissionTypes::LIVE),
         ],
         objectResolved: true,
-        discoveryContexts: ['sulu.snippet.snippets', ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
+        discoveryContexts: [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function unpublishContent(string $type, string $uuid, string $locale): array
     {
@@ -84,7 +84,7 @@ class ContentUnpublishTool
                 ];
             }
 
-            $security = $this->contentSecurityContextResolver->forEntity($type, $entity);
+            $security = $this->contentSecurityContextResolver->forEntity($type, $entity, $locale);
 
             $this->permissionChecker->check(
                 $security->context,

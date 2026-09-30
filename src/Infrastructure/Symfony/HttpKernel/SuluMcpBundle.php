@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Infrastructure\Symfony\HttpKernel;
 
 use Composer\InstalledVersions;
+use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
@@ -153,6 +154,8 @@ class SuluMcpBundle extends AbstractBundle
             static fn (string $host): string => \strtolower($host),
             $config['media_upload']['allowed_hosts'],
         ));
+
+        $builder->registerForAutoconfiguration(ContentTypeExtensionInterface::class)->addTag('sulu_mcp.content_type_extension');
 
         $container->import(\dirname(__DIR__, 4) . '/config/services.php');
 

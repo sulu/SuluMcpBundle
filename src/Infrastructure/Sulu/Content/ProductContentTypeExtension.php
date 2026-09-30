@@ -54,7 +54,7 @@ final readonly class ProductContentTypeExtension implements ContentTypeExtension
         return [ProductAdmin::SECURITY_CONTEXT];
     }
 
-    public function getSecurity(object $aggregate): ContentSecurity
+    public function getSecurity(object $aggregate, string $locale): ContentSecurity
     {
         return new ContentSecurity(ProductAdmin::SECURITY_CONTEXT);
     }

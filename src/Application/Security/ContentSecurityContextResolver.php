@@ -31,8 +31,8 @@ final readonly class ContentSecurityContextResolver
      *
      * @param object $aggregate the loaded draft aggregate (Page/Article/Snippet/...)
      */
-    public function forEntity(string $type, object $aggregate): ContentSecurity
+    public function forEntity(string $type, object $aggregate, string $locale): ContentSecurity
     {
-        return $this->contentTypeResolver->find($type)?->getSecurity($aggregate) ?? new ContentSecurity('');
+        return $this->contentTypeResolver->find($type)?->getSecurity($aggregate, $locale) ?? new ContentSecurity('');
     }
 }

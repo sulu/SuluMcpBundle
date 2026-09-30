@@ -55,7 +55,7 @@ final readonly class SnippetContentTypeExtension implements ContentTypeExtension
         return [self::SECURITY_CONTEXT];
     }
 
-    public function getSecurity(object $aggregate): ContentSecurity
+    public function getSecurity(object $aggregate, string $locale): ContentSecurity
     {
         return new ContentSecurity(self::SECURITY_CONTEXT);
     }

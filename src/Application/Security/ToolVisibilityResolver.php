@@ -172,7 +172,7 @@ final readonly class ToolVisibilityResolver
 
     private function anyExtensionGrants(string $permission, ?string $locale): bool
     {
-        foreach ($this->extensionRegistry->searchable() as $extension) {
+        foreach ($this->extensionRegistry->all() as $extension) {
             foreach ($extension->getViewSecurityContexts() as $context) {
                 if ($this->permissionChecker->has($context, $permission, $locale)) {
                     return true;

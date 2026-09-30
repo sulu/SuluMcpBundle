@@ -16,6 +16,7 @@ namespace Sulu\Mcp\Tests\Unit\Infrastructure\Symfony\HttpKernel;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Infrastructure\Sulu\Content\ProductContentTypeExtension;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\SuluMcpBundle;
 use Sulu\Mcp\UserInterface\Mcp\Tool\PingTool;
@@ -78,11 +79,12 @@ final class SuluMcpBundleProductGatingTest extends TestCase
         return $ids;
     }
 
-    public function testProductContentTypeExtensionIsTaggedWithTheProductBundle(): void
+    public function testProductContentTypeExtensionIsAutoconfiguredWithTheProductBundle(): void
     {
         $builder = $this->loadExtensionWithBundles(['SuluProductBundle' => SuluProductBundle::class]);
 
-        self::assertTrue($builder->getDefinition(ProductContentTypeExtension::class)->hasTag('sulu_mcp.content_type_extension'));
+        self::assertTrue($builder->getDefinition(ProductContentTypeExtension::class)->isAutoconfigured());
+        self::assertTrue($builder->getAutoconfiguredInstanceof()[ContentTypeExtensionInterface::class]->hasTag('sulu_mcp.content_type_extension'));
     }
 
     public function testCoreToolsAreRegisteredRegardlessOfTheProductBundle(): void

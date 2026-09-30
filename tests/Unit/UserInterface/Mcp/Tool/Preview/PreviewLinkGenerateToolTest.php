@@ -28,6 +28,7 @@ use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Bundle\PreviewBundle\Domain\Model\PreviewLink;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Preview\PreviewLinkGenerateTool;
 use Sulu\Page\Domain\Model\Page;
@@ -89,6 +90,38 @@ final class PreviewLinkGenerateToolTest extends TestCase
             $dimensionContent->setTemplateKey('default');
             $article->addDimensionContent($dimensionContent);
         }
+    }
+
+    public function testGenerateRejectsATypeMarkedNotSearchable(): void
+    {
+        $this->previewLinkManager->generate(Argument::cetera())->shouldNotBeCalled();
+
+        $result = $this->tool->generatePreviewLink('snippet', 'snippet-uuid', 'en', 'example');
+
+        $this->assertStringContainsString('cannot be previewed', $result['error']);
+    }
+
+    public function testGenerateRejectsAnUnknownType(): void
+    {
+        $this->previewLinkManager->generate(Argument::cetera())->shouldNotBeCalled();
+
+        $this->assertStringContainsString('cannot be previewed', $this->tool->generatePreviewLink('nope', 'snippet-uuid', 'en', 'example')['error']);
+    }
+
+    public function testGenerateResolvesTheResourceKeyFromAnExtension(): void
+    {
+        $this->previewLinkManager->generate('widgets', 'w-1', 'en', ['webspaceKey' => 'example'])->shouldBeCalledOnce()->willReturn(new PreviewLink('tok', 'widgets', 'w-1', 'en', []));
+        $this->router->generate(Argument::cetera())->willReturn('https://example.com/preview/tok');
+
+        $tool = new PreviewLinkGenerateTool(
+            $this->previewLinkManager->reveal(),
+            $this->router->reveal(),
+            ContentTypes::inertResolver([new FakeContentTypeExtension(draft: new \stdClass())]),
+            $this->permissionChecker,
+            ContentTypes::securityResolver(null, [new FakeContentTypeExtension(draft: new \stdClass())]),
+        );
+
+        $this->assertTrue($tool->generatePreviewLink('widget', 'w-1', 'en', 'example')['success']);
     }
 
     public function testGeneratePreviewLinkForPage(): void

@@ -39,8 +39,7 @@ return static function(ContainerConfigurator $container): void {
             ->autoconfigure();
 
     $services->set(ProductContentTypeExtension::class)
-        ->arg('$productRepository', new Reference(ProductRepositoryInterface::class))
-        ->tag('sulu_mcp.content_type_extension');
+        ->arg('$productRepository', new Reference(ProductRepositoryInterface::class));
 
     $services->set(VariantParentResolver::class);
 

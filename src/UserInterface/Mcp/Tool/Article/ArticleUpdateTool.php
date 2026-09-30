@@ -131,7 +131,7 @@ class ArticleUpdateTool
 
             // Gate the source group before anything leaks the article's locales: a ghost has
             // no template key of its own, so the group comes from the locale it is a ghost of.
-            $sourceSecurity = $this->contentSecurityContextResolver->forEntity('article', $article);
+            $sourceSecurity = $this->contentSecurityContextResolver->forEntity('article', $article, $locale);
             $this->permissionChecker->check(
                 $sourceSecurity->context,
                 PermissionTypes::EDIT,

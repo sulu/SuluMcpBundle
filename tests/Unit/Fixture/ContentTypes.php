@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Tests\Unit\Fixture;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Prophecy\Prophet;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Bundle\AdminBundle\Metadata\GroupProviderInterface;
@@ -63,7 +64,7 @@ final class ContentTypes
     ): ContentTypeExtensionRegistry {
         return new ContentTypeExtensionRegistry([
             new PageContentTypeExtension($pageRepository, $pageDescendantChecker ?? self::descendantChecker($pageRepository)),
-            new ArticleContentTypeExtension($articleRepository, $groupProvider instanceof ArticleSecurityContextResolver ? $groupProvider : new ArticleSecurityContextResolver($groupProvider ?? new TestGroupProvider([]))),
+            new ArticleContentTypeExtension($articleRepository, $groupProvider instanceof ArticleSecurityContextResolver ? $groupProvider : new ArticleSecurityContextResolver($groupProvider ?? new TestGroupProvider([])), (new Prophet())->prophesize(EntityManagerInterface::class)->reveal()),
             new SnippetContentTypeExtension($snippetRepository ?? (new Prophet())->prophesize(SnippetRepositoryInterface::class)->reveal()),
             ...$extensions,
         ]);

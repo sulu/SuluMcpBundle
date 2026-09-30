@@ -38,7 +38,6 @@ use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
-use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Infrastructure\League\EventListener\OAuthAuthorizationListener;
 use Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry;
 use Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler;
@@ -122,9 +121,7 @@ return static function(ContainerConfigurator $container): void {
             ->autowire()
             ->autoconfigure()
         ->instanceof(AdminLinkProviderInterface::class)
-            ->tag('sulu_mcp.admin_link_provider')
-        ->instanceof(ContentTypeExtensionInterface::class)
-            ->tag('sulu_mcp.content_type_extension');
+            ->tag('sulu_mcp.admin_link_provider');
 
     // Providers need sulu_admin.view_registry, which only exists in the admin
     // container, hence the sulu.context tag. The generator itself is

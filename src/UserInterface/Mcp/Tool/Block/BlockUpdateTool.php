@@ -75,7 +75,7 @@ class BlockUpdateTool
     #[RequiresPermission(
         requirements: [new PermissionRequirement('#context#', PermissionTypes::EDIT)],
         objectResolved: true,
-        discoveryContexts: ['sulu.snippet.snippets', ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
+        discoveryContexts: [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function updateBlock(
         string $type,
@@ -118,7 +118,7 @@ class BlockUpdateTool
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
 
-            $security = $this->contentSecurityContextResolver->forEntity($type, $entity);
+            $security = $this->contentSecurityContextResolver->forEntity($type, $entity, $locale);
             $this->permissionChecker->check(
                 $security->context,
                 PermissionTypes::EDIT,

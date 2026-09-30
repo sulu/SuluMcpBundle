@@ -13,9 +13,11 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Infrastructure\Sulu\Content;
 
+use Doctrine\ORM\EntityManagerInterface;
 use Sulu\Article\Application\Message\ApplyWorkflowTransitionArticleMessage;
 use Sulu\Article\Application\Message\ModifyArticleMessage;
 use Sulu\Article\Application\Message\RemoveArticleMessage;
+use Sulu\Article\Domain\Model\ArticleDimensionContentInterface;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Content\Domain\Model\ContentRichEntityInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
@@ -33,6 +35,7 @@ final readonly class ArticleContentTypeExtension implements ContentTypeExtension
     public function __construct(
         private ArticleRepositoryInterface $repository,
         private ArticleSecurityContextResolver $articleContextResolver,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -56,9 +59,9 @@ final readonly class ArticleContentTypeExtension implements ContentTypeExtension
         return $this->articleContextResolver->candidates();
     }
 
-    public function getSecurity(object $aggregate): ContentSecurity
+    public function getSecurity(object $aggregate, string $locale): ContentSecurity
     {
-        return new ContentSecurity($this->articleContextResolver->forTemplateKey($this->templateKeyOf($aggregate)));
+        return new ContentSecurity($this->articleContextResolver->forTemplateKey($this->templateKeyOf($aggregate, $locale)));
     }
 
     public function createRemoveMessage(string $uuid, string $locale, bool $forceRemoveChildren = false): object
@@ -116,23 +119,56 @@ final readonly class ArticleContentTypeExtension implements ContentTypeExtension
     }
 
     /**
-     * A ghost has no template key of its own, but the aggregate carries the content it is a ghost of.
+     * A ghost has no template key of its own. The group comes from the locale it is a ghost of,
+     * which the aggregate does not carry when the ghost was loaded, so that locale is queried.
      */
-    private function templateKeyOf(object $aggregate): string
+    private function templateKeyOf(object $aggregate, string $locale): string
     {
         if (!$aggregate instanceof ContentRichEntityInterface) {
             return '';
         }
 
+        $loaded = [];
+        $unlocalized = null;
         foreach ($aggregate->getDimensionContents() as $dimensionContent) {
-            if (DimensionContentInterface::STAGE_DRAFT === $dimensionContent->getStage()
-                && $dimensionContent instanceof TemplateInterface
-                && null !== $dimensionContent->getTemplateKey()
-            ) {
-                return $dimensionContent->getTemplateKey();
+            if (DimensionContentInterface::STAGE_DRAFT !== $dimensionContent->getStage()) {
+                continue;
+            }
+
+            if (null === $dimensionContent->getLocale()) {
+                $unlocalized = $dimensionContent;
+            } elseif ($dimensionContent instanceof TemplateInterface && null !== $dimensionContent->getTemplateKey()) {
+                $loaded[$dimensionContent->getLocale()] = $dimensionContent->getTemplateKey();
+            }
+        }
+
+        if (isset($loaded[$locale])) {
+            return $loaded[$locale];
+        }
+
+        $sourceLocales = \array_unique(\array_filter([
+            $unlocalized?->getGhostLocale(),
+            ...($unlocalized?->getAvailableLocales() ?? []),
+        ], static fn (?string $sourceLocale): bool => null !== $sourceLocale && $locale !== $sourceLocale));
+
+        foreach ($sourceLocales as $sourceLocale) {
+            $templateKey = $loaded[$sourceLocale] ?? $this->queryTemplateKey($aggregate, $sourceLocale);
+            if (null !== $templateKey) {
+                return $templateKey;
             }
         }
 
         return '';
+    }
+
+    private function queryTemplateKey(ContentRichEntityInterface $aggregate, string $locale): ?string
+    {
+        $dimensionContent = $this->entityManager->getRepository(ArticleDimensionContentInterface::class)->findOneBy([
+            'article' => $aggregate,
+            'locale' => $locale,
+            'stage' => DimensionContentInterface::STAGE_DRAFT,
+        ]);
+
+        return $dimensionContent instanceof TemplateInterface ? $dimensionContent->getTemplateKey() : null;
     }
 }

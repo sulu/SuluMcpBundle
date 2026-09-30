@@ -57,7 +57,7 @@ final readonly class PageContentTypeExtension implements ContentTypeExtensionInt
         return [];
     }
 
-    public function getSecurity(object $aggregate): ContentSecurity
+    public function getSecurity(object $aggregate, string $locale): ContentSecurity
     {
         if (!$aggregate instanceof PageInterface) {
             return new ContentSecurity('', Page::class);

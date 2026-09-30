@@ -41,7 +41,7 @@ final class WidgetContentTypeExtension implements ContentTypeExtensionInterface
         return ['sulu.mcp_test.widgets'];
     }
 
-    public function getSecurity(object $aggregate): ContentSecurity
+    public function getSecurity(object $aggregate, string $locale): ContentSecurity
     {
         return new ContentSecurity('sulu.mcp_test.widgets');
     }
