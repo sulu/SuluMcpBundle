@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Tests\Functional;
 
 use Mcp\Exception\ToolCallException;
 use PHPUnit\Framework\Attributes\CoversClass;
+use Sulu\Bundle\SecurityBundle\Entity\User;
 use Sulu\Bundle\SecurityBundle\System\SystemStoreInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Domain\Model\WorkflowInterface;
@@ -76,6 +77,25 @@ final class PageMoveTest extends FunctionalTestCase
         $histories = $this->historySlugs();
         self::assertContains('/alpha', $histories, 'the moved page keeps its old address as a redirect');
         self::assertContains('/alpha/leaf', $histories, 'every descendant keeps its old address as a redirect');
+    }
+
+    public function testMoveWorksWithAFreshEntityManager(): void
+    {
+        $editor = $this->authenticateEditor();
+
+        $home = $this->createPage('homepage', 'Home', '/');
+        $alpha = $this->createPage($home->getUuid(), 'Alpha', '/alpha');
+        $beta = $this->createPage($home->getUuid(), 'Beta', '/beta');
+        $alphaUuid = $alpha->getUuid();
+        $betaUuid = $beta->getUuid();
+        $editorId = $editor->getId();
+
+        $this->entityManager->clear();
+        $this->permissionBuilder()->authenticate($this->entityManager->getReference(User::class, $editorId));
+
+        $result = $this->moveTool()->movePage($alphaUuid, $betaUuid, 'en');
+
+        self::assertTrue($result['success'] ?? false, \json_encode($result));
     }
 
     public function testMoveRefusesATargetParentInAnotherWebspace(): void
@@ -213,20 +233,29 @@ final class PageMoveTest extends FunctionalTestCase
         return $flat;
     }
 
-    private function authenticateEditor(): void
+    private function permissionBuilder(): PermissionFixtureBuilder
     {
         $container = self::getContainer();
-        $builder = new PermissionFixtureBuilder(
+
+        return new PermissionFixtureBuilder(
             $this->entityManager,
             $container->get('sulu_security.mask_converter'),
             $container->get('security.token_storage'),
             $container->get(SystemStoreInterface::class),
         );
+    }
+
+    private function authenticateEditor(): User
+    {
+        $builder = $this->permissionBuilder();
         $role = $builder->role('PageEditor', [
             'sulu.webspaces.website' => self::ALL_GRANTED,
             'sulu.webspaces.intranet' => self::ALL_GRANTED,
         ]);
-        $builder->authenticate($builder->user('page-editor', $role));
+        $user = $builder->user('page-editor', $role);
+        $builder->authenticate($user);
+
+        return $user;
     }
 
     private function createPage(string $parentId, string $title, string $url, string $webspace = 'website'): PageInterface

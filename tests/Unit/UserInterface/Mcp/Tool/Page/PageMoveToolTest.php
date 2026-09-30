@@ -250,6 +250,7 @@ final class PageMoveToolTest extends TestCase
 
         $this->givenPage(self::PAGE_UUID, $page);
         $this->givenPage(self::NEW_PARENT_UUID, $newParent);
+        $this->givenPage(self::OLD_PARENT_UUID, $oldParent);
 
         return $page;
     }

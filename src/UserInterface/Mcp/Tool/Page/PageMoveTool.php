@@ -19,6 +19,7 @@ use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Content\Infrastructure\Doctrine\DimensionContentQueryEnhancer;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -142,7 +143,7 @@ class PageMoveTool
 
             // MovePageMessageHandler dereferences the previous parent's title in this
             // locale without a null check.
-            if (!$this->hasTranslation($previousParent, $locale)) {
+            if (!$this->hasTranslation($this->loadParentWithContent($previousParent, $locale), $locale)) {
                 return [
                     'error' => \sprintf('The current parent page %s has no "%s" translation.', $previousParent->getUuid(), $locale),
                     'hint' => \sprintf('Call sulu_page_move with a locale the parent exists in, or create the "%s" translation of the parent first (sulu_page_update).', $locale),
@@ -197,6 +198,31 @@ class PageMoveTool
                 PageRepositoryInterface::GROUP_SELECT_PAGE_ADMIN => true,
             ],
         );
+    }
+
+    /**
+     * ContentAggregator refuses lazy dimension contents in debug mode, and a parent
+     * reached through getParent() is an uninitialised proxy.
+     */
+    private function loadParentWithContent(PageInterface $parent, string $locale): PageInterface
+    {
+        return $this->pageRepository->findOneBy(
+            [
+                'uuid' => $parent->getUuid(),
+                'locale' => $locale,
+                'stage' => DimensionContentInterface::STAGE_DRAFT,
+                'loadGhost' => true,
+            ],
+            [
+                PageRepositoryInterface::SELECT_PAGE_CONTENT => [
+                    'selects' => [DimensionContentQueryEnhancer::GROUP_SELECT_CONTENT_ADMIN => true],
+                    'dimensionAttributes' => [
+                        'locale' => $locale,
+                        'stage' => [DimensionContentInterface::STAGE_DRAFT, DimensionContentInterface::STAGE_LIVE],
+                    ],
+                ],
+            ],
+        ) ?? $parent;
     }
 
     private function hasTranslation(PageInterface $page, string $locale): bool
