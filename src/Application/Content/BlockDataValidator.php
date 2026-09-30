@@ -83,6 +83,24 @@ final readonly class BlockDataValidator
     }
 
     /**
+     * Whether the template declares $property as a block list.
+     *
+     * Content omits a list that has no blocks yet, so the content alone cannot tell
+     * an empty list from a property the template does not have.
+     */
+    public function declaresBlockProperty(string $contentType, ?string $templateKey, string $property): bool
+    {
+        foreach ($this->templateForms($contentType, $templateKey) as $form) {
+            $field = $form->getFlatFieldMetadata()[$property] ?? null;
+            if ($field instanceof FieldMetadata && [] !== $field->getTypes()) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Return the block property of the form at $parentPath that offers $blockType.
      *
      * Answers "where does a block of this type belong inside this parent", which the

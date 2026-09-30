@@ -20,6 +20,7 @@ use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
@@ -46,6 +47,7 @@ class BlockListTool
         private readonly ContentManagerInterface $contentManager,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
         private readonly ContentSecurityContextResolver $contentSecurityContextResolver,
+        private readonly BlockDataValidator $blockDataValidator,
     ) {
     }
 
@@ -102,6 +104,14 @@ class BlockListTool
         }
 
         $normalized = $this->contentManager->normalize($dimensionContent);
+
+        if (!isset($normalized[$blockProperty]) && $this->blockDataValidator->declaresBlockProperty(
+            $this->contentTypeResolver->get($resourceKey)->getTemplateType(),
+            \is_string($normalized['template'] ?? null) ? $normalized['template'] : null,
+            $blockProperty,
+        )) {
+            $normalized[$blockProperty] = [];
+        }
 
         if (!isset($normalized[$blockProperty]) || !\is_array($normalized[$blockProperty])) {
             return ['error' => \sprintf('Block property "%s" not found. Available: %s', $blockProperty, \implode(', ', $this->detectBlockProperties($normalized)))];

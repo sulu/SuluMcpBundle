@@ -23,12 +23,18 @@ use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Model\ArticleDimensionContent;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
@@ -37,6 +43,7 @@ use Sulu\Page\Domain\Model\Page;
 use Sulu\Page\Domain\Model\PageDimensionContent;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(BlockListTool::class)]
 #[CoversClass(ContentTypeResolver::class)]
@@ -54,6 +61,7 @@ final class BlockListToolTest extends TestCase
     private ObjectProphecy $contentManager;
     private FakeToolPermissionChecker $permissionChecker;
     private ContentSecurityContextResolver $contentSecurityContextResolver;
+    private ArrayMetadataProvider $formMetadataProvider;
     private BlockListTool $tool;
 
     protected function setUp(): void
@@ -65,12 +73,72 @@ final class BlockListToolTest extends TestCase
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
         $groupProvider = new TestGroupProvider([]);
         $this->contentSecurityContextResolver = ContentTypes::securityResolver($groupProvider);
+        $this->formMetadataProvider = new ArrayMetadataProvider();
+        $this->formMetadataProvider->setDefault(new FormMetadata());
         $this->tool = new BlockListTool(
             ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal(), $groupProvider),
             $this->contentManager->reveal(),
             $this->permissionChecker,
             $this->contentSecurityContextResolver,
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
         );
+    }
+
+    public function testListBlocksReturnsAnEmptyListForADeclaredPropertyWithoutBlocks(): void
+    {
+        $this->declareBlockProperty('blocks');
+        $this->setupPageWithoutBlocks();
+
+        $result = $this->tool->listBlocks('pages', 'test-uuid', 'en', 'blocks');
+
+        $this->assertArrayNotHasKey('error', $result);
+        $this->assertSame([], $result['blocks']);
+        $this->assertSame(0, $result['total']);
+    }
+
+    public function testListBlocksKeepsTheErrorForAPropertyTheTemplateDoesNotDeclare(): void
+    {
+        $this->declareBlockProperty('blocks');
+        $this->setupPageWithoutBlocks();
+
+        $result = $this->tool->listBlocks('pages', 'test-uuid', 'en', 'homeBlocks');
+
+        $this->assertArrayHasKey('error', $result);
+        $this->assertStringContainsString('homeBlocks', $result['error']);
+    }
+
+    private function declareBlockProperty(string $name): void
+    {
+        $field = new FieldMetadata($name);
+        $field->setType('block');
+        $blockType = new FormMetadata();
+        $blockType->setKey('text');
+        $field->addType($blockType);
+
+        $template = new FormMetadata();
+        $template->setKey('default');
+        $template->addItem($field);
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('default', $template);
+
+        $this->formMetadataProvider->set('page', $typed);
+    }
+
+    private function setupPageWithoutBlocks(): void
+    {
+        $page = new Page('test-uuid');
+        $page->setWebspaceKey('example');
+        $this->pageRepository->getOneBy(Argument::cetera())->willReturn($page);
+
+        $dimensionContent = new PageDimensionContent(new Page());
+        $dimensionContent->setLocale('en');
+        $dimensionContent->setTemplateKey('default');
+        $this->contentManager->resolve(Argument::cetera())->willReturn($dimensionContent);
+        $this->contentManager->normalize(Argument::cetera())->willReturn([
+            'template' => 'default',
+            'title' => 'Test Page',
+        ]);
     }
 
     public function testListBlocksReturnsFirstPage(): void
@@ -288,6 +356,7 @@ final class BlockListToolTest extends TestCase
                 (new FormGroup('default', 'Default'))->withTemplate('default'),
                 (new FormGroup('blog', 'Blog'))->withTemplate('blog_article'),
             ])),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
         );
 
         $result = $tool->listBlocks('articles', 'article-uuid', 'en', 'blocks');
