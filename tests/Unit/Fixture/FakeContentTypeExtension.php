@@ -19,7 +19,7 @@ use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 /**
  * @internal
  */
-final class FakeContentTypeExtension implements ContentTypeExtensionInterface
+class FakeContentTypeExtension implements ContentTypeExtensionInterface
 {
     public function __construct(
         private readonly string $type = 'widget',

@@ -119,8 +119,8 @@ final readonly class ArticleContentTypeExtension implements ContentTypeExtension
     }
 
     /**
-     * A ghost has no template key of its own. The group comes from the locale it is a ghost of,
-     * which the aggregate does not carry when the ghost was loaded, so that locale is queried.
+     * A locale the article has content in resolves to its own template, queried when the aggregate did not load it.
+     * A ghost has none, so the group comes from the locale it is a ghost of.
      */
     private function templateKeyOf(object $aggregate, string $locale): string
     {
@@ -146,19 +146,12 @@ final readonly class ArticleContentTypeExtension implements ContentTypeExtension
             return $loaded[$locale];
         }
 
-        $sourceLocales = \array_unique(\array_filter([
-            $unlocalized?->getGhostLocale(),
-            ...($unlocalized?->getAvailableLocales() ?? []),
-        ], static fn (?string $sourceLocale): bool => null !== $sourceLocale && $locale !== $sourceLocale));
-
-        foreach ($sourceLocales as $sourceLocale) {
-            $templateKey = $loaded[$sourceLocale] ?? $this->queryTemplateKey($aggregate, $sourceLocale);
-            if (null !== $templateKey) {
-                return $templateKey;
-            }
+        $source = \in_array($locale, $unlocalized?->getAvailableLocales() ?? [], true) ? $locale : $unlocalized?->getGhostLocale();
+        if (null === $source) {
+            return '';
         }
 
-        return '';
+        return $loaded[$source] ?? $this->queryTemplateKey($aggregate, $source) ?? '';
     }
 
     private function queryTemplateKey(object $aggregate, string $locale): ?string

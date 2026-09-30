@@ -78,6 +78,42 @@ final class ArticleContentTypeExtensionTest extends TestCase
         self::assertSame('sulu.article.articles_blog', $this->extension->getSecurity($article, 'en')->context);
     }
 
+    public function testTheRequestedLocalesOwnTemplateWinsOverAnotherLoadedLocale(): void
+    {
+        $article = new Article('uuid-1');
+        $unlocalized = new ArticleDimensionContent($article);
+        $unlocalized->addAvailableLocale('de');
+        $unlocalized->addAvailableLocale('en');
+        $article->addDimensionContent($unlocalized);
+        foreach (['de' => 'blog_article', 'en' => 'article'] as $locale => $templateKey) {
+            $dimensionContent = new ArticleDimensionContent($article);
+            $dimensionContent->setLocale($locale);
+            $dimensionContent->setTemplateKey($templateKey);
+            $article->addDimensionContent($dimensionContent);
+        }
+
+        self::assertSame('sulu.article.articles', $this->extension->getSecurity($article, 'en')->context);
+    }
+
+    public function testAnAvailableLocaleThatIsNotLoadedIsQueriedForItsOwnTemplate(): void
+    {
+        $article = new Article('uuid-1');
+        $unlocalized = new ArticleDimensionContent($article);
+        $unlocalized->setGhostLocale('de');
+        $unlocalized->addAvailableLocale('de');
+        $unlocalized->addAvailableLocale('en');
+        $article->addDimensionContent($unlocalized);
+        $loadedGerman = new ArticleDimensionContent($article);
+        $loadedGerman->setLocale('de');
+        $loadedGerman->setTemplateKey('blog_article');
+        $article->addDimensionContent($loadedGerman);
+        $own = new ArticleDimensionContent($article);
+        $own->setTemplateKey('article');
+        $this->dimensionRepository->findOneBy(['article' => $article, 'locale' => 'en', 'stage' => DimensionContentInterface::STAGE_DRAFT])->willReturn($own);
+
+        self::assertSame('sulu.article.articles', $this->extension->getSecurity($article, 'en')->context);
+    }
+
     public function testAnArticleWithoutAnySourceContentFailsClosed(): void
     {
         $article = $this->ghostArticle();

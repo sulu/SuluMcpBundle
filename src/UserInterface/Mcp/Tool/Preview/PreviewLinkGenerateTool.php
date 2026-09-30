@@ -23,7 +23,6 @@ use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
-use Sulu\Mcp\Domain\Content\NotSearchableContentTypeInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
@@ -74,15 +73,8 @@ class PreviewLinkGenerateTool
             ];
         }
 
-        $extension = $this->contentTypeResolver->find($type);
-        if (null === $extension || $extension instanceof NotSearchableContentTypeInterface) {
-            return [
-                'error' => \sprintf('Type "%s" cannot be previewed.', $type),
-                'hint' => 'Use a previewable type such as "page" or "article".',
-            ];
-        }
-
         try {
+            $extension = $this->contentTypeResolver->get($type);
             $entity = $this->contentTypeResolver->loadDraft($type, $uuid, $locale);
             if (null === $entity) {
                 return [

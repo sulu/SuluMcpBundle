@@ -38,6 +38,7 @@ use Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeNotSearchableContentTypeExtension;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 
@@ -327,6 +328,28 @@ final class PermissionAwareCallToolHandlerTest extends TestCase
         $result = $handler->handle($request, $this->session());
 
         // Reached the inner handler, which reports METHOD_NOT_FOUND for the unregistered tool.
+        self::assertInstanceOf(Error::class, $result);
+    }
+
+    public function testAnyExtensionSentinelDelegatesForANotSearchableExtension(): void
+    {
+        $this->checker->grantingNoneExcept()->grant('sulu.widget.widgets', PermissionTypes::VIEW);
+        $this->registry->getTool(Argument::any())->willThrow(new ToolNotFoundException('sulu_content_delete'));
+
+        $handler = $this->handler(
+            [
+                'sulu_content_delete' => [
+                    'name' => 'sulu_content_delete',
+                    'requirements' => [['context' => '#context#', 'permission' => PermissionTypes::VIEW]],
+                    'contextArgument' => null, 'contextResolver' => null,
+                    'objectResolved' => true, 'discoveryContexts' => [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT],
+                ],
+            ],
+            extensionRegistry: new ContentTypeExtensionRegistry([new FakeNotSearchableContentTypeExtension()]),
+        );
+
+        $result = $handler->handle($this->request('sulu_content_delete', ['uuid' => 'x']), $this->session());
+
         self::assertInstanceOf(Error::class, $result);
     }
 

@@ -42,8 +42,8 @@ interface ContentTypeExtensionInterface
     public function getViewSecurityContexts(): array;
 
     /**
-     * Resolves what it needs from the loaded draft aggregate itself, e.g. an article's template group.
      * $locale is the locale the aggregate was loaded for. It may be a ghost of another locale.
+     * An implementation may load what it needs for $locale, e.g. the template group of an article's own or source locale.
      */
     public function getSecurity(object $aggregate, string $locale): ContentSecurity;
 

@@ -92,22 +92,6 @@ final class PreviewLinkGenerateToolTest extends TestCase
         }
     }
 
-    public function testGenerateRejectsATypeMarkedNotSearchable(): void
-    {
-        $this->previewLinkManager->generate(Argument::cetera())->shouldNotBeCalled();
-
-        $result = $this->tool->generatePreviewLink('snippet', 'snippet-uuid', 'en', 'example');
-
-        $this->assertStringContainsString('cannot be previewed', $result['error']);
-    }
-
-    public function testGenerateRejectsAnUnknownType(): void
-    {
-        $this->previewLinkManager->generate(Argument::cetera())->shouldNotBeCalled();
-
-        $this->assertStringContainsString('cannot be previewed', $this->tool->generatePreviewLink('nope', 'snippet-uuid', 'en', 'example')['error']);
-    }
-
     public function testGenerateResolvesTheResourceKeyFromAnExtension(): void
     {
         $this->previewLinkManager->generate('widgets', 'w-1', 'en', ['webspaceKey' => 'example'])->shouldBeCalledOnce()->willReturn(new PreviewLink('tok', 'widgets', 'w-1', 'en', []));

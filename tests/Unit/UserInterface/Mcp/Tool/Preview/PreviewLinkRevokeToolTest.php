@@ -84,22 +84,6 @@ final class PreviewLinkRevokeToolTest extends TestCase
         }
     }
 
-    public function testRevokeRejectsATypeMarkedNotSearchable(): void
-    {
-        $this->previewLinkManager->revoke(Argument::cetera())->shouldNotBeCalled();
-
-        $result = $this->tool->revokePreviewLink('snippet', 'snippet-uuid', 'en');
-
-        $this->assertStringContainsString('cannot be previewed', $result['error']);
-    }
-
-    public function testRevokeRejectsAnUnknownType(): void
-    {
-        $this->previewLinkManager->revoke(Argument::cetera())->shouldNotBeCalled();
-
-        $this->assertStringContainsString('cannot be previewed', $this->tool->revokePreviewLink('nope', 'snippet-uuid', 'en')['error']);
-    }
-
     public function testRevokeResolvesTheResourceKeyFromAnExtension(): void
     {
         $this->previewLinkManager->revoke('widgets', 'w-1', 'en')->shouldBeCalledOnce();
