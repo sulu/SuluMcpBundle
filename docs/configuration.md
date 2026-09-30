@@ -146,8 +146,8 @@ Booleans gating high-impact tools, keyed by category. Each flag is independent â
 
 | Flag | Tools enabled when `true` |
 |------|---------------------------|
-| `delete` | `sulu_content_delete` (page/article/snippet/product via `type`), `sulu_tag_delete`, `sulu_category_delete` |
-| `publish` | `sulu_content_publish` (page/article/snippet/product via `type`), `sulu_content_unpublish` (page/article/snippet/product via `type`), `sulu_preview_link_revoke`, `sulu_page_move`, `sulu_page_reorder` |
+| `delete` | `sulu_content_delete` (pages/articles/snippets/products via `resourceKey`), `sulu_tag_delete`, `sulu_category_delete` |
+| `publish` | `sulu_content_publish` (pages/articles/snippets/products via `resourceKey`), `sulu_content_unpublish` (pages/articles/snippets/products via `resourceKey`), `sulu_preview_link_revoke`, `sulu_page_move`, `sulu_page_reorder` |
 | `block_remove` | `sulu_block_remove` |
 | `media_upload` | `sulu_media_upload` |
 

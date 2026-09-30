@@ -47,7 +47,7 @@ Do NOT rely on assumptions about available templates or block types — the CMS 
 
 | Tool | Description |
 |------|-------------|
-| `sulu_get_context` | **Start here.** Returns templates (grouped by content type: `page`, `article`, `snippet`), block types, and webspaces. |
+| `sulu_get_context` | **Start here.** Returns templates (grouped by resourceKey: `pages`, `articles`, `snippets`), block types, and webspaces. |
 | `sulu_ping` | Verify connection, see authenticated user and available webspaces. |
 | `sulu_content_search` | Search published content by keyword. Returns UUIDs and resource types to use with get tools. |
 
@@ -62,9 +62,9 @@ Do NOT rely on assumptions about available templates or block types — the CMS 
 | `sulu_page_update` | Update page fields. Only pass changed fields. |
 | `sulu_page_move` | Move a page (with its whole subtree) under a different parent in the same webspace. |
 | `sulu_page_reorder` | Change a page's 1-based position among its siblings. |
-| `sulu_content_publish` | Publish a draft page/article/snippet. Pass `type="page"`. **Ask user first.** |
-| `sulu_content_unpublish` | Take a page offline (keeps draft). Pass `type="page"`. |
-| `sulu_content_delete` | Permanently delete a page. Pass `type="page"`. **Cannot be undone.** |
+| `sulu_content_publish` | Publish a draft page/article/snippet. Pass `resourceKey="pages"`. **Ask user first.** |
+| `sulu_content_unpublish` | Take a page offline (keeps draft). Pass `resourceKey="pages"`. |
+| `sulu_content_delete` | Permanently delete a page. Pass `resourceKey="pages"`. **Cannot be undone.** |
 
 ### Articles
 
@@ -76,9 +76,9 @@ Articles are the primary content type for blog posts, news, case studies, and ot
 | `sulu_article_get` | Get full article content with block summaries. Always call before editing. |
 | `sulu_article_create` | Create a new article (as draft). Requires locale, template, and title. |
 | `sulu_article_update` | Update article fields. Merges changes — only pass what changed. |
-| `sulu_content_publish` | Publish a draft article. Pass `type="article"`. **Ask user first.** |
-| `sulu_content_unpublish` | Take an article offline (keeps draft). Pass `type="article"`. |
-| `sulu_content_delete` | Permanently delete an article. Pass `type="article"`. |
+| `sulu_content_publish` | Publish a draft article. Pass `resourceKey="articles"`. **Ask user first.** |
+| `sulu_content_unpublish` | Take an article offline (keeps draft). Pass `resourceKey="articles"`. |
+| `sulu_content_delete` | Permanently delete an article. Pass `resourceKey="articles"`. |
 
 ### Blocks (Content Components)
 
@@ -86,8 +86,8 @@ Blocks are the building units of pages and articles — typed components like te
 
 | Tool | Description |
 |------|-------------|
-| `sulu_block_list` | Get paginated block content for any entity (`type` = page/article/snippet). |
-| `sulu_block_add` | Add a block to any entity (`type` + `uuid`) at a specific position or at the end. |
+| `sulu_block_list` | Get paginated block content for any entity (`resourceKey` = pages/articles/snippets). |
+| `sulu_block_add` | Add a block to any entity (`resourceKey` + `uuid`) at a specific position or at the end. |
 | `sulu_block_update` | Update a single block by its `_id` on any entity. Only changed fields need to be passed. |
 | `sulu_block_remove` | Remove a block from any entity by index. |
 | `sulu_block_reorder` | Reorder blocks on any entity — pass `newOrder` (index list) or, more robustly, `blockIds` (the `_id`s in desired order). |
@@ -226,7 +226,7 @@ sulu_article_create(locale, template, title, content={
 
 Block `_id`s are assigned automatically, and unknown block fields are rejected **before any write** (you get an actionable error instead of a silently-empty block). This is the fastest, most reliable path for a complete draft.
 
-**Incremental — refine individual blocks afterward** with `sulu_block_add(type="article", uuid, …)`, `sulu_block_update`, `sulu_block_reorder`, `sulu_block_remove`. Use these to tweak one block without resending the whole tree.
+**Incremental — refine individual blocks afterward** with `sulu_block_add(resourceKey="articles", uuid, …)`, `sulu_block_update`, `sulu_block_reorder`, `sulu_block_remove`. Use these to tweak one block without resending the whole tree.
 
 For both paths:
 - Get available block types and their fields from `sulu_get_context` — the keys must match the **field names defined in the block type**, not arbitrary labels.
@@ -238,9 +238,9 @@ For both paths:
 
 ```
 sulu_article_get(uuid, locale)           → verify the article looks correct
-sulu_block_list(type="article", uuid)    → check block content if many blocks
+sulu_block_list(resourceKey="articles", uuid)    → check block content if many blocks
 → Ask user: "Ready to publish?"
-sulu_content_publish(type="article", uuid, locale)       → only after user confirms
+sulu_content_publish(resourceKey="articles", uuid, locale)       → only after user confirms
 ```
 
 ### Finding Articles by Keyword
@@ -248,7 +248,7 @@ sulu_content_publish(type="article", uuid, locale)       → only after user con
 **Reach for `sulu_content_search` first** whenever you have a topic, keyword, or fragment of a title — both for editing existing articles and to avoid duplicating an angle before drafting a new one:
 
 ```
-sulu_content_search(query="keyword", locale="en", type="articles")
+sulu_content_search(query="keyword", locale="en", resourceKey="articles")
 → returns resourceId (UUID) for each match
 sulu_article_get(uuid, locale)
 → load the full article
@@ -258,13 +258,13 @@ sulu_article_get(uuid, locale)
 
 ### Editing Existing Articles
 
-1. **Find the article:** `sulu_content_search(query, locale, type="articles")` if you don't have the UUID
+1. **Find the article:** `sulu_content_search(query, locale, resourceKey="articles")` if you don't have the UUID
 2. **Read the article:** `sulu_article_get(uuid, locale)` — always read before editing
-2. **Read block details:** `sulu_block_list(type="article", uuid, locale, blockProperty)` for full content
+2. **Read block details:** `sulu_block_list(resourceKey="articles", uuid, locale, blockProperty)` for full content
 3. **Update metadata:** `sulu_article_update(uuid, locale, title="New Title")` — only pass changed fields
-4. **Update a block:** `sulu_block_update(type="article", uuid, locale, blockId, blockData)` — only pass changed fields
-5. **Add/remove blocks:** Use `sulu_block_add(type="article", ...)` / `sulu_block_remove(type="article", ...)`
-6. **Re-publish:** After any edit, the article returns to draft — call `sulu_content_publish(type="article", ...)` to go live again
+4. **Update a block:** `sulu_block_update(resourceKey="articles", uuid, locale, blockId, blockData)` — only pass changed fields
+5. **Add/remove blocks:** Use `sulu_block_add(resourceKey="articles", ...)` / `sulu_block_remove(resourceKey="articles", ...)`
+6. **Re-publish:** After any edit, the article returns to draft — call `sulu_content_publish(resourceKey="articles", ...)` to go live again
 
 ### Article Content Tips
 
@@ -285,17 +285,17 @@ Pages form the site structure — homepage, about, services, contact, etc. They 
 1. **Get the site tree:** `sulu_page_tree(webspace)` — find the parent page UUID
 2. **Get context:** `sulu_get_context()` — available templates and block types
 3. **Create the page with its blocks in one call** (preferred): `sulu_page_create(webspace, locale, template, title, parentId, content={"blocks": [ … nested blocks … ]})` — URL auto-generates from the title, block `_id`s are assigned automatically, and unknown block fields are rejected before any write.
-4. **Refine if needed:** use `sulu_block_add(type="page", uuid, …)` / `sulu_block_update` / `sulu_block_reorder` to tweak individual blocks without resending the whole tree.
+4. **Refine if needed:** use `sulu_block_add(resourceKey="pages", uuid, …)` / `sulu_block_update` / `sulu_block_reorder` to tweak individual blocks without resending the whole tree.
 5. **Put the page into the navigation:** pass `navigationContexts=["main"]` (keys from `sulu_get_context`) on create, or later via `sulu_page_update`. The list replaces the current assignment; omit it to leave the assignment unchanged, pass `[]` to clear it.
-6. **Verify and publish:** `sulu_page_get` → user approval → `sulu_content_publish(type="page", ...)`
+6. **Verify and publish:** `sulu_page_get` → user approval → `sulu_content_publish(resourceKey="pages", ...)`
 
 ### Editing Existing Pages
 
-1. **Find the page:** `sulu_content_search(query, locale, type="pages")` if you don't have the UUID
+1. **Find the page:** `sulu_content_search(query, locale, resourceKey="pages")` if you don't have the UUID
 2. **Read first:** `sulu_page_get(uuid, locale)`
-2. **Read blocks:** `sulu_block_list(type="page", uuid, locale, blockProperty)` for full block content
+2. **Read blocks:** `sulu_block_list(resourceKey="pages", uuid, locale, blockProperty)` for full block content
 3. **Update fields:** `sulu_page_update(uuid, locale, title="New Title")` — only changed fields
-4. **Update a single block:** `sulu_block_update(type="page", uuid, locale, blockId, blockData)`
+4. **Update a single block:** `sulu_block_update(resourceKey="pages", uuid, locale, blockId, blockData)`
 5. **Re-publish:** After edits, publish again to make changes live
 
 ### Restructuring the Page Tree
@@ -388,7 +388,7 @@ sulu_content_search(
     query="keyword",      # searches title + body text
     locale="en",          # required
     webspace="sulu_io",   # optional — scope to one site
-    type="articles",      # optional — "articles" or "pages"
+    resourceKey="articles",      # optional — "articles" or "pages"
     page=1,
     limit=20
 )
@@ -445,7 +445,7 @@ For content with many blocks (e.g., a homepage with 10+ sections):
 
 ### Preview Links
 
-Use `sulu_preview_link_generate(type, uuid, locale, webspace?)` to produce a token-protected URL under `/admin/p/<token>` that reviewers can open without logging into the CMS. The public preview route is provided by Sulu's own PreviewBundle and is part of a standard Sulu installation; if it isn't available (e.g. the host project's routing doesn't import Sulu's standard admin routes), the tool returns a clear error. The admin's in-app preview is not shareable — use this tool whenever you need an external review URL.
+Use `sulu_preview_link_generate(resourceKey, uuid, locale, webspace?)` to produce a token-protected URL under `/admin/p/<token>` that reviewers can open without logging into the CMS. The public preview route is provided by Sulu's own PreviewBundle and is part of a standard Sulu installation; if it isn't available (e.g. the host project's routing doesn't import Sulu's standard admin routes), the tool returns a clear error. The admin's in-app preview is not shareable — use this tool whenever you need an external review URL.
 
 ---
 

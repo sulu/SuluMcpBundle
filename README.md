@@ -200,7 +200,7 @@ sulu_mcp:
 | Misc | 3 | `sulu_content_search`, `sulu_get_context`, `sulu_ping` |
 
 The block and unified content tools operate on pages, articles, snippets — and products, when
-`sulu/product-bundle` is installed — alike through a `type` parameter.
+`sulu/product-bundle` is installed — alike through a `resourceKey` parameter.
 
 #### Products (optional)
 

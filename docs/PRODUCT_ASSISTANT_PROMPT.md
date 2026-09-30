@@ -18,7 +18,7 @@ value is keyed by its **integer attribute id** — never by its name.
 2. **Create the product.** `sulu_product_create(locale, productFamily, title, ...)` — `productFamily`
    is the family UUID. Pass values as `attributes={"12": "red", "15": 42}`. Every attribute the
    family marks `required` (and not `variantSpecific`) must be present.
-3. **Publish.** `sulu_content_publish(type="product", uuid, locale)`.
+3. **Publish.** `sulu_content_publish(resourceKey="products", uuid, locale)`.
 
 ### Variants
 
@@ -46,6 +46,6 @@ which refuses `type="variant"`.
   Shared attributes belong on the parent and are dropped from a variant payload.
 - Required attributes split by level: variant-specific ones are required on the variant, all other
   required ones on the parent.
-- **Variants are published individually**, with `sulu_content_publish(type="product", uuid, locale)`
+- **Variants are published individually**, with `sulu_content_publish(resourceKey="products", uuid, locale)`
   on each variant's uuid, and only after the parent is published in that locale. Publishing the
   parent leaves its variants unpublished; unpublishing the parent unpublishes its variants.
