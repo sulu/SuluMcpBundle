@@ -30,6 +30,6 @@ final class ContentTypeExtensionAutoconfigureTest extends KernelTestCase
 
         $registry = self::getContainer()->get(ContentTypeExtensionRegistry::class);
 
-        self::assertInstanceOf(WidgetContentTypeExtension::class, $registry->find('widget'));
+        self::assertInstanceOf(WidgetContentTypeExtension::class, $registry->find('widgets'));
     }
 }

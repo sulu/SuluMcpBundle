@@ -25,17 +25,17 @@ final readonly class ContentTypeResolver
     ) {
     }
 
-    public function supports(string $type): bool
+    public function supports(string $resourceKey): bool
     {
-        return null !== $this->find($type);
+        return null !== $this->find($resourceKey);
     }
 
     /**
      * @return list<string>
      */
-    public function supportedTypes(): array
+    public function supportedResourceKeys(): array
     {
-        return $this->extensionRegistry->types();
+        return $this->extensionRegistry->resourceKeys();
     }
 
     /**
@@ -46,36 +46,36 @@ final readonly class ContentTypeResolver
         return $this->extensionRegistry->all();
     }
 
-    public function find(string $type): ?ContentTypeExtensionInterface
+    public function find(string $resourceKey): ?ContentTypeExtensionInterface
     {
-        return $this->extensionRegistry->find($type);
+        return $this->extensionRegistry->find($resourceKey);
     }
 
-    public function get(string $type): ContentTypeExtensionInterface
+    public function get(string $resourceKey): ContentTypeExtensionInterface
     {
-        return $this->find($type) ?? throw new \InvalidArgumentException(\sprintf(
+        return $this->find($resourceKey) ?? throw new \InvalidArgumentException(\sprintf(
             'Unsupported content type "%s". Supported: %s.',
-            $type,
-            \implode(', ', $this->supportedTypes()),
+            $resourceKey,
+            \implode(', ', $this->supportedResourceKeys()),
         ));
     }
 
     /**
      * $loadGhost is opt-in: the aggregate then spans every locale, so check ContentLocaleTrait first.
      */
-    public function loadDraft(string $type, string $uuid, string $locale, bool $loadGhost = false): ?object
+    public function loadDraft(string $resourceKey, string $uuid, string $locale, bool $loadGhost = false): ?object
     {
         try {
-            return $this->find($type)?->loadDraft($uuid, $locale, $loadGhost);
+            return $this->find($resourceKey)?->loadDraft($uuid, $locale, $loadGhost);
         } catch (\Throwable) {
             return null;
         }
     }
 
-    public function loadForTransition(string $type, string $uuid, string $locale): ?object
+    public function loadForTransition(string $resourceKey, string $uuid, string $locale): ?object
     {
         try {
-            return $this->find($type)?->loadForTransition($uuid, $locale);
+            return $this->find($resourceKey)?->loadForTransition($uuid, $locale);
         } catch (\Throwable) {
             return null;
         }
@@ -84,24 +84,24 @@ final readonly class ContentTypeResolver
     /**
      * @param array<string, mixed> $data
      */
-    public function createModifyMessage(string $type, string $uuid, array $data): object
+    public function createModifyMessage(string $resourceKey, string $uuid, array $data): object
     {
-        return $this->get($type)->createModifyMessage($uuid, $data);
+        return $this->get($resourceKey)->createModifyMessage($uuid, $data);
     }
 
     /**
      * `forceRemoveChildren` only affects pages.
      */
-    public function createRemoveMessage(string $type, string $uuid, string $locale, bool $forceRemoveChildren = false): object
+    public function createRemoveMessage(string $resourceKey, string $uuid, string $locale, bool $forceRemoveChildren = false): object
     {
-        return $this->get($type)->createRemoveMessage($uuid, $locale, $forceRemoveChildren);
+        return $this->get($resourceKey)->createRemoveMessage($uuid, $locale, $forceRemoveChildren);
     }
 
     /**
      * Build the per-type workflow transition message (e.g. 'publish' / 'unpublish').
      */
-    public function createTransitionMessage(string $type, string $uuid, string $locale, string $transition): object
+    public function createTransitionMessage(string $resourceKey, string $uuid, string $locale, string $transition): object
     {
-        return $this->get($type)->createTransitionMessage($uuid, $locale, $transition);
+        return $this->get($resourceKey)->createTransitionMessage($uuid, $locale, $transition);
     }
 }

@@ -21,11 +21,6 @@ use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
  */
 final class WidgetContentTypeExtension implements ContentTypeExtensionInterface
 {
-    public function getType(): string
-    {
-        return 'widget';
-    }
-
     public function getTemplateType(): string
     {
         return 'widget';

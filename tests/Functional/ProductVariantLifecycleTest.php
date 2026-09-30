@@ -49,7 +49,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 use Symfony\Component\Messenger\Stamp\HandledStamp;
 
 #[CoversNothing]
-#[Group('product')]
+#[Group('products')]
 final class ProductVariantLifecycleTest extends FunctionalTestCase
 {
     private const LOCALE = 'en';
@@ -116,11 +116,11 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         self::assertSame(2, $variants['total']);
         $variantUuids = \array_column($variants['variants'], 'uuid');
 
-        $refused = $this->tool(ContentPublishTool::class)->publishContent('product', $variantUuids[0], self::LOCALE);
+        $refused = $this->tool(ContentPublishTool::class)->publishContent('products', $variantUuids[0], self::LOCALE);
         self::assertArrayNotHasKey('success', $refused);
         self::assertStringContainsString('only be published while its product is published', $refused['error'] ?? '');
 
-        $published = $this->tool(ContentPublishTool::class)->publishContent('product', $parentUuid, self::LOCALE);
+        $published = $this->tool(ContentPublishTool::class)->publishContent('products', $parentUuid, self::LOCALE);
         self::assertTrue($published['success'] ?? false, \json_encode($published));
 
         $this->startNextRequest();
@@ -136,7 +136,7 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         $this->startNextRequest();
 
         foreach ($variantUuids as $uuid) {
-            $publishedVariant = $this->tool(ContentPublishTool::class)->publishContent('product', $uuid, self::LOCALE);
+            $publishedVariant = $this->tool(ContentPublishTool::class)->publishContent('products', $uuid, self::LOCALE);
             self::assertTrue($publishedVariant['success'] ?? false, \json_encode($publishedVariant));
         }
 
@@ -219,7 +219,7 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         );
         self::assertTrue($created['success'] ?? false, \json_encode($created));
 
-        $listed = $this->tool(BlockListTool::class)->listBlocks('product', $created['uuid'], self::LOCALE, 'blocks');
+        $listed = $this->tool(BlockListTool::class)->listBlocks('products', $created['uuid'], self::LOCALE, 'blocks');
         self::assertSame(
             1,
             $listed['total'] ?? null,
@@ -249,7 +249,7 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         $uuid = $product['uuid'];
 
         $added = $this->tool(BlockAddTool::class)->addBlock(
-            'product',
+            'products',
             $uuid,
             self::LOCALE,
             'text',
@@ -259,7 +259,7 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         self::assertTrue($added['success'] ?? false, \json_encode($added));
 
         $second = $this->tool(BlockAddTool::class)->addBlock(
-            'product',
+            'products',
             $uuid,
             self::LOCALE,
             'text',
@@ -268,13 +268,13 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         );
         self::assertTrue($second['success'] ?? false, \json_encode($second));
 
-        $listed = $this->tool(BlockListTool::class)->listBlocks('product', $uuid, self::LOCALE, 'blocks');
+        $listed = $this->tool(BlockListTool::class)->listBlocks('products', $uuid, self::LOCALE, 'blocks');
         self::assertSame(2, $listed['total'] ?? null, \json_encode($listed));
 
         $blockId = $listed['blocks'][0]['_id'];
 
         $updated = $this->tool(BlockUpdateTool::class)->updateBlock(
-            'product',
+            'products',
             $uuid,
             self::LOCALE,
             blockId: $blockId,
@@ -282,16 +282,16 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         );
         self::assertTrue($updated['success'] ?? false, \json_encode($updated));
 
-        $reordered = $this->tool(BlockReorderTool::class)->reorderBlocks('product', $uuid, self::LOCALE, 'blocks', [1, 0]);
+        $reordered = $this->tool(BlockReorderTool::class)->reorderBlocks('products', $uuid, self::LOCALE, 'blocks', [1, 0]);
         self::assertTrue($reordered['success'] ?? false, \json_encode($reordered));
 
-        $afterUpdate = $this->tool(BlockListTool::class)->listBlocks('product', $uuid, self::LOCALE, 'blocks');
+        $afterUpdate = $this->tool(BlockListTool::class)->listBlocks('products', $uuid, self::LOCALE, 'blocks');
         self::assertStringContainsString('Updated', \json_encode($afterUpdate));
 
-        $removed = $this->tool(BlockRemoveTool::class)->removeBlock('product', $uuid, self::LOCALE, 'blocks', blockId: $blockId);
+        $removed = $this->tool(BlockRemoveTool::class)->removeBlock('products', $uuid, self::LOCALE, 'blocks', blockId: $blockId);
         self::assertTrue($removed['success'] ?? false, \json_encode($removed));
 
-        $afterRemove = $this->tool(BlockListTool::class)->listBlocks('product', $uuid, self::LOCALE, 'blocks');
+        $afterRemove = $this->tool(BlockListTool::class)->listBlocks('products', $uuid, self::LOCALE, 'blocks');
         self::assertSame(1, $afterRemove['total'] ?? null, \json_encode($afterRemove));
 
         $reloaded = $this->tool(ProductGetTool::class)->getProduct(self::LOCALE, $uuid);
@@ -315,7 +315,7 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
 
         $this->startNextRequest();
 
-        $unpublished = $this->tool(ContentUnpublishTool::class)->unpublishContent('product', $parentUuid, self::LOCALE);
+        $unpublished = $this->tool(ContentUnpublishTool::class)->unpublishContent('products', $parentUuid, self::LOCALE);
         self::assertTrue($unpublished['success'] ?? false, \json_encode($unpublished));
 
         $this->entityManager->clear();
@@ -333,7 +333,7 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
     {
         [$parentUuid, $variantUuids] = $this->createPublishedParentWithVariants();
 
-        $deleted = $this->tool(ContentDeleteTool::class)->deleteContent('product', $parentUuid, self::LOCALE);
+        $deleted = $this->tool(ContentDeleteTool::class)->deleteContent('products', $parentUuid, self::LOCALE);
         self::assertTrue($deleted['success'] ?? false, \json_encode($deleted));
 
         $this->entityManager->clear();
@@ -581,7 +581,7 @@ final class ProductVariantLifecycleTest extends FunctionalTestCase
         }
 
         foreach ([$parent['uuid'], ...$variantUuids] as $uuid) {
-            $published = $this->tool(ContentPublishTool::class)->publishContent('product', $uuid, self::LOCALE);
+            $published = $this->tool(ContentPublishTool::class)->publishContent('products', $uuid, self::LOCALE);
             self::assertTrue($published['success'] ?? false, \json_encode($published));
         }
 

@@ -24,6 +24,7 @@ use Mcp\Schema\Prompt;
 use Mcp\Schema\ResourceDefinition;
 use Mcp\Schema\ResourceTemplate;
 use Mcp\Schema\Tool;
+use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 
 /**
@@ -32,6 +33,9 @@ use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
  *
  * `getTool()` stays unfiltered by permission, so calling a hidden tool yields a
  * permission denial rather than a fabricated "not found".
+ *
+ * Expands the resourceKey placeholders of tool metadata, in `getTool()` too, which the SDK
+ * validates arguments against.
  *
  * @internal
  */
@@ -43,6 +47,7 @@ final readonly class FilteredRegistry implements RegistryInterface
     public function __construct(
         private RegistryInterface $inner,
         private ToolVisibilityResolver $visibilityResolver,
+        private ContentTypeSchemaExpander $schemaExpander,
         private array $disabledToolNames = [],
     ) {
     }
@@ -132,7 +137,7 @@ final readonly class FilteredRegistry implements RegistryInterface
         foreach ($this->inner->getTools(null, null)->references as $name => $tool) {
             // getTools() only ever populates $references with Tool instances here
             if ($tool instanceof Tool && $this->visibilityResolver->isVisible((string) $name)) {
-                $tools[$name] = $tool;
+                $tools[$name] = $this->expandTool($tool);
             }
         }
 
@@ -148,7 +153,10 @@ final readonly class FilteredRegistry implements RegistryInterface
 
     public function getTool(string $name): ToolReference
     {
-        return $this->inner->getTool($name);
+        $reference = $this->inner->getTool($name);
+        $tool = $this->expandTool($reference->tool);
+
+        return $tool === $reference->tool ? $reference : new ToolReference($tool, $reference->handler);
     }
 
     public function hasResources(): bool
@@ -158,12 +166,26 @@ final readonly class FilteredRegistry implements RegistryInterface
 
     public function getResources(?int $limit = null, ?string $cursor = null): Page
     {
-        return $this->inner->getResources($limit, $cursor);
+        $page = $this->inner->getResources($limit, $cursor);
+
+        $resources = [];
+        foreach ($page->references as $key => $resource) {
+            $resources[$key] = $resource instanceof ResourceDefinition ? $this->expandResource($resource) : $resource;
+        }
+
+        return new Page($resources, $page->nextCursor);
     }
 
     public function getResource(string $uri, bool $includeTemplates = true): ResourceReference|ResourceTemplateReference
     {
-        return $this->inner->getResource($uri, $includeTemplates);
+        $reference = $this->inner->getResource($uri, $includeTemplates);
+        if (!$reference instanceof ResourceReference) {
+            return $reference;
+        }
+
+        $resource = $this->expandResource($reference->resource);
+
+        return $resource === $reference->resource ? $reference : new ResourceReference($resource, $reference->handler);
     }
 
     public function hasResourceTemplates(): bool
@@ -194,6 +216,27 @@ final readonly class FilteredRegistry implements RegistryInterface
     public function getPrompt(string $name): PromptReference
     {
         return $this->inner->getPrompt($name);
+    }
+
+    private function expandTool(Tool $tool): Tool
+    {
+        $description = $this->schemaExpander->expandText($tool->description);
+        $inputSchema = $this->schemaExpander->expandInputSchema($tool->inputSchema);
+        if ($description === $tool->description && $inputSchema === $tool->inputSchema) {
+            return $tool;
+        }
+
+        return new Tool($tool->name, $tool->title, $inputSchema, $description, $tool->annotations, $tool->icons, $tool->meta, $tool->outputSchema);
+    }
+
+    private function expandResource(ResourceDefinition $resource): ResourceDefinition
+    {
+        $description = $this->schemaExpander->expandText($resource->description);
+        if ($description === $resource->description) {
+            return $resource;
+        }
+
+        return new ResourceDefinition($resource->uri, $resource->name, $resource->title, $description, $resource->mimeType, $resource->annotations, $resource->size, $resource->icons, $resource->meta);
     }
 
     /**

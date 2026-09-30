@@ -71,7 +71,7 @@ trait ContentLocaleTrait
      */
     private static function missingBlockTranslationError(
         DimensionContentInterface $dimensionContent,
-        string $type,
+        string $resourceKey,
         string $uuid,
         string $locale,
     ): ?array {
@@ -79,12 +79,16 @@ trait ContentLocaleTrait
             return null;
         }
 
+        $updateTool = ['pages' => 'sulu_page_update', 'articles' => 'sulu_article_update', 'snippets' => 'sulu_snippet_update'][$resourceKey] ?? null;
+
         return self::missingTranslationError(
-            \ucfirst($type),
+            \ucfirst($resourceKey),
             $uuid,
             $locale,
             $dimensionContent,
-            \sprintf('Create the "%s" translation with sulu_%s_update first, then work on its blocks.', $locale, $type),
+            null !== $updateTool
+                ? \sprintf('Create the "%s" translation with %s first, then work on its blocks.', $locale, $updateTool)
+                : \sprintf('Create the "%s" translation with the update tool of the "%s" resourceKey first, then work on its blocks.', $locale, $resourceKey),
         );
     }
 }

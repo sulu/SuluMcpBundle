@@ -146,7 +146,7 @@ final class ContentLocaleCreationTest extends FunctionalTestCase
         /** @var BlockListTool $tool */
         $tool = self::getContainer()->get(BlockListTool::class);
 
-        $result = $tool->listBlocks('page', $uuid, 'en', 'blocks');
+        $result = $tool->listBlocks('pages', $uuid, 'en', 'blocks');
 
         self::assertArrayHasKey('error', $result);
         self::assertStringContainsString('has no "en" content yet', $result['error']);

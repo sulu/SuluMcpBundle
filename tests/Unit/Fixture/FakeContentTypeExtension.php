@@ -22,7 +22,7 @@ use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 class FakeContentTypeExtension implements ContentTypeExtensionInterface
 {
     public function __construct(
-        private readonly string $type = 'widget',
+        private readonly string $templateType = 'widget',
         private readonly string $resourceKey = 'widgets',
         private readonly string $securityContext = 'sulu.widget.widgets',
         private readonly ?object $draft = null,
@@ -30,14 +30,9 @@ class FakeContentTypeExtension implements ContentTypeExtensionInterface
     ) {
     }
 
-    public function getType(): string
-    {
-        return $this->type;
-    }
-
     public function getTemplateType(): string
     {
-        return $this->type;
+        return $this->templateType;
     }
 
     public function getResourceKey(): string

@@ -155,7 +155,7 @@ final class ContentRepublishTest extends FunctionalTestCase
         /** @var ContentPublishTool $tool */
         $tool = self::getContainer()->get(ContentPublishTool::class);
 
-        $result = $tool->publishContent('page', $uuid, 'en');
+        $result = $tool->publishContent('pages', $uuid, 'en');
 
         self::assertArrayNotHasKey('error', $result, (string) ($result['error'] ?? ''));
     }
@@ -165,7 +165,7 @@ final class ContentRepublishTest extends FunctionalTestCase
         /** @var ContentUnpublishTool $tool */
         $tool = self::getContainer()->get(ContentUnpublishTool::class);
 
-        $result = $tool->unpublishContent('page', $uuid, 'en');
+        $result = $tool->unpublishContent('pages', $uuid, 'en');
 
         self::assertArrayNotHasKey('error', $result, (string) ($result['error'] ?? ''));
     }

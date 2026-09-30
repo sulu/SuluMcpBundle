@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Block;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Capability\Attribute\Schema;
 use Mcp\Exception\ToolCallException;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
@@ -23,6 +24,7 @@ use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -53,7 +55,7 @@ class BlockListTool
     #[McpTool(
         name: 'sulu_block_list',
         title: 'List Blocks',
-        description: 'Get paginated block content for a page, article, snippet, or any type a bundle registers. Pass "type" ("page", "article", "snippet", or another registered type) and the entity "uuid". Use this after sulu_page_get / sulu_article_get / sulu_snippet_get which return block summaries (index, _id, type, title). Pass the "blockProperty" name (e.g. "blocks", "homeBlocks") and paginate with "page" and "limit". To list blocks inside a parent block (nested blocks), pass parentBlockId with the _id of the parent block — blockProperty is still required to locate the top-level blocks. Returns full block content including HTML for the requested range.',
+        description: 'Get paginated block content for a content entity. Pass "resourceKey" (one of {contentResourceKeys}) and the entity "uuid". Use this after sulu_page_get / sulu_article_get / sulu_snippet_get which return block summaries (index, _id, type, title). Pass the "blockProperty" name (e.g. "blocks", "homeBlocks") and paginate with "page" and "limit". To list blocks inside a parent block (nested blocks), pass parentBlockId with the _id of the parent block — blockProperty is still required to locate the top-level blocks. Returns full block content including HTML for the requested range.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -62,7 +64,8 @@ class BlockListTool
         discoveryContexts: [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function listBlocks(
-        string $type,
+        #[Schema(description: 'The resourceKey of the content type: {contentResourceKeys}.', enum: [ContentTypeSchemaExpander::CONTENT_RESOURCE_KEYS])]
+        string $resourceKey,
         string $uuid,
         string $locale,
         string $blockProperty,
@@ -70,10 +73,10 @@ class BlockListTool
         int $limit = 3,
         ?string $parentBlockId = null,
     ): array {
-        $entity = $this->contentTypeResolver->loadDraft($type, $uuid, $locale, loadGhost: true);
+        $entity = $this->contentTypeResolver->loadDraft($resourceKey, $uuid, $locale, loadGhost: true);
 
         if (null === $entity) {
-            return ['error' => \sprintf('%s not found: %s', \ucfirst($type), $uuid)];
+            return ['error' => \sprintf('%s not found: %s', \ucfirst($resourceKey), $uuid)];
         }
 
         $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
@@ -82,7 +85,7 @@ class BlockListTool
         ]);
 
         try {
-            $security = $this->contentSecurityContextResolver->forEntity($type, $entity, $locale);
+            $security = $this->contentSecurityContextResolver->forEntity($resourceKey, $entity, $locale);
             $this->permissionChecker->check(
                 $security->context,
                 PermissionTypes::VIEW,
@@ -91,7 +94,7 @@ class BlockListTool
                 null !== $security->aclObjectType ? $uuid : null,
             );
 
-            if ($missingTranslation = self::missingBlockTranslationError($dimensionContent, $type, $uuid, $locale)) {
+            if ($missingTranslation = self::missingBlockTranslationError($dimensionContent, $resourceKey, $uuid, $locale)) {
                 return $missingTranslation;
             }
         } catch (PermissionDeniedException $e) {

@@ -21,27 +21,15 @@ use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
 #[CoversClass(ContentTypeExtensionRegistry::class)]
 final class ContentTypeExtensionRegistryTest extends TestCase
 {
-    public function testItIndexesExtensionsByTypeAndResourceKey(): void
+    public function testItIndexesExtensionsByResourceKey(): void
     {
         $widget = new FakeContentTypeExtension('widget', 'widgets');
         $gadget = new FakeContentTypeExtension('gadget', 'gadgets');
         $registry = new ContentTypeExtensionRegistry([$widget, $gadget]);
 
-        self::assertSame($gadget, $registry->get('gadget'));
-        self::assertSame($widget, $registry->findByResourceKey('widgets'));
-        self::assertSame(['widget', 'gadget'], $registry->types());
+        self::assertSame($gadget, $registry->get('gadgets'));
+        self::assertSame($widget, $registry->find('widgets'));
         self::assertSame(['widgets', 'gadgets'], $registry->resourceKeys());
-    }
-
-    public function testASecondExtensionForTheSameTypeIsRejected(): void
-    {
-        $this->expectException(\LogicException::class);
-        $this->expectExceptionMessage('Content type "widget" is registered twice');
-
-        new ContentTypeExtensionRegistry([
-            new FakeContentTypeExtension('widget', 'widgets'),
-            new FakeContentTypeExtension('widget', 'other'),
-        ]);
     }
 
     public function testASecondExtensionForTheSameResourceKeyIsRejected(): void

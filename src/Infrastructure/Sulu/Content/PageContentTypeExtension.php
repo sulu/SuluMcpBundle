@@ -37,11 +37,6 @@ final readonly class PageContentTypeExtension implements ContentTypeExtensionInt
     ) {
     }
 
-    public function getType(): string
-    {
-        return 'page';
-    }
-
     public function getResourceKey(): string
     {
         return 'pages';

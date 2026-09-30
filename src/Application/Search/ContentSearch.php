@@ -44,7 +44,7 @@ final class ContentSearch
         string $query,
         string $locale,
         ?string $webspace = null,
-        ?string $type = null,
+        ?string $resourceKey = null,
         int $page = 1,
         int $limit = 20,
     ): array {
@@ -69,18 +69,9 @@ final class ContentSearch
             }
         }
 
-        $resourceKey = null;
-        if (null !== $type) {
-            $extension = $this->extensionRegistry->find($type);
-            if (null === $extension || $extension instanceof NotSearchableContentTypeInterface) {
-                return [
-                    'error' => \sprintf('Unsupported content type "%s".', $type),
-                    'hint' => \sprintf('Supported: %s.', \implode(', ', $this->extensionRegistry->searchableTypes())),
-                ];
-            }
-
-            $resourceKey = $extension->getResourceKey();
-            if (!\in_array($resourceKey, $visibleResourceKeys, true)) {
+        if (null !== $resourceKey && !\in_array($resourceKey, $visibleResourceKeys, true)) {
+            $extension = $this->extensionRegistry->find($resourceKey);
+            if (null !== $extension && !$extension instanceof NotSearchableContentTypeInterface) {
                 $contexts = \array_map(static fn (string $context): string => \sprintf('"%s"', $context), $extension->getViewSecurityContexts());
 
                 return [
@@ -88,6 +79,11 @@ final class ContentSearch
                     'hint' => \sprintf('Requires VIEW on %s.', 1 === \count($contexts) ? $contexts[0] : 'one of ' . \implode(', ', $contexts)),
                 ];
             }
+
+            return [
+                'error' => \sprintf('Unsupported content type "%s".', $resourceKey),
+                'hint' => \sprintf('Supported: %s.', \implode(', ', $this->extensionRegistry->searchableResourceKeys())),
+            ];
         }
 
         try {
@@ -105,8 +101,8 @@ final class ContentSearch
             return [
                 'error' => \sprintf('Content search failed: %s', $e->getMessage()),
                 'hint' => \sprintf(
-                    'Only published content is indexed. Verify the locale is correct and type is one of %s (or omit to search all).',
-                    \implode(', ', \array_map(static fn (string $t): string => \sprintf('"%s"', $t), $this->extensionRegistry->searchableTypes())),
+                    'Only published content is indexed. Verify the locale is correct and resourceKey is one of %s (or omit to search all).',
+                    \implode(', ', \array_map(static fn (string $key): string => \sprintf('"%s"', $key), $this->extensionRegistry->searchableResourceKeys())),
                 ),
             ];
         }

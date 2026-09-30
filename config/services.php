@@ -22,6 +22,7 @@ use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Media\MediaDownloader;
 use Sulu\Mcp\Application\Media\MediaFileNamer;
 use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
@@ -149,6 +150,7 @@ return static function(ContainerConfigurator $container): void {
         ->decorate('mcp.server.sulu.registry')
         ->arg('$inner', new Reference('.inner'))
         ->arg('$visibilityResolver', new Reference(ToolVisibilityResolver::class))
+        ->arg('$schemaExpander', new Reference(ContentTypeSchemaExpander::class))
         ->arg('$disabledToolNames', '%sulu_mcp.disabled_tool_names%');
 
     $services->set(ToolPermissionChecker::class);
@@ -309,6 +311,7 @@ return static function(ContainerConfigurator $container): void {
 
     // Block management tools
     $services->set(ContentTypeResolver::class);
+    $services->set(ContentTypeSchemaExpander::class);
     $services->set(ContentMetadataMapper::class)
         ->arg('$formMetadataProvider', new Reference('sulu_admin.form_metadata_provider'));
     $services->set(BlockDataValidator::class)

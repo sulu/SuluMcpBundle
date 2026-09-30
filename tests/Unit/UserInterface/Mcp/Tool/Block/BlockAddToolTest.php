@@ -109,9 +109,9 @@ final class BlockAddToolTest extends TestCase
      */
     public static function contentTypeProvider(): iterable
     {
-        yield 'page' => ['page', ModifyPageMessage::class];
-        yield 'article' => ['article', ModifyArticleMessage::class];
-        yield 'snippet' => ['snippet', ModifySnippetMessage::class];
+        yield 'page' => ['pages', ModifyPageMessage::class];
+        yield 'article' => ['articles', ModifyArticleMessage::class];
+        yield 'snippet' => ['snippets', ModifySnippetMessage::class];
     }
 
     /**
@@ -132,11 +132,11 @@ final class BlockAddToolTest extends TestCase
 
     public function testAddBlockReturnsBlockIdInResult(): void
     {
-        $this->setupEntityWithBlocks('page', []);
+        $this->setupEntityWithBlocks('pages', []);
 
         $this->expectMessageDispatch();
 
-        $result = $this->tool->addBlock('page', 'test-uuid', 'en', 'text', 'blocks');
+        $result = $this->tool->addBlock('pages', 'test-uuid', 'en', 'text', 'blocks');
 
         $this->assertTrue($result['success']);
         $this->assertArrayHasKey('blockId', $result);
@@ -158,7 +158,7 @@ final class BlockAddToolTest extends TestCase
         $this->pageRepository->getOneBy(Argument::cetera())->willThrow(new \RuntimeException('not found'));
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->tool->addBlock('page', 'missing-uuid', 'en', 'text', 'blocks');
+        $result = $this->tool->addBlock('pages', 'missing-uuid', 'en', 'text', 'blocks');
 
         $this->assertArrayHasKey('error', $result);
     }
@@ -169,11 +169,11 @@ final class BlockAddToolTest extends TestCase
             ['type' => 'text', 'title' => 'First'],
             ['type' => 'text', 'title' => 'Second'],
         ];
-        $this->setupEntityWithBlocks('page', $existingBlocks);
+        $this->setupEntityWithBlocks('pages', $existingBlocks);
 
         $dispatched = $this->expectMessageDispatch();
 
-        $result = $this->tool->addBlock('page', 'test-uuid', 'en', 'image', 'blocks', ['src' => '/img.jpg']);
+        $result = $this->tool->addBlock('pages', 'test-uuid', 'en', 'image', 'blocks', ['src' => '/img.jpg']);
 
         $this->assertInstanceOf(ModifyPageMessage::class, $dispatched->envelope->getMessage());
         $this->assertTrue($result['success']);
@@ -187,11 +187,11 @@ final class BlockAddToolTest extends TestCase
             ['type' => 'text', 'title' => 'First'],
             ['type' => 'text', 'title' => 'Second'],
         ];
-        $this->setupEntityWithBlocks('page', $existingBlocks);
+        $this->setupEntityWithBlocks('pages', $existingBlocks);
 
         $dispatched = $this->expectMessageDispatch();
 
-        $result = $this->tool->addBlock('page', 'test-uuid', 'en', 'image', 'blocks', [], 0);
+        $result = $this->tool->addBlock('pages', 'test-uuid', 'en', 'image', 'blocks', [], 0);
 
         $this->assertInstanceOf(ModifyPageMessage::class, $dispatched->envelope->getMessage());
         $this->assertTrue($result['success']);
@@ -201,11 +201,11 @@ final class BlockAddToolTest extends TestCase
 
     public function testAddBlockSetsBlockType(): void
     {
-        $this->setupEntityWithBlocks('page', []);
+        $this->setupEntityWithBlocks('pages', []);
 
         $this->expectMessageDispatch();
 
-        $result = $this->tool->addBlock('page', 'test-uuid', 'en', 'hero_block', 'blocks');
+        $result = $this->tool->addBlock('pages', 'test-uuid', 'en', 'hero_block', 'blocks');
 
         $this->assertTrue($result['success']);
         $this->assertSame(1, $result['blockCount']);
@@ -213,22 +213,22 @@ final class BlockAddToolTest extends TestCase
 
     public function testAddBlockMergesBlockData(): void
     {
-        $this->setupEntityWithBlocks('page', []);
+        $this->setupEntityWithBlocks('pages', []);
 
         $this->expectMessageDispatch();
 
-        $result = $this->tool->addBlock('page', 'test-uuid', 'en', 'text', 'blocks', ['title' => 'Hello', 'description' => 'World']);
+        $result = $this->tool->addBlock('pages', 'test-uuid', 'en', 'text', 'blocks', ['title' => 'Hello', 'description' => 'World']);
 
         $this->assertTrue($result['success']);
     }
 
     public function testAddBlockPreservesLocaleInModifyMessage(): void
     {
-        $this->setupEntityWithBlocks('page', [], 'de');
+        $this->setupEntityWithBlocks('pages', [], 'de');
 
         $this->expectMessageDispatch();
 
-        $result = $this->tool->addBlock('page', 'test-uuid', 'de', 'text', 'blocks');
+        $result = $this->tool->addBlock('pages', 'test-uuid', 'de', 'text', 'blocks');
 
         $this->assertTrue($result['success']);
     }
@@ -238,11 +238,11 @@ final class BlockAddToolTest extends TestCase
         $existingBlocks = [
             ['type' => 'text', 'title' => 'First'],
         ];
-        $this->setupEntityWithBlocks('page', $existingBlocks);
+        $this->setupEntityWithBlocks('pages', $existingBlocks);
 
         $this->expectMessageDispatch();
 
-        $result = $this->tool->addBlock('page', 'test-uuid', 'en', 'text', 'blocks');
+        $result = $this->tool->addBlock('pages', 'test-uuid', 'en', 'text', 'blocks');
 
         $this->assertArrayHasKey('success', $result);
         $this->assertArrayHasKey('blockCount', $result);
@@ -279,7 +279,7 @@ final class BlockAddToolTest extends TestCase
 
     public function testAddBlockRejectsUnknownKeysAgainstTemplate(): void
     {
-        $this->setupEntityWithBlocks('page', []);
+        $this->setupEntityWithBlocks('pages', []);
 
         $titleField = new FieldMetadata('title');
         $titleField->setType('text_line');
@@ -312,7 +312,7 @@ final class BlockAddToolTest extends TestCase
 
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->tool->addBlock('page', 'test-uuid', 'en', 'text', 'blocks', ['unknown_key' => 'X']);
+        $result = $this->tool->addBlock('pages', 'test-uuid', 'en', 'text', 'blocks', ['unknown_key' => 'X']);
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('Unknown keys', $result['error']);
@@ -322,11 +322,11 @@ final class BlockAddToolTest extends TestCase
 
     public function testAddBlockRejectsNameValuePattern(): void
     {
-        $this->setupEntityWithBlocks('page', []);
+        $this->setupEntityWithBlocks('pages', []);
 
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->tool->addBlock('page', 'test-uuid', 'en', 'text', 'blocks', ['name' => 'title', 'value' => 'X']);
+        $result = $this->tool->addBlock('pages', 'test-uuid', 'en', 'text', 'blocks', ['name' => 'title', 'value' => 'X']);
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('internal {name, value} storage shape', $result['error']);
@@ -334,14 +334,14 @@ final class BlockAddToolTest extends TestCase
 
     public function testAddBlockThrowsToolCallExceptionWhenPermissionDenied(): void
     {
-        $this->setupEntityWithBlocks('page', []);
+        $this->setupEntityWithBlocks('pages', []);
 
         $this->permissionChecker->denyAll();
 
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         try {
-            $this->tool->addBlock('page', 'test-uuid', 'en', 'text', 'blocks');
+            $this->tool->addBlock('pages', 'test-uuid', 'en', 'text', 'blocks');
             self::fail('Expected ' . ToolCallException::class);
         } catch (ToolCallException) {
             self::assertSame([[
@@ -359,7 +359,7 @@ final class BlockAddToolTest extends TestCase
         // Regression guard: Sulu stores per-page ACLs under the concrete Page class
         // (getSecuredClass()), not PageInterface — the interface matches no ACL row and
         // silently falls back to the webspace-level grant.
-        $this->setupEntityWithBlocks('page', []);
+        $this->setupEntityWithBlocks('pages', []);
 
         $this->permissionChecker->denyAll();
 
@@ -367,7 +367,7 @@ final class BlockAddToolTest extends TestCase
 
         $this->expectException(ToolCallException::class);
 
-        $this->tool->addBlock('page', 'test-uuid', 'en', 'text', 'blocks');
+        $this->tool->addBlock('pages', 'test-uuid', 'en', 'text', 'blocks');
     }
 
     /**
@@ -394,8 +394,8 @@ final class BlockAddToolTest extends TestCase
     private function setupEntityWithBlocks(string $type, array $blocks, string $locale = 'en'): void
     {
         $entity = match ($type) {
-            'article' => new Article('test-uuid'),
-            'snippet' => new Snippet('test-uuid'),
+            'articles' => new Article('test-uuid'),
+            'snippets' => new Snippet('test-uuid'),
             default => (static function(): Page {
                 $page = new Page('test-uuid');
                 $page->setWebspaceKey('example');
@@ -405,8 +405,8 @@ final class BlockAddToolTest extends TestCase
         };
 
         match ($type) {
-            'article' => $this->articleRepository->getOneBy(Argument::cetera())->willReturn($entity),
-            'snippet' => $this->snippetRepository->getOneBy(Argument::cetera())->willReturn($entity),
+            'articles' => $this->articleRepository->getOneBy(Argument::cetera())->willReturn($entity),
+            'snippets' => $this->snippetRepository->getOneBy(Argument::cetera())->willReturn($entity),
             default => $this->pageRepository->getOneBy(Argument::cetera())->willReturn($entity),
         };
 
@@ -431,7 +431,7 @@ final class BlockAddToolTest extends TestCase
         $ghostDimensionContent->addAvailableLocale('de');
         $this->contentManager->resolve(Argument::cetera())->willReturn($ghostDimensionContent);
 
-        $result = $this->tool->addBlock('page', 'uuid-1', 'en', 'text', 'blocks');
+        $result = $this->tool->addBlock('pages', 'uuid-1', 'en', 'text', 'blocks');
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('has no "en" content yet', $result['error']);
@@ -449,7 +449,7 @@ final class BlockAddToolTest extends TestCase
             ->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
 
         $result = $this->tool->addBlock(
-            'page',
+            'pages',
             'test-uuid',
             'en',
             'item',
@@ -468,7 +468,7 @@ final class BlockAddToolTest extends TestCase
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         $result = $this->tool->addBlock(
-            'page',
+            'pages',
             'test-uuid',
             'en',
             'item',
@@ -493,7 +493,7 @@ final class BlockAddToolTest extends TestCase
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         $result = $this->tool->addBlock(
-            'page',
+            'pages',
             'test-uuid',
             'en',
             'item',
@@ -524,7 +524,7 @@ final class BlockAddToolTest extends TestCase
             ->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
 
         $result = $this->tool->addBlock(
-            'page',
+            'pages',
             'test-uuid',
             'en',
             'item',
@@ -545,14 +545,14 @@ final class BlockAddToolTest extends TestCase
         // The parent has no nested block list yet, so the property the block would land
         // in cannot be inferred and the schema stays unresolved. The storage-shape
         // guard does not depend on metadata and must still fire.
-        $this->setupEntityWithBlocks('page', [
+        $this->setupEntityWithBlocks('pages', [
             ['_id' => 'cards-1', 'type' => 'feature_cards', 'headline' => 'Cards'],
         ]);
 
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
         $result = $this->tool->addBlock(
-            'page',
+            'pages',
             'test-uuid',
             'en',
             'item',
@@ -573,7 +573,7 @@ final class BlockAddToolTest extends TestCase
      */
     private function setupPageWithDuplicateItemTypes(?array $blocks = null): void
     {
-        $this->setupEntityWithBlocks('page', $blocks ?? [
+        $this->setupEntityWithBlocks('pages', $blocks ?? [
             ['_id' => 'cards-1', 'type' => 'feature_cards', 'headline' => 'Cards', 'items' => [
                 ['_id' => 'item-1', 'type' => 'item', 'eyebrow' => 'A', 'headline' => 'Card A', 'text' => '<p>…</p>'],
             ]],

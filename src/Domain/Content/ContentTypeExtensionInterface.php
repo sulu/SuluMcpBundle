@@ -20,12 +20,7 @@ namespace Sulu\Mcp\Domain\Content;
 interface ContentTypeExtensionInterface
 {
     /**
-     * The `type` value the unified tools accept, e.g. "product".
-     */
-    public function getType(): string;
-
-    /**
-     * The resourceKey of the SEAL `website` index.
+     * Also the resourceKey of the SEAL `website` index.
      */
     public function getResourceKey(): string;
 

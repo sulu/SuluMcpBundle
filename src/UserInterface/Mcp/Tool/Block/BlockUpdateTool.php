@@ -27,6 +27,7 @@ use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -78,7 +79,8 @@ class BlockUpdateTool
         discoveryContexts: [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function updateBlock(
-        string $type,
+        #[Schema(description: 'The resourceKey of the content type: {contentResourceKeys}.', enum: [ContentTypeSchemaExpander::CONTENT_RESOURCE_KEYS])]
+        string $resourceKey,
         string $uuid,
         string $locale,
         #[Schema(type: 'object', description: 'Changed block field values as a flat object, e.g. {"content": "<p>Updated</p>"}', additionalProperties: true)]
@@ -90,8 +92,8 @@ class BlockUpdateTool
         #[Schema(type: 'string', description: 'Template property holding the blocks, e.g. "blocks". Only used with blockIndex, and only needed when the entity has more than one block property.')]
         ?string $blockProperty = null,
     ): array {
-        if (!$this->contentTypeResolver->supports($type)) {
-            return ['error' => \sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', $this->contentTypeResolver->supportedTypes()))];
+        if (!$this->contentTypeResolver->supports($resourceKey)) {
+            return ['error' => \sprintf('Unsupported content type "%s". Supported: %s.', $resourceKey, \implode(', ', $this->contentTypeResolver->supportedResourceKeys()))];
         }
 
         if (null === $blockId && null === $blockIndex) {
@@ -106,19 +108,19 @@ class BlockUpdateTool
         }
 
         try {
-            $entity = $this->contentTypeResolver->loadDraft($type, $uuid, $locale, loadGhost: true);
+            $entity = $this->contentTypeResolver->loadDraft($resourceKey, $uuid, $locale, loadGhost: true);
 
             if (null === $entity) {
-                return ['error' => \sprintf('%s not found: %s', \ucfirst($type), $uuid)];
+                return ['error' => \sprintf('%s not found: %s', \ucfirst($resourceKey), $uuid)];
             }
 
-            $extension = $this->contentTypeResolver->get($type);
+            $extension = $this->contentTypeResolver->get($resourceKey);
             $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
 
-            $security = $this->contentSecurityContextResolver->forEntity($type, $entity, $locale);
+            $security = $this->contentSecurityContextResolver->forEntity($resourceKey, $entity, $locale);
             $this->permissionChecker->check(
                 $security->context,
                 PermissionTypes::EDIT,
@@ -127,7 +129,7 @@ class BlockUpdateTool
                 null !== $security->aclObjectType ? $uuid : null,
             );
 
-            if ($missingTranslation = self::missingBlockTranslationError($dimensionContent, $type, $uuid, $locale)) {
+            if ($missingTranslation = self::missingBlockTranslationError($dimensionContent, $resourceKey, $uuid, $locale)) {
                 return $missingTranslation;
             }
 
@@ -139,7 +141,7 @@ class BlockUpdateTool
 
                 if (null === $found) {
                     return [
-                        'error' => \sprintf('Block with _id "%s" not found in %s %s.', $blockId, $type, $uuid),
+                        'error' => \sprintf('Block with _id "%s" not found in %s %s.', $blockId, $resourceKey, $uuid),
                         'hint' => 'Use sulu_page_get, sulu_article_get, or sulu_snippet_get to see block summaries with _id values.',
                     ];
                 }
@@ -186,7 +188,7 @@ class BlockUpdateTool
 
             $data = $this->stringifyKeys($data);
 
-            $message = $this->contentTypeResolver->createModifyMessage($type, $uuid, $data);
+            $message = $this->contentTypeResolver->createModifyMessage($resourceKey, $uuid, $data);
 
             $this->handle(new Envelope($message, [new EnableFlushStamp()]));
 
@@ -206,7 +208,7 @@ class BlockUpdateTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to update block "%s" in %s %s: %s', $blockId ?? '#' . $blockIndex, $type, $uuid, $e->getMessage()),
+                'error' => \sprintf('Failed to update block "%s" in %s %s: %s', $blockId ?? '#' . $blockIndex, $resourceKey, $uuid, $e->getMessage()),
                 'hint' => 'Verify the UUID exists and the block _id or index is correct (use sulu_block_list to check).',
             ];
         }

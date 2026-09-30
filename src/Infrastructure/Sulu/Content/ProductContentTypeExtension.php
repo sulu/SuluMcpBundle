@@ -34,11 +34,6 @@ final readonly class ProductContentTypeExtension implements ContentTypeExtension
     ) {
     }
 
-    public function getType(): string
-    {
-        return 'product';
-    }
-
     public function getResourceKey(): string
     {
         return ProductInterface::RESOURCE_KEY;

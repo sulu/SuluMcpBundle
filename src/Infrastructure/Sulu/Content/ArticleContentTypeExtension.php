@@ -39,11 +39,6 @@ final readonly class ArticleContentTypeExtension implements ContentTypeExtension
     ) {
     }
 
-    public function getType(): string
-    {
-        return 'article';
-    }
-
     public function getResourceKey(): string
     {
         return 'articles';

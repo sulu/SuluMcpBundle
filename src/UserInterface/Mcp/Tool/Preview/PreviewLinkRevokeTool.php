@@ -20,9 +20,11 @@ use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Domain\Content\NotSearchableContentTypeInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -48,7 +50,7 @@ class PreviewLinkRevokeTool
     #[McpTool(
         name: 'sulu_preview_link_revoke',
         title: 'Revoke Preview Link',
-        description: 'Revoke/invalidate a previously generated public preview link for a page or article. After revoking, the preview URL will no longer work. Pass `type` as "page" or "article" (the same singular values used by the other tools). If no preview link exists for the resource, the operation returns an error — verify a link exists with sulu_preview_link_generate before revoking.',
+        description: 'Revoke/invalidate a previously generated public preview link for a content entity. After revoking, the preview URL will no longer work. Pass `resourceKey` as one of {resourceKeys}. If no preview link exists for the resource, the operation returns an error — verify a link exists with sulu_preview_link_generate before revoking.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[DangerousTool('publish')]
@@ -58,22 +60,29 @@ class PreviewLinkRevokeTool
         discoveryContexts: [ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function revokePreviewLink(
-        #[Schema(description: 'Content type to preview: "page" or "article" (same singular values used by the other tools).', enum: ['page', 'article'])]
-        string $type,
+        #[Schema(description: 'The resourceKey of the content type to preview: {resourceKeys}.', enum: [ContentTypeSchemaExpander::RESOURCE_KEYS])]
+        string $resourceKey,
         string $uuid,
         string $locale,
     ): array {
+        $extension = $this->contentTypeResolver->find($resourceKey);
+        if (null === $extension || $extension instanceof NotSearchableContentTypeInterface) {
+            return [
+                'error' => \sprintf('Resource key "%s" cannot be previewed.', $resourceKey),
+                'hint' => 'Use a previewable resourceKey such as "pages" or "articles".',
+            ];
+        }
+
         try {
-            $extension = $this->contentTypeResolver->get($type);
-            $entity = $this->contentTypeResolver->loadDraft($type, $uuid, $locale);
+            $entity = $this->contentTypeResolver->loadDraft($resourceKey, $uuid, $locale);
             if (null === $entity) {
                 return [
-                    'error' => \sprintf('%s not found: %s', $type, $uuid),
+                    'error' => \sprintf('%s not found: %s', $resourceKey, $uuid),
                     'hint' => 'Verify the type ("page"/"article"), uuid and locale.',
                 ];
             }
 
-            $security = $this->contentSecurityContextResolver->forEntity($type, $entity, $locale);
+            $security = $this->contentSecurityContextResolver->forEntity($resourceKey, $entity, $locale);
 
             // Preview links are gated on EDIT, stricter than the admin UI's VIEW.
             $this->permissionChecker->check(
@@ -84,7 +93,6 @@ class PreviewLinkRevokeTool
                 null !== $security->aclObjectType ? $uuid : null,
             );
 
-            $resourceKey = $extension->getResourceKey();
             $this->previewLinkManager->revoke($resourceKey, $uuid, $locale);
 
             return [

@@ -146,7 +146,7 @@ final class ContentSearchTest extends TestCase
             ->shouldBeCalledOnce()
             ->willReturn($this->createEmptyResult());
 
-        $result = $this->contentSearch->search('hello', 'en', null, 'article');
+        $result = $this->contentSearch->search('hello', 'en', null, 'articles');
 
         $this->assertArrayHasKey('results', $result);
         $this->assertArrayHasKey('total', $result);
@@ -174,7 +174,7 @@ final class ContentSearchTest extends TestCase
             ->shouldBeCalledOnce()
             ->willReturn($this->createEmptyResult());
 
-        $this->contentSearch->search('hello', 'en', null, 'page');
+        $this->contentSearch->search('hello', 'en', null, 'pages');
     }
 
     public function testUnknownTypeIsRejected(): void
@@ -186,7 +186,7 @@ final class ContentSearchTest extends TestCase
         $this->assertSame(
             [
                 'error' => 'Unsupported content type "custom_type".',
-                'hint' => 'Supported: page, article.',
+                'hint' => 'Supported: pages, articles.',
             ],
             $result,
         );
@@ -374,12 +374,12 @@ final class ContentSearchTest extends TestCase
     {
         $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->contentSearch->search('hello', 'en', null, 'widget');
+        $result = $this->contentSearch->search('hello', 'en', null, 'widgets');
 
         $this->assertSame(
             [
-                'error' => 'Unsupported content type "widget".',
-                'hint' => 'Supported: page, article.',
+                'error' => 'Unsupported content type "widgets".',
+                'hint' => 'Supported: pages, articles.',
             ],
             $result,
         );
@@ -389,12 +389,12 @@ final class ContentSearchTest extends TestCase
     {
         $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->contentSearch->search('hello', 'en', null, 'snippet');
+        $result = $this->contentSearch->search('hello', 'en', null, 'snippets');
 
         $this->assertSame(
             [
-                'error' => 'Unsupported content type "snippet".',
-                'hint' => 'Supported: page, article.',
+                'error' => 'Unsupported content type "snippets".',
+                'hint' => 'Supported: pages, articles.',
             ],
             $result,
         );
@@ -408,7 +408,7 @@ final class ContentSearchTest extends TestCase
 
         $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $contentSearch->search('hello', 'en', null, 'widget');
+        $result = $contentSearch->search('hello', 'en', null, 'widgets');
 
         $this->assertSame(
             [
@@ -444,7 +444,7 @@ final class ContentSearchTest extends TestCase
             ->shouldBeCalledOnce()
             ->willReturn($this->createEmptyResult());
 
-        $contentSearch->search('hello', 'en', null, 'widget');
+        $contentSearch->search('hello', 'en', null, 'widgets');
     }
 
     public function testTypeArticleIsDeniedWithoutArticlePermission(): void
@@ -453,7 +453,7 @@ final class ContentSearchTest extends TestCase
 
         $this->engine->createSearchBuilder(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->contentSearch->search('hello', 'en', null, 'article');
+        $result = $this->contentSearch->search('hello', 'en', null, 'articles');
 
         $this->assertSame(
             [

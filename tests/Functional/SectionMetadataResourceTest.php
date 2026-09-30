@@ -27,8 +27,8 @@ final class SectionMetadataResourceTest extends FunctionalTestCase
         $resource = self::getContainer()->get(TemplatesResource::class);
         $templates = $resource->getTemplates();
 
-        self::assertArrayHasKey('sections_demo', $templates['page']);
-        $fields = $templates['page']['sections_demo']['fields'];
+        self::assertArrayHasKey('sections_demo', $templates['pages']);
+        $fields = $templates['pages']['sections_demo']['fields'];
         $byName = \array_column($fields, null, 'name');
 
         self::assertArrayHasKey('subtitle', $byName, 'field inside <section> must surface');

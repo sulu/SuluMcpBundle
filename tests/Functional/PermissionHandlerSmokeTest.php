@@ -169,7 +169,7 @@ final class PermissionHandlerSmokeTest extends FunctionalTestCase
         ], 'edit-no-live');
 
         $response = $this->handler()->handle(
-            $this->callRequest('sulu_content_publish', ['type' => 'page', 'uuid' => 'irrelevant', 'locale' => 'en']),
+            $this->callRequest('sulu_content_publish', ['resourceKey' => 'pages', 'uuid' => 'irrelevant', 'locale' => 'en']),
             $this->session(),
         );
 
@@ -301,7 +301,7 @@ final class PermissionHandlerSmokeTest extends FunctionalTestCase
         ], 'split-grant');
 
         $response = $this->handler()->handle(
-            $this->callRequest('sulu_content_delete', ['type' => 'page', 'uuid' => 'irrelevant', 'locale' => 'en']),
+            $this->callRequest('sulu_content_delete', ['resourceKey' => 'pages', 'uuid' => 'irrelevant', 'locale' => 'en']),
             $this->session(),
         );
 
@@ -324,7 +324,7 @@ final class PermissionHandlerSmokeTest extends FunctionalTestCase
         ], 'same-candidate-grant');
 
         $response = $this->handler()->handle(
-            $this->callRequest('sulu_content_delete', ['type' => 'page', 'uuid' => 'irrelevant', 'locale' => 'en']),
+            $this->callRequest('sulu_content_delete', ['resourceKey' => 'pages', 'uuid' => 'irrelevant', 'locale' => 'en']),
             $this->session(),
         );
 

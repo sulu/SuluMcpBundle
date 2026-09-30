@@ -77,7 +77,7 @@ final class ContentSearchToolTest extends TestCase
         $contentSearch = new ContentSearch(new WebsiteSearch($engine->reveal()), $webspaceResolver, $permissionChecker->reveal(), ContentTypes::registry($this->prophesize(PageRepositoryInterface::class)->reveal(), $this->prophesize(ArticleRepositoryInterface::class)->reveal(), TestGroupProvider::singleGroup()));
         $tool = new ContentSearchTool($contentSearch);
 
-        $result = $tool('hello', 'en', 'example', 'page', 2, 10);
+        $result = $tool('hello', 'en', 'example', 'pages', 2, 10);
 
         $this->assertSame(2, $result['page']);
         $this->assertSame(10, $result['limit']);

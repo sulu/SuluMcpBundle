@@ -233,7 +233,7 @@ final class GetContextToolTest extends TestCase
         $this->assertArrayNotHasKey('block', $result['fieldTypes']);
 
         // Fields no longer carry inline examples (deduped into the legend)
-        $titleFieldResult = $result['templates']['page']['default']['fields'][0];
+        $titleFieldResult = $result['templates']['pages']['default']['fields'][0];
         $this->assertArrayNotHasKey('valueExample', $titleFieldResult);
         $this->assertArrayNotHasKey('valueHint', $titleFieldResult);
 

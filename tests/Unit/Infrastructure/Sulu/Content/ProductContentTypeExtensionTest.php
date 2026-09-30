@@ -52,11 +52,6 @@ final class ProductContentTypeExtensionTest extends TestCase
         $this->assertNotInstanceOf(RemovalGuardInterface::class, $this->extension);
     }
 
-    public function testGetTypeReturnsProduct(): void
-    {
-        $this->assertSame('product', $this->extension->getType());
-    }
-
     public function testGetTemplateTypeReturnsProduct(): void
     {
         $this->assertSame('product', $this->extension->getTemplateType());

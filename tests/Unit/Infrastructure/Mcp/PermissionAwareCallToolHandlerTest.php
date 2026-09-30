@@ -327,7 +327,6 @@ final class PermissionAwareCallToolHandlerTest extends TestCase
         $request = $this->request('sulu_content_delete', ['uuid' => 'x']);
         $result = $handler->handle($request, $this->session());
 
-        // Reached the inner handler, which reports METHOD_NOT_FOUND for the unregistered tool.
         self::assertInstanceOf(Error::class, $result);
     }
 

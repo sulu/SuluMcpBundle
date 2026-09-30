@@ -27,6 +27,7 @@ use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -69,7 +70,7 @@ class BlockAddTool
     #[McpTool(
         name: 'sulu_block_add',
         title: 'Add Block',
-        description: 'Add a content block to a page, article, snippet, or any type a bundle registers. Pass "type" ("page", "article", "snippet", or another registered type) and the entity "uuid". Blocks are typed components (e.g. "text", "image", "quote") defined by the project. Workflow: 1) Call sulu_get_context to see available block types and their fields. 2) Find the block property name in the template (e.g. "blocks" or "content"). 3) Pass blockType, blockProperty, and blockData as a flat object mapping the block-type\'s template field names to values, e.g. blockData={"title": "Heading", "description": "<p>Body</p>"}. Unknown keys are rejected against the template schema; the internal {name, value} storage shape is rejected too. The block is appended or inserted at `position` (0-based). To add a block inside another, pass parentBlockId with the parent\'s _id. The entity must be re-published after adding blocks.',
+        description: 'Add a content block to a content entity. Pass "resourceKey" (one of {contentResourceKeys}) and the entity "uuid". Blocks are typed components (e.g. "text", "image", "quote") defined by the project. Workflow: 1) Call sulu_get_context to see available block types and their fields. 2) Find the block property name in the template (e.g. "blocks" or "content"). 3) Pass blockType, blockProperty, and blockData as a flat object mapping the block-type\'s template field names to values, e.g. blockData={"title": "Heading", "description": "<p>Body</p>"}. Unknown keys are rejected against the template schema; the internal {name, value} storage shape is rejected too. The block is appended or inserted at `position` (0-based). To add a block inside another, pass parentBlockId with the parent\'s _id. The entity must be re-published after adding blocks.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -78,7 +79,8 @@ class BlockAddTool
         discoveryContexts: [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function addBlock(
-        string $type,
+        #[Schema(description: 'The resourceKey of the content type: {contentResourceKeys}.', enum: [ContentTypeSchemaExpander::CONTENT_RESOURCE_KEYS])]
+        string $resourceKey,
         string $uuid,
         string $locale,
         string $blockType,
@@ -89,22 +91,22 @@ class BlockAddTool
         ?string $parentBlockId = null,
     ): array {
         try {
-            if (!$this->contentTypeResolver->supports($type)) {
-                return ['error' => \sprintf('Unsupported content type "%s". Supported: %s.', $type, \implode(', ', $this->contentTypeResolver->supportedTypes()))];
+            if (!$this->contentTypeResolver->supports($resourceKey)) {
+                return ['error' => \sprintf('Unsupported content type "%s". Supported: %s.', $resourceKey, \implode(', ', $this->contentTypeResolver->supportedResourceKeys()))];
             }
 
-            $entity = $this->contentTypeResolver->loadDraft($type, $uuid, $locale, loadGhost: true);
+            $entity = $this->contentTypeResolver->loadDraft($resourceKey, $uuid, $locale, loadGhost: true);
             if (null === $entity) {
-                return ['error' => \sprintf('%s not found: %s', \ucfirst($type), $uuid)];
+                return ['error' => \sprintf('%s not found: %s', \ucfirst($resourceKey), $uuid)];
             }
 
-            $extension = $this->contentTypeResolver->get($type);
+            $extension = $this->contentTypeResolver->get($resourceKey);
             $dimensionContent = $this->contentManager->resolve($entity, [ // @phpstan-ignore argument.type, argument.templateType (upstream generic is invariant; loadDraft() returns a bare object)
                 'locale' => $locale,
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
 
-            $security = $this->contentSecurityContextResolver->forEntity($type, $entity, $locale);
+            $security = $this->contentSecurityContextResolver->forEntity($resourceKey, $entity, $locale);
             $this->permissionChecker->check(
                 $security->context,
                 PermissionTypes::EDIT,
@@ -113,7 +115,7 @@ class BlockAddTool
                 null !== $security->aclObjectType ? $uuid : null,
             );
 
-            if ($missingTranslation = self::missingBlockTranslationError($dimensionContent, $type, $uuid, $locale)) {
+            if ($missingTranslation = self::missingBlockTranslationError($dimensionContent, $resourceKey, $uuid, $locale)) {
                 return $missingTranslation;
             }
 
@@ -132,7 +134,7 @@ class BlockAddTool
                 $parentPath = $this->findBlockPath($currentData, $parentBlockId);
                 if (null === $parentPath) {
                     return [
-                        'error' => \sprintf('Parent block with _id "%s" not found in %s %s.', $parentBlockId, $type, $uuid),
+                        'error' => \sprintf('Parent block with _id "%s" not found in %s %s.', $parentBlockId, $resourceKey, $uuid),
                         'hint' => 'Use sulu_page_get, sulu_article_get, or sulu_snippet_get to see block summaries with _id values.',
                     ];
                 }
@@ -176,7 +178,7 @@ class BlockAddTool
             // Ensure all array keys are strings (Sulu's MetadataResolver requires string keys)
             $data = $this->stringifyKeys($data);
 
-            $message = $this->contentTypeResolver->createModifyMessage($type, $uuid, $data);
+            $message = $this->contentTypeResolver->createModifyMessage($resourceKey, $uuid, $data);
 
             $this->handle(new Envelope($message, [new EnableFlushStamp()]));
 
@@ -192,7 +194,7 @@ class BlockAddTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to add %s block to %s %s: %s', $blockType, $type, $uuid, $e->getMessage()),
+                'error' => \sprintf('Failed to add %s block to %s %s: %s', $blockType, $resourceKey, $uuid, $e->getMessage()),
                 'hint' => 'Verify the UUID exists (use sulu_page_get, sulu_article_get, or sulu_snippet_get), the blockProperty matches a block field in the template, and blockType is a valid block type (use sulu_get_context to see available types).',
             ];
         }
@@ -210,14 +212,14 @@ class BlockAddTool
      */
     private function nestedTargetProperty(
         array $currentData,
-        string $type,
+        string $resourceKey,
         ?string $templateKey,
         string $blockType,
         array $parentPath,
     ): ?string {
         $parentChain = $this->blockTypePath($currentData, $parentPath['property'], $parentPath['indices']);
 
-        $resolved = $this->blockDataValidator->resolveBlockProperty($type, $templateKey, $parentChain, $blockType);
+        $resolved = $this->blockDataValidator->resolveBlockProperty($resourceKey, $templateKey, $parentChain, $blockType);
         if (null !== $resolved) {
             return $resolved;
         }

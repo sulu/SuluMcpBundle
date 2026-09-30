@@ -29,11 +29,6 @@ final class ContentTypeExtensionRegistry
     /**
      * @var array<string, ContentTypeExtensionInterface>
      */
-    private readonly array $byType;
-
-    /**
-     * @var array<string, ContentTypeExtensionInterface>
-     */
     private readonly array $byResourceKey;
 
     /**
@@ -41,54 +36,33 @@ final class ContentTypeExtensionRegistry
      */
     public function __construct(iterable $extensions)
     {
-        $byType = [];
         $byResourceKey = [];
         foreach ($extensions as $extension) {
-            $type = $extension->getType();
             $resourceKey = $extension->getResourceKey();
-
-            if (isset($byType[$type])) {
-                throw new \LogicException(\sprintf('Content type "%s" is registered twice, by "%s" and "%s".', $type, $byType[$type]::class, $extension::class));
-            }
 
             if (isset($byResourceKey[$resourceKey])) {
                 throw new \LogicException(\sprintf('Resource key "%s" is registered twice, by "%s" and "%s".', $resourceKey, $byResourceKey[$resourceKey]::class, $extension::class));
             }
 
-            $byType[$type] = $extension;
             $byResourceKey[$resourceKey] = $extension;
         }
 
-        $this->byType = $byType;
         $this->byResourceKey = $byResourceKey;
     }
 
-    public function has(string $type): bool
+    public function has(string $resourceKey): bool
     {
-        return isset($this->byType[$type]);
+        return isset($this->byResourceKey[$resourceKey]);
     }
 
-    public function get(string $type): ContentTypeExtensionInterface
+    public function get(string $resourceKey): ContentTypeExtensionInterface
     {
-        return $this->byType[$type] ?? throw new \InvalidArgumentException(\sprintf('No content type extension registered for type "%s".', $type));
+        return $this->byResourceKey[$resourceKey] ?? throw new \InvalidArgumentException(\sprintf('No content type extension registered for resourceKey "%s".', $resourceKey));
     }
 
-    public function find(string $type): ?ContentTypeExtensionInterface
-    {
-        return $this->byType[$type] ?? null;
-    }
-
-    public function findByResourceKey(string $resourceKey): ?ContentTypeExtensionInterface
+    public function find(string $resourceKey): ?ContentTypeExtensionInterface
     {
         return $this->byResourceKey[$resourceKey] ?? null;
-    }
-
-    /**
-     * @return list<string>
-     */
-    public function types(): array
-    {
-        return \array_keys($this->byType);
     }
 
     /**
@@ -104,7 +78,7 @@ final class ContentTypeExtensionRegistry
      */
     public function all(): array
     {
-        return \array_values($this->byType);
+        return \array_values($this->byResourceKey);
     }
 
     /**
@@ -113,7 +87,7 @@ final class ContentTypeExtensionRegistry
     public function searchable(): array
     {
         return \array_values(\array_filter(
-            $this->byType,
+            $this->byResourceKey,
             static fn (ContentTypeExtensionInterface $extension): bool => !$extension instanceof NotSearchableContentTypeInterface,
         ));
     }
@@ -121,8 +95,8 @@ final class ContentTypeExtensionRegistry
     /**
      * @return list<string>
      */
-    public function searchableTypes(): array
+    public function searchableResourceKeys(): array
     {
-        return \array_map(static fn (ContentTypeExtensionInterface $extension): string => $extension->getType(), $this->searchable());
+        return \array_map(static fn (ContentTypeExtensionInterface $extension): string => $extension->getResourceKey(), $this->searchable());
     }
 }

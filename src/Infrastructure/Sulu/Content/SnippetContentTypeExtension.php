@@ -35,11 +35,6 @@ final readonly class SnippetContentTypeExtension implements ContentTypeExtension
     ) {
     }
 
-    public function getType(): string
-    {
-        return 'snippet';
-    }
-
     public function getResourceKey(): string
     {
         return 'snippets';

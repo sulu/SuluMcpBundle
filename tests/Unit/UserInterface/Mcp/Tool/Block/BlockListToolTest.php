@@ -82,7 +82,7 @@ final class BlockListToolTest extends TestCase
             ['_id' => 'e', 'type' => 'text', 'title' => 'Block 5', 'description' => '<p>Content 5</p>'],
         ]);
 
-        $result = $this->tool->listBlocks('page', 'test-uuid', 'en', 'blocks', 1, 3);
+        $result = $this->tool->listBlocks('pages', 'test-uuid', 'en', 'blocks', 1, 3);
 
         $this->assertSame(5, $result['total']);
         $this->assertSame(1, $result['page']);
@@ -103,7 +103,7 @@ final class BlockListToolTest extends TestCase
             ['_id' => 'e', 'type' => 'text', 'title' => 'Block 5'],
         ]);
 
-        $result = $this->tool->listBlocks('page', 'test-uuid', 'en', 'blocks', 2, 3);
+        $result = $this->tool->listBlocks('pages', 'test-uuid', 'en', 'blocks', 2, 3);
 
         $this->assertSame(5, $result['total']);
         $this->assertSame(2, $result['page']);
@@ -119,7 +119,7 @@ final class BlockListToolTest extends TestCase
             ['_id' => 'a', 'type' => 'text', 'title' => 'Block 1', 'settings' => [], 'description' => ''],
         ]);
 
-        $result = $this->tool->listBlocks('page', 'test-uuid', 'en', 'blocks', 1, 10);
+        $result = $this->tool->listBlocks('pages', 'test-uuid', 'en', 'blocks', 1, 10);
 
         $this->assertCount(1, $result['blocks']);
         $this->assertArrayNotHasKey('settings', $result['blocks'][0]);
@@ -132,7 +132,7 @@ final class BlockListToolTest extends TestCase
             ['_id' => 'a', 'type' => 'text'],
         ]);
 
-        $result = $this->tool->listBlocks('page', 'test-uuid', 'en', 'nonexistent', 1, 10);
+        $result = $this->tool->listBlocks('pages', 'test-uuid', 'en', 'nonexistent', 1, 10);
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('nonexistent', $result['error']);
@@ -143,7 +143,7 @@ final class BlockListToolTest extends TestCase
     {
         $this->pageRepository->getOneBy(Argument::cetera())->willThrow(new \RuntimeException('Not found'));
 
-        $result = $this->tool->listBlocks('page', 'missing-uuid', 'en', 'blocks');
+        $result = $this->tool->listBlocks('pages', 'missing-uuid', 'en', 'blocks');
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('missing-uuid', $result['error']);
@@ -171,7 +171,7 @@ final class BlockListToolTest extends TestCase
             ],
         ]);
 
-        $result = $this->tool->listBlocks('article', 'article-uuid', 'en', 'blocks');
+        $result = $this->tool->listBlocks('articles', 'article-uuid', 'en', 'blocks');
 
         $this->assertSame(1, $result['total']);
         $this->assertSame('x', $result['blocks'][0]['_id']);
@@ -198,7 +198,7 @@ final class BlockListToolTest extends TestCase
 
         $this->expectException(ToolCallException::class);
 
-        $this->tool->listBlocks('page', 'test-uuid', 'en', 'blocks');
+        $this->tool->listBlocks('pages', 'test-uuid', 'en', 'blocks');
     }
 
     /**
@@ -232,7 +232,7 @@ final class BlockListToolTest extends TestCase
         $ghostDimensionContent->addAvailableLocale('de');
         $this->contentManager->resolve(Argument::cetera())->willReturn($ghostDimensionContent);
 
-        $result = $this->tool->listBlocks('page', 'uuid-1', 'en', 'blocks');
+        $result = $this->tool->listBlocks('pages', 'uuid-1', 'en', 'blocks');
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('has no "en" content yet', $result['error']);
@@ -273,7 +273,7 @@ final class BlockListToolTest extends TestCase
             ])),
         );
 
-        $result = $tool->listBlocks('article', 'article-uuid', 'en', 'blocks');
+        $result = $tool->listBlocks('articles', 'article-uuid', 'en', 'blocks');
 
         $this->assertSame(['sulu.article.articles_blog'], $permissionChecker->checkedContexts());
         $this->assertArrayHasKey('error', $result);

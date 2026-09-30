@@ -13,26 +13,33 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Tests\Unit\Infrastructure\Mcp;
 
+use Mcp\Capability\Registry\ResourceReference;
 use Mcp\Capability\Registry\ToolReference;
 use Mcp\Capability\RegistryInterface;
 use Mcp\Schema\Page;
+use Mcp\Schema\ResourceDefinition;
 use Mcp\Schema\Tool;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
+use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Component\Security\Authorization\SecurityCheckerInterface;
 use Sulu\Component\Webspace\Manager\WebspaceManagerInterface;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
+use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Security\ToolPermissionChecker;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
+use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
+use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 
 #[CoversClass(FilteredRegistry::class)]
@@ -46,6 +53,37 @@ final class FilteredRegistryTest extends TestCase
     protected function setUp(): void
     {
         $this->inner = $this->prophesize(RegistryInterface::class);
+    }
+
+    private function expander(): ContentTypeSchemaExpander
+    {
+        $registry = ContentTypes::registry(
+            $this->prophesize(PageRepositoryInterface::class)->reveal(),
+            $this->prophesize(ArticleRepositoryInterface::class)->reveal(),
+            null,
+            null,
+            [new FakeContentTypeExtension()],
+        );
+
+        return new ContentTypeSchemaExpander($registry);
+    }
+
+    private function placeholderTool(string $name = 'sulu_content_delete'): Tool
+    {
+        return new Tool(
+            name: $name,
+            title: null,
+            inputSchema: [
+                'type' => 'object',
+                'properties' => [
+                    'resourceKey' => ['type' => 'string', 'description' => 'One of {contentResourceKeys}.', 'enum' => [ContentTypeSchemaExpander::CONTENT_RESOURCE_KEYS]],
+                    'kind' => ['type' => 'string', 'enum' => [ContentTypeSchemaExpander::RESOURCE_KEYS]],
+                ],
+                'required' => ['resourceKey'],
+            ],
+            description: 'Works on {resourceKeys}, content on {contentResourceKeys}.',
+            annotations: null,
+        );
     }
 
     private function tool(string $name): Tool
@@ -109,7 +147,7 @@ final class FilteredRegistryTest extends TestCase
             ],
         ];
 
-        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver($map, $checker));
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver($map, $checker), $this->expander());
 
         $names = \array_keys((array) $registry->getTools(null, null)->getArrayCopy());
 
@@ -129,7 +167,7 @@ final class FilteredRegistryTest extends TestCase
         // No permission map entry for sulu_tag_create => hidden; only the two
         // allowlisted tools survive filtering.
         $checker = FakeToolPermissionChecker::grantingAll();
-        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker));
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), $this->expander());
 
         $firstPage = $registry->getTools(1, null);
         self::assertCount(1, $firstPage->references);
@@ -151,7 +189,7 @@ final class FilteredRegistryTest extends TestCase
         $this->inner->getTool('sulu_tag_create')->willReturn($toolReference);
 
         $checker = FakeToolPermissionChecker::grantingAll();
-        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker));
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), $this->expander());
 
         self::assertSame($toolReference, $registry->getTool('sulu_tag_create'));
     }
@@ -162,7 +200,7 @@ final class FilteredRegistryTest extends TestCase
         $this->inner->getTool('sulu_dangerous')->willReturn($toolReference);
 
         $checker = FakeToolPermissionChecker::grantingAll();
-        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), ['sulu_dangerous']);
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), $this->expander(), ['sulu_dangerous']);
 
         self::assertSame($toolReference, $registry->getTool('sulu_dangerous'));
     }
@@ -172,7 +210,7 @@ final class FilteredRegistryTest extends TestCase
         $this->inner->registerTool(Argument::cetera())->shouldNotBeCalled();
 
         $checker = FakeToolPermissionChecker::grantingAll();
-        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), ['sulu_dangerous']);
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), $this->expander(), ['sulu_dangerous']);
 
         $registry->registerTool($this->tool('sulu_dangerous'), static fn () => null);
     }
@@ -184,7 +222,7 @@ final class FilteredRegistryTest extends TestCase
         $this->inner->registerTool($tool, Argument::cetera())->willReturn($reference)->shouldBeCalledOnce();
 
         $checker = FakeToolPermissionChecker::grantingAll();
-        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), ['sulu_dangerous']);
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), $this->expander(), ['sulu_dangerous']);
 
         self::assertSame($reference, $registry->registerTool($tool, static fn () => null));
     }
@@ -195,8 +233,46 @@ final class FilteredRegistryTest extends TestCase
 
         $tool = $this->tool('sulu_dangerous');
         $checker = FakeToolPermissionChecker::grantingAll();
-        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), ['sulu_dangerous']);
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], $checker), $this->expander(), ['sulu_dangerous']);
 
         self::assertSame($tool, $registry->registerTool($tool, static fn () => null)->tool);
+    }
+
+    public function testGetToolFillsTheResourceKeyPlaceholdersOfDescriptionAndEnum(): void
+    {
+        $this->inner->getTool('sulu_content_delete')->willReturn(new ToolReference($this->placeholderTool(), static fn () => null));
+
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], FakeToolPermissionChecker::grantingAll()), $this->expander());
+
+        $tool = $registry->getTool('sulu_content_delete')->tool;
+
+        self::assertSame('Works on "pages", "articles", "widgets", content on "pages", "articles", "snippets", "widgets".', $tool->description);
+        self::assertSame(['pages', 'articles', 'snippets', 'widgets'], $tool->inputSchema['properties']['resourceKey']['enum']);
+        self::assertSame('One of "pages", "articles", "snippets", "widgets".', $tool->inputSchema['properties']['resourceKey']['description']);
+        self::assertSame(['pages', 'articles', 'widgets'], $tool->inputSchema['properties']['kind']['enum']);
+    }
+
+    public function testGetToolsFillsThePlaceholdersToo(): void
+    {
+        $this->inner->getTools(null, null)->willReturn(new Page(['sulu_get_context' => $this->placeholderTool('sulu_get_context')], null));
+
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], FakeToolPermissionChecker::grantingAll()), $this->expander());
+
+        $tools = $registry->getTools(null, null)->references;
+
+        self::assertStringContainsString('"widgets"', (string) $tools['sulu_get_context']->description);
+    }
+
+    public function testGetResourceFillsThePlaceholdersOfTheDescription(): void
+    {
+        $definition = new ResourceDefinition('sulu://templates', 'sulu_templates', description: 'Grouped by {contentResourceKeys}.');
+        $this->inner->getResource('sulu://templates', true)->willReturn(new ResourceReference($definition, static fn () => null));
+
+        $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], FakeToolPermissionChecker::grantingAll()), $this->expander());
+
+        $reference = $registry->getResource('sulu://templates');
+
+        self::assertInstanceOf(ResourceReference::class, $reference);
+        self::assertSame('Grouped by "pages", "articles", "snippets", "widgets".', $reference->resource->description);
     }
 }

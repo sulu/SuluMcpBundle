@@ -64,7 +64,7 @@ final class TemplatesResourceGlobalBlockTest extends TestCase
 
         $result = $this->resource->getTemplates();
 
-        $blocksField = $result['page']['default']['fields'][0];
+        $blocksField = $result['pages']['default']['fields'][0];
         $this->assertSame([
             'heading' => [
                 'key' => 'heading',
@@ -100,7 +100,7 @@ final class TemplatesResourceGlobalBlockTest extends TestCase
 
         $result = $this->resource->getTemplates();
 
-        $blocksField = $result['page']['default']['fields'][0];
+        $blocksField = $result['pages']['default']['fields'][0];
         $textType = $blocksField['types']['text'];
         $this->assertCount(1, $textType['fields']);
         $this->assertSame('content', $textType['fields'][0]['name']);
@@ -140,7 +140,7 @@ final class TemplatesResourceGlobalBlockTest extends TestCase
 
         $result = $this->resource->getTemplates();
 
-        $blocksField = $result['page']['homepage']['fields'][0];
+        $blocksField = $result['pages']['homepage']['fields'][0];
         $this->assertCount(2, $blocksField['types']);
 
         $quoteType = $blocksField['types']['quote'];

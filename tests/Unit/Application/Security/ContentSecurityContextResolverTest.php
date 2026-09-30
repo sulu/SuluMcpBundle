@@ -36,20 +36,20 @@ final class ContentSecurityContextResolverTest extends TestCase
 
         self::assertEquals(
             new ContentSecurity('sulu.webspaces.example', Page::class, 'example'),
-            $this->resolver()->forEntity('page', $page, 'en'),
+            $this->resolver()->forEntity('pages', $page, 'en'),
         );
     }
 
     public function testForEntityReturnsEmptyContextWhenPageAggregateIsNotAPage(): void
     {
-        self::assertSame('', $this->resolver()->forEntity('page', new \stdClass(), 'en')->context);
+        self::assertSame('', $this->resolver()->forEntity('pages', new \stdClass(), 'en')->context);
     }
 
     public function testForEntityDerivesTheArticleGroupFromTheAggregateTemplateKey(): void
     {
         $article = $this->articleWithTemplateKey('blog_article');
 
-        self::assertEquals(new ContentSecurity('sulu.article.articles_blog'), $this->multiGroupResolver()->forEntity('article', $article, 'en'));
+        self::assertEquals(new ContentSecurity('sulu.article.articles_blog'), $this->multiGroupResolver()->forEntity('articles', $article, 'en'));
     }
 
     public function testForEntityIgnoresLiveDimensionContentsOfAnArticle(): void
@@ -60,22 +60,22 @@ final class ContentSecurityContextResolverTest extends TestCase
         $live->setTemplateKey('blog_article');
         $article->addDimensionContent($live);
 
-        self::assertSame('', $this->multiGroupResolver()->forEntity('article', $article, 'en')->context);
+        self::assertSame('', $this->multiGroupResolver()->forEntity('articles', $article, 'en')->context);
     }
 
     public function testForEntityFailsClosedForAnArticleWithoutTemplateKeyInAMultiGroupInstall(): void
     {
-        self::assertSame('', $this->multiGroupResolver()->forEntity('article', new Article(), 'en')->context);
+        self::assertSame('', $this->multiGroupResolver()->forEntity('articles', new Article(), 'en')->context);
     }
 
     public function testForEntityUsesTheBaseContextForAnArticleWithoutTemplateKeyInASingleGroupInstall(): void
     {
-        self::assertSame('sulu.article.articles', $this->resolver()->forEntity('article', new Article(), 'en')->context);
+        self::assertSame('sulu.article.articles', $this->resolver()->forEntity('articles', new Article(), 'en')->context);
     }
 
     public function testForEntityReturnsSnippetsContextRegardlessOfAggregate(): void
     {
-        self::assertEquals(new ContentSecurity('sulu.snippet.snippets'), $this->resolver()->forEntity('snippet', new \stdClass(), 'en'));
+        self::assertEquals(new ContentSecurity('sulu.snippet.snippets'), $this->resolver()->forEntity('snippets', new \stdClass(), 'en'));
     }
 
     public function testForEntityDefaultsToEmptyContextForUnknownType(): void
@@ -90,7 +90,7 @@ final class ContentSecurityContextResolverTest extends TestCase
         ]);
         $resolver = ContentTypes::securityResolver($groupProvider, [new FakeContentTypeExtension()]);
 
-        self::assertSame('sulu.widget.widgets', $resolver->forEntity('widget', new \stdClass(), 'en')->context);
+        self::assertSame('sulu.widget.widgets', $resolver->forEntity('widgets', new \stdClass(), 'en')->context);
     }
 
     private function articleWithTemplateKey(string $templateKey): Article

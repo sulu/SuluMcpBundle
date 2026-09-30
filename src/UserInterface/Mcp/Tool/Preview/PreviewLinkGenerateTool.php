@@ -20,9 +20,11 @@ use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
+use Sulu\Mcp\Domain\Content\NotSearchableContentTypeInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
@@ -51,7 +53,7 @@ class PreviewLinkGenerateTool
     #[McpTool(
         name: 'sulu_preview_link_generate',
         title: 'Generate Preview Link',
-        description: 'Generate a shareable public preview URL for a draft page or article. Returns a token-protected URL under /admin/p/<token> that reviewers can open without a CMS login. The `webspace` parameter is REQUIRED for both pages and articles -- Sulu\'s preview renderer needs to know which webspace context (theme, routes, templates) to render the preview under, and articles that aren\'t scoped to a webspace at generation time produce a token that crashes when opened. Use sulu_ping or sulu_get_context to list the available webspaces. Pass `type` as "page" or "article" (the same singular values used by the other tools).',
+        description: 'Generate a shareable public preview URL for a draft content entity. Returns a token-protected URL under /admin/p/<token> that reviewers can open without a CMS login. The `webspace` parameter is REQUIRED for every resource key -- Sulu\'s preview renderer needs to know which webspace context (theme, routes, templates) to render the preview under, and articles that aren\'t scoped to a webspace at generation time produce a token that crashes when opened. Use sulu_ping or sulu_get_context to list the available webspaces. Pass `resourceKey` as one of {resourceKeys}.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -60,8 +62,8 @@ class PreviewLinkGenerateTool
         discoveryContexts: [ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function generatePreviewLink(
-        #[Schema(description: 'Content type to preview: "page" or "article" (same singular values used by the other tools).', enum: ['page', 'article'])]
-        string $type,
+        #[Schema(description: 'The resourceKey of the content type to preview: {resourceKeys}.', enum: [ContentTypeSchemaExpander::RESOURCE_KEYS])]
+        string $resourceKey,
         string $uuid,
         string $locale,
         ?string $webspace = null,
@@ -73,17 +75,24 @@ class PreviewLinkGenerateTool
             ];
         }
 
+        $extension = $this->contentTypeResolver->find($resourceKey);
+        if (null === $extension || $extension instanceof NotSearchableContentTypeInterface) {
+            return [
+                'error' => \sprintf('Resource key "%s" cannot be previewed.', $resourceKey),
+                'hint' => 'Use a previewable resourceKey such as "pages" or "articles".',
+            ];
+        }
+
         try {
-            $extension = $this->contentTypeResolver->get($type);
-            $entity = $this->contentTypeResolver->loadDraft($type, $uuid, $locale);
+            $entity = $this->contentTypeResolver->loadDraft($resourceKey, $uuid, $locale);
             if (null === $entity) {
                 return [
-                    'error' => \sprintf('%s not found: %s', $type, $uuid),
+                    'error' => \sprintf('%s not found: %s', $resourceKey, $uuid),
                     'hint' => 'Verify the type ("page"/"article"), uuid and locale.',
                 ];
             }
 
-            $security = $this->contentSecurityContextResolver->forEntity($type, $entity, $locale);
+            $security = $this->contentSecurityContextResolver->forEntity($resourceKey, $entity, $locale);
 
             // Preview links are gated on EDIT, stricter than the admin UI's VIEW.
             $this->permissionChecker->check(
@@ -102,7 +111,6 @@ class PreviewLinkGenerateTool
             }
             $this->permissionChecker->check('sulu.webspaces.' . $webspace, PermissionTypes::EDIT, $locale);
 
-            $resourceKey = $extension->getResourceKey();
             $options = ['webspaceKey' => $webspace];
 
             $previewLink = $this->previewLinkManager->generate($resourceKey, $uuid, $locale, $options);

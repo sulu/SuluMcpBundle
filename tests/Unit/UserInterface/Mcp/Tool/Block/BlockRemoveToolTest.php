@@ -92,9 +92,9 @@ final class BlockRemoveToolTest extends TestCase
      */
     public static function contentTypeProvider(): iterable
     {
-        yield 'page' => ['page', ModifyPageMessage::class];
-        yield 'article' => ['article', ModifyArticleMessage::class];
-        yield 'snippet' => ['snippet', ModifySnippetMessage::class];
+        yield 'page' => ['pages', ModifyPageMessage::class];
+        yield 'article' => ['articles', ModifyArticleMessage::class];
+        yield 'snippet' => ['snippets', ModifySnippetMessage::class];
     }
 
     /**
@@ -135,21 +135,21 @@ final class BlockRemoveToolTest extends TestCase
         $this->pageRepository->getOneBy(Argument::cetera())->willThrow(new \RuntimeException('not found'));
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->tool->removeBlock('page', 'missing-uuid', 'en', 'blocks', blockIndex: 0);
+        $result = $this->tool->removeBlock('pages', 'missing-uuid', 'en', 'blocks', blockIndex: 0);
 
         $this->assertArrayHasKey('error', $result);
     }
 
     public function testRemoveBlockReturnsErrorForOutOfRangeIndex(): void
     {
-        $this->setupEntityWithBlocks('page', [
+        $this->setupEntityWithBlocks('pages', [
             ['type' => 'text', 'title' => 'First'],
             ['type' => 'text', 'title' => 'Second'],
         ]);
 
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->tool->removeBlock('page', 'test-uuid', 'en', 'blocks', blockIndex: 5);
+        $result = $this->tool->removeBlock('pages', 'test-uuid', 'en', 'blocks', blockIndex: 5);
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('out of range', $result['error']);
@@ -157,13 +157,13 @@ final class BlockRemoveToolTest extends TestCase
 
     public function testRemoveBlockReturnsErrorForNegativeIndex(): void
     {
-        $this->setupEntityWithBlocks('page', [
+        $this->setupEntityWithBlocks('pages', [
             ['type' => 'text', 'title' => 'First'],
         ]);
 
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->tool->removeBlock('page', 'test-uuid', 'en', 'blocks', blockIndex: -1);
+        $result = $this->tool->removeBlock('pages', 'test-uuid', 'en', 'blocks', blockIndex: -1);
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('out of range', $result['error']);
@@ -182,7 +182,7 @@ final class BlockRemoveToolTest extends TestCase
 
     public function testRemoveByBlockIdRemovesCorrectBlock(): void
     {
-        $this->setupEntityWithBlocks('page', [
+        $this->setupEntityWithBlocks('pages', [
             ['_id' => 'aaa', 'type' => 'text', 'title' => 'First'],
             ['_id' => 'bbb', 'type' => 'image', 'src' => '/img.jpg'],
             ['_id' => 'ccc', 'type' => 'text', 'title' => 'Third'],
@@ -190,7 +190,7 @@ final class BlockRemoveToolTest extends TestCase
 
         $dispatched = $this->expectMessageDispatch();
 
-        $result = $this->tool->removeBlock('page', 'test-uuid', 'en', 'blocks', blockId: 'bbb');
+        $result = $this->tool->removeBlock('pages', 'test-uuid', 'en', 'blocks', blockId: 'bbb');
 
         $this->assertInstanceOf(ModifyPageMessage::class, $dispatched->envelope->getMessage());
 
@@ -211,14 +211,14 @@ final class BlockRemoveToolTest extends TestCase
 
     public function testRemoveByBlockIdReturnsErrorForUnknownId(): void
     {
-        $this->setupEntityWithBlocks('page', [
+        $this->setupEntityWithBlocks('pages', [
             ['_id' => 'aaa', 'type' => 'text', 'title' => 'First'],
             ['_id' => 'bbb', 'type' => 'text', 'title' => 'Second'],
         ]);
 
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->tool->removeBlock('page', 'test-uuid', 'en', 'blocks', blockId: 'missing');
+        $result = $this->tool->removeBlock('pages', 'test-uuid', 'en', 'blocks', blockId: 'missing');
 
         $this->assertArrayHasKey('error', $result);
         $this->assertArrayHasKey('hint', $result);
@@ -230,7 +230,7 @@ final class BlockRemoveToolTest extends TestCase
     {
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->tool->removeBlock('page', 'test-uuid', 'en', 'blocks');
+        $result = $this->tool->removeBlock('pages', 'test-uuid', 'en', 'blocks');
 
         $this->assertArrayHasKey('error', $result);
         $this->assertArrayHasKey('hint', $result);
@@ -242,7 +242,7 @@ final class BlockRemoveToolTest extends TestCase
     {
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
 
-        $result = $this->tool->removeBlock('page', 'test-uuid', 'en', 'blocks', blockIndex: 0, blockId: 'aaa');
+        $result = $this->tool->removeBlock('pages', 'test-uuid', 'en', 'blocks', blockIndex: 0, blockId: 'aaa');
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('not both', $result['error']);
@@ -274,7 +274,7 @@ final class BlockRemoveToolTest extends TestCase
 
     public function testRemoveBlockThrowsToolCallExceptionWhenPermissionDenied(): void
     {
-        $this->setupEntityWithBlocks('page', [
+        $this->setupEntityWithBlocks('pages', [
             ['type' => 'text', 'title' => 'First'],
         ]);
 
@@ -284,7 +284,7 @@ final class BlockRemoveToolTest extends TestCase
 
         $this->expectException(ToolCallException::class);
 
-        $this->tool->removeBlock('page', 'test-uuid', 'en', 'blocks', blockIndex: 0);
+        $this->tool->removeBlock('pages', 'test-uuid', 'en', 'blocks', blockIndex: 0);
     }
 
     /**
@@ -311,8 +311,8 @@ final class BlockRemoveToolTest extends TestCase
     private function setupEntityWithBlocks(string $type, array $blocks): void
     {
         $entity = match ($type) {
-            'article' => new Article('test-uuid'),
-            'snippet' => new Snippet('test-uuid'),
+            'articles' => new Article('test-uuid'),
+            'snippets' => new Snippet('test-uuid'),
             default => (static function(): Page {
                 $page = new Page('test-uuid');
                 $page->setWebspaceKey('example');
@@ -322,8 +322,8 @@ final class BlockRemoveToolTest extends TestCase
         };
 
         match ($type) {
-            'article' => $this->articleRepository->getOneBy(Argument::cetera())->willReturn($entity),
-            'snippet' => $this->snippetRepository->getOneBy(Argument::cetera())->willReturn($entity),
+            'articles' => $this->articleRepository->getOneBy(Argument::cetera())->willReturn($entity),
+            'snippets' => $this->snippetRepository->getOneBy(Argument::cetera())->willReturn($entity),
             default => $this->pageRepository->getOneBy(Argument::cetera())->willReturn($entity),
         };
 
@@ -348,7 +348,7 @@ final class BlockRemoveToolTest extends TestCase
         $ghostDimensionContent->addAvailableLocale('de');
         $this->contentManager->resolve(Argument::cetera())->willReturn($ghostDimensionContent);
 
-        $result = $this->tool->removeBlock('page', 'uuid-1', 'en', 'blocks', null, 'block-1');
+        $result = $this->tool->removeBlock('pages', 'uuid-1', 'en', 'blocks', null, 'block-1');
 
         $this->assertArrayHasKey('error', $result);
         $this->assertStringContainsString('has no "en" content yet', $result['error']);
