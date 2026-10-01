@@ -57,7 +57,7 @@
         "symfony/ai-agent": "^0.14.1"
     },
     "suggest": {
-        "sulu/product-bundle": "Enables the sulu_product_* MCP tools and type=\"product\" on the unified content tools",
+        "sulu/product-bundle": "Enables the sulu_product_* MCP tools and resourceKey=\"products\" on the unified content tools",
         "symfony/ai-agent": "Exposes sulu_content_search as an agent tool for symfony/ai-agent, in addition to MCP"
     },
     "autoload": {

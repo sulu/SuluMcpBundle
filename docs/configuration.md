@@ -202,7 +202,7 @@ ai:
                 - service: 'Sulu\Mcp\UserInterface\Agent\Tool\ContentSearchTool'
 ```
 
-If you need your own description, write the resource keys into it by hand.
+If you need your own description, write the resource keys into it by hand. The `resourceKey` parameter description is built from the tool's `#[Schema]` attribute on this path, so it keeps the raw `{searchableResourceKeys}` placeholder as well.
 
 ## Recommended profiles
 
