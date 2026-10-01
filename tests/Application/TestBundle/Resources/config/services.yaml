@@ -9,3 +9,6 @@ services:
     Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry: ~
 
     Sulu\Mcp\Tests\Application\TestBundle\ContentType\WidgetContentTypeExtension: ~
+
+    Sulu\Mcp\Tests\Application\TestBundle\ContentType\WidgetMessageHandler:
+        public: true
