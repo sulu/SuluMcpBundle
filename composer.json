@@ -78,6 +78,10 @@
             "Composer\\Config::disableProcessTimeout",
             "vendor/bin/phpunit --exclude-group product,ai-agent"
         ],
+        "test-ai-agent": [
+            "Composer\\Config::disableProcessTimeout",
+            "vendor/bin/phpunit --group ai-agent"
+        ],
         "test-with-product": [
             "Composer\\Config::disableProcessTimeout",
             "vendor/bin/phpunit --exclude-group ai-agent"

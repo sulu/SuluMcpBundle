@@ -101,6 +101,10 @@ jobs:
             - name: Execute test cases
               run: time composer test
 
+            - name: Execute agent test cases
+              # The main test run excludes the ai-agent group.
+              run: time composer test-ai-agent
+
     php-lint:
         name: "PHP Lint"
         runs-on: ubuntu-22.04
