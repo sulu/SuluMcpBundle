@@ -23,6 +23,9 @@ use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Model\ArticleDimensionContent;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormGroup;
+use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
@@ -32,6 +35,7 @@ use Sulu\Page\Application\Message\ApplyWorkflowTransitionPageMessage;
 use Sulu\Page\Domain\Model\Page;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Sulu\Snippet\Domain\Model\Snippet;
+use Sulu\Snippet\Domain\Model\SnippetDimensionContent;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
 use Symfony\Component\Messenger\Envelope;
 use Symfony\Component\Messenger\MessageBusInterface;
@@ -135,6 +139,65 @@ final class ContentPublishToolTest extends TestCase
         $this->expectException(ToolCallException::class);
 
         $this->tool->publishContent('pages', 'uuid-1', 'en');
+    }
+
+    public function testPublishSnippetOfAGroupTheRoleHolds(): void
+    {
+        $this->useTwoSnippetGroups();
+        $this->setupSnippetWithTemplate('promo');
+        $this->permissionChecker->grantingNoneExcept()->grantContext('sulu.snippet.snippets_marketing');
+
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(fn (array $args) => $args[0]->with(new HandledStamp(null, 'handler')));
+
+        $result = $this->tool->publishContent('snippets', 'uuid-1', 'en');
+
+        $this->assertTrue($result['success']);
+    }
+
+    public function testPublishSnippetIsDeniedWithoutItsGroup(): void
+    {
+        $this->useTwoSnippetGroups();
+        $this->setupSnippetWithTemplate('promo');
+        $this->permissionChecker->grantingNoneExcept()->grantContext('sulu.snippet.snippets');
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('security context "sulu.snippet.snippets_marketing"');
+
+        $this->tool->publishContent('snippets', 'uuid-1', 'en');
+    }
+
+    /**
+     * Rebuilds the tool over a two-group install: `default` (template "default") and
+     * `marketing` (template "promo").
+     */
+    private function useTwoSnippetGroups(): void
+    {
+        $contentTypeResolver = ContentTypes::snippetResolver($this->snippetRepository->reveal(), new SnippetSecurityContextResolver(new TestGroupProvider([
+            (new FormGroup('default', 'Default'))->withTemplate('default'),
+            (new FormGroup('marketing', 'Marketing'))->withTemplate('promo'),
+        ]), true));
+
+        $this->tool = new ContentPublishTool(
+            $this->messageBus->reveal(),
+            $contentTypeResolver,
+            $this->permissionChecker,
+            new ContentSecurityContextResolver($contentTypeResolver),
+        );
+    }
+
+    private function setupSnippetWithTemplate(string $templateKey): void
+    {
+        $snippet = new Snippet('uuid-1');
+        $dimensionContent = new SnippetDimensionContent($snippet);
+        $dimensionContent->setLocale('en');
+        $dimensionContent->setTemplateKey($templateKey);
+        $snippet->addDimensionContent($dimensionContent);
+
+        $this->snippetRepository->getOneBy(Argument::cetera())->willReturn($snippet);
     }
 
     private function setupEntity(string $type): void

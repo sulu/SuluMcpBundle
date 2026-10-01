@@ -28,6 +28,7 @@ use Sulu\Mcp\Infrastructure\Sulu\Content\ArticleContentTypeExtension;
 use Sulu\Mcp\Infrastructure\Sulu\Content\PageContentTypeExtension;
 use Sulu\Mcp\Infrastructure\Sulu\Content\SnippetContentTypeExtension;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
@@ -65,7 +66,7 @@ final class ContentTypes
         return new ContentTypeExtensionRegistry([
             new PageContentTypeExtension($pageRepository, $pageDescendantChecker ?? self::descendantChecker($pageRepository)),
             new ArticleContentTypeExtension($articleRepository, $groupProvider instanceof ArticleSecurityContextResolver ? $groupProvider : new ArticleSecurityContextResolver($groupProvider ?? new TestGroupProvider([])), (new Prophet())->prophesize(EntityManagerInterface::class)->reveal()),
-            new SnippetContentTypeExtension($snippetRepository ?? (new Prophet())->prophesize(SnippetRepositoryInterface::class)->reveal()),
+            self::snippetExtension($snippetRepository ?? (new Prophet())->prophesize(SnippetRepositoryInterface::class)->reveal()),
             ...$extensions,
         ]);
     }
@@ -93,6 +94,23 @@ final class ContentTypes
     public static function securityResolver(GroupProviderInterface|ArticleSecurityContextResolver|null $groupProvider = null, array $extensions = []): ContentSecurityContextResolver
     {
         return new ContentSecurityContextResolver(self::inertResolver($extensions, $groupProvider));
+    }
+
+    /**
+     * Snippets alone, for a test that needs its own snippet groups.
+     */
+    public static function snippetResolver(SnippetRepositoryInterface $snippetRepository, SnippetSecurityContextResolver $snippetContextResolver): ContentTypeResolver
+    {
+        return new ContentTypeResolver(new ContentTypeExtensionRegistry([self::snippetExtension($snippetRepository, $snippetContextResolver)]));
+    }
+
+    private static function snippetExtension(SnippetRepositoryInterface $snippetRepository, ?SnippetSecurityContextResolver $snippetContextResolver = null): SnippetContentTypeExtension
+    {
+        return new SnippetContentTypeExtension(
+            $snippetRepository,
+            $snippetContextResolver ?? new SnippetSecurityContextResolver(new TestGroupProvider([])),
+            (new Prophet())->prophesize(EntityManagerInterface::class)->reveal(),
+        );
     }
 
     private static function descendantChecker(PageRepositoryInterface $pageRepository): PageDescendantPermissionChecker

@@ -14,13 +14,17 @@ declare(strict_types=1);
 namespace Sulu\Mcp\UserInterface\Mcp\Tool\Snippet;
 
 use Mcp\Capability\Attribute\McpTool;
+use Mcp\Exception\ToolCallException;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
+use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
+use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Snippet\Domain\Exception\SnippetNotFoundException;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
 
@@ -34,6 +38,8 @@ class SnippetGetTool
     public function __construct(
         private readonly SnippetRepositoryInterface $snippetRepository,
         private readonly ContentManagerInterface $contentManager,
+        private readonly ToolPermissionCheckerInterface $permissionChecker,
+        private readonly SnippetSecurityContextResolver $snippetContextResolver,
     ) {
     }
 
@@ -46,9 +52,11 @@ class SnippetGetTool
         description: 'Get a snippet by UUID. Snippets are reusable content blocks (e.g., contact info, footer content) shared across pages. Returns full content data. Snippets are global — not scoped to a webspace.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
-    #[RequiresPermission(requirements: [
-        new PermissionRequirement('sulu.snippet.snippets', PermissionTypes::VIEW),
-    ])]
+    #[RequiresPermission(
+        requirements: [new PermissionRequirement('sulu.snippet.snippets', PermissionTypes::VIEW)],
+        objectResolved: true,
+        discoveryContexts: [SnippetSecurityContextResolver::ANY_SNIPPET_GROUP_CONTEXT],
+    )]
     public function getSnippet(string $locale, string $uuid): array
     {
         try {
@@ -68,6 +76,12 @@ class SnippetGetTool
                 'stage' => DimensionContentInterface::STAGE_DRAFT,
             ]);
 
+            $this->permissionChecker->check(
+                $this->snippetContextResolver->forTemplateKey($dimensionContent->getTemplateKey() ?? ''),
+                PermissionTypes::VIEW,
+                $locale,
+            );
+
             $normalized = $this->contentManager->normalize($dimensionContent);
 
             return [
@@ -75,6 +89,8 @@ class SnippetGetTool
                 'locale' => $locale,
                 'data' => $this->compactContent($normalized, $this->detectBlockProperties($normalized)),
             ];
+        } catch (PermissionDeniedException $e) {
+            throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (SnippetNotFoundException) {
             return [
                 'error' => 'Snippet not found: ' . $uuid,
