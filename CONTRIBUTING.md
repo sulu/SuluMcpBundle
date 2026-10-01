@@ -64,7 +64,7 @@ registers its tools as `#[McpTool]` services. `ContentTypeExtensionInterface` on
 A bundle that adds a content type or its own tools may use `ContentTypeExtensionInterface`,
 `RequiresPermission`, `PermissionRequirement`, `DangerousTool`, `ContentSecurity`, the admin link
 interfaces and traits, and the block, content and shadow helpers that tools reuse. These classes are
-the extension API and carry no `@internal` tag. Everything else marked `@internal` can change in any release.
+the extension API and carry no `@internal` tag. Services that implement `ContentTypeExtensionInterface` or `AdminLinkProviderInterface` are tagged by autoconfiguration. Everything else marked `@internal` can change in any release.
 
 Useful links:
 

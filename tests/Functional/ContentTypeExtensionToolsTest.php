@@ -111,6 +111,19 @@ final class ContentTypeExtensionToolsTest extends FunctionalTestCase
         self::assertSame([], self::getContainer()->get(WidgetMessageHandler::class)->handled);
     }
 
+    public function testViewOnlyRoleIsRejectedWhenCallingTheDeleteToolDirectly(): void
+    {
+        $this->authenticateWith([PermissionTypes::VIEW => true]);
+
+        try {
+            $this->deleteTool()->deleteContent('widgets', 'widget-1', 'en');
+            self::fail('Deleting without DELETE on the extension context must be rejected.');
+        } catch (ToolCallException) {
+        }
+
+        self::assertSame([], self::getContainer()->get(WidgetMessageHandler::class)->handled);
+    }
+
     public function testAnUnknownEntityIsReportedAndSendsNoMessage(): void
     {
         $this->authenticateWith([PermissionTypes::VIEW => true, PermissionTypes::EDIT => true, PermissionTypes::LIVE => true]);
@@ -128,7 +141,7 @@ final class ContentTypeExtensionToolsTest extends FunctionalTestCase
     {
         $role = $this->builder->role('WidgetRole', null === $mask
             ? ['sulu.settings.tags' => [PermissionTypes::VIEW => true]]
-            : [self::CONTEXT => $mask]);
+            : [self::CONTEXT => $mask, WidgetContentTypeExtension::OBJECT_CONTEXT => $mask]);
         $this->builder->authenticate($this->builder->user('widget-user', $role));
     }
 

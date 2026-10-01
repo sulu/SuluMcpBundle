@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Infrastructure\Symfony\HttpKernel;
 
 use Composer\InstalledVersions;
+use Sulu\Mcp\Application\AdminLink\AdminLinkProviderInterface;
 use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
@@ -155,6 +156,7 @@ class SuluMcpBundle extends AbstractBundle
         ));
 
         $builder->registerForAutoconfiguration(ContentTypeExtensionInterface::class)->addTag('sulu_mcp.content_type_extension');
+        $builder->registerForAutoconfiguration(AdminLinkProviderInterface::class)->addTag('sulu_mcp.admin_link_provider');
 
         $container->import(\dirname(__DIR__, 4) . '/config/services.php');
 

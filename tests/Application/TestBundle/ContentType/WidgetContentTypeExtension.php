@@ -22,6 +22,8 @@ use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 final class WidgetContentTypeExtension implements ContentTypeExtensionInterface
 {
     public const UNKNOWN_UUID = 'unknown-widget';
+    // Differs from the view context so a tool cannot pass by checking the wrong one.
+    public const OBJECT_CONTEXT = 'sulu.mcp_test.widget_objects';
 
     public function getTemplateType(): string
     {
@@ -40,7 +42,7 @@ final class WidgetContentTypeExtension implements ContentTypeExtensionInterface
 
     public function getSecurity(object $aggregate, string $locale): ContentSecurity
     {
-        return new ContentSecurity('sulu.mcp_test.widgets');
+        return new ContentSecurity(self::OBJECT_CONTEXT);
     }
 
     public function loadDraft(string $uuid, string $locale, bool $loadGhost = false): ?object

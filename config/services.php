@@ -15,7 +15,6 @@ namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
 use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
-use Sulu\Mcp\Application\AdminLink\AdminLinkProviderInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
 use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
@@ -120,9 +119,7 @@ return static function(ContainerConfigurator $container): void {
     $services = $container->services()
         ->defaults()
             ->autowire()
-            ->autoconfigure()
-        ->instanceof(AdminLinkProviderInterface::class)
-            ->tag('sulu_mcp.admin_link_provider');
+            ->autoconfigure();
 
     // Providers need sulu_admin.view_registry, which only exists in the admin
     // container, hence the sulu.context tag. The generator itself is
