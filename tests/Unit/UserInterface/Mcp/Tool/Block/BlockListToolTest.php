@@ -317,6 +317,7 @@ final class BlockListToolTest extends TestCase
             $this->contentManager->reveal(),
             $this->permissionChecker,
             ContentTypes::securityResolver($groupProvider, [new FakeContentTypeExtension('widget', 'widgets')]),
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
         );
         $this->contentManager->resolve(Argument::cetera())->willReturn(new PageDimensionContent(new Page()));
 
