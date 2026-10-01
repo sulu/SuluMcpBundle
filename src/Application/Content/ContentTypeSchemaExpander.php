@@ -25,9 +25,9 @@ final readonly class ContentTypeSchemaExpander
     /**
      * Skips types marked NotSearchableContentTypeInterface.
      */
-    public const RESOURCE_KEYS = '{resourceKeys}';
+    public const SEARCHABLE_RESOURCE_KEYS = '{searchableResourceKeys}';
 
-    public const CONTENT_RESOURCE_KEYS = '{contentResourceKeys}';
+    public const RESOURCE_KEYS = '{resourceKeys}';
 
     public function __construct(
         private ContentTypeExtensionRegistry $extensionRegistry,
@@ -41,7 +41,7 @@ final readonly class ContentTypeSchemaExpander
         }
 
         return \str_replace(
-            [self::RESOURCE_KEYS, self::CONTENT_RESOURCE_KEYS],
+            [self::SEARCHABLE_RESOURCE_KEYS, self::RESOURCE_KEYS],
             [$this->quoted($this->extensionRegistry->searchableResourceKeys()), $this->quoted($this->extensionRegistry->resourceKeys())],
             $text,
         );
@@ -68,9 +68,9 @@ final readonly class ContentTypeSchemaExpander
     private function expandNode(array $schema): array
     {
         foreach ($schema as $key => $value) {
-            if ('enum' === $key && [self::RESOURCE_KEYS] === $value) {
+            if ('enum' === $key && [self::SEARCHABLE_RESOURCE_KEYS] === $value) {
                 $schema[$key] = $this->extensionRegistry->searchableResourceKeys();
-            } elseif ('enum' === $key && [self::CONTENT_RESOURCE_KEYS] === $value) {
+            } elseif ('enum' === $key && [self::RESOURCE_KEYS] === $value) {
                 $schema[$key] = $this->extensionRegistry->resourceKeys();
             } elseif ('description' === $key && \is_string($value)) {
                 $schema[$key] = $this->expandText($value);

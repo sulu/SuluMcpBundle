@@ -57,7 +57,7 @@ class ContentDeleteTool
     #[McpTool(
         name: 'sulu_content_delete',
         title: 'Delete Content',
-        description: 'Permanently delete a content entity by UUID. Set "resourceKey" to one of {contentResourceKeys}. Removes both draft and published versions — this cannot be undone. For pages with children, set forceRemoveChildren=true to delete the whole subtree (ignored for other resource keys). Snippets may be referenced by other content; deleting one removes that shared content everywhere it is used. A resource key a bundle registers may cascade the deletion to related entities; check that type\'s own list tool first if unsure.',
+        description: 'Permanently delete a content entity by UUID. Set "resourceKey" to one of {resourceKeys}. Removes both draft and published versions — this cannot be undone. For pages with children, set forceRemoveChildren=true to delete the whole subtree (ignored for other resource keys). Snippets may be referenced by other content; deleting one removes that shared content everywhere it is used. A resource key a bundle registers may cascade the deletion to related entities; check that type\'s own list tool first if unsure.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[DangerousTool('delete')]
@@ -70,7 +70,7 @@ class ContentDeleteTool
         discoveryContexts: [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function deleteContent(
-        #[Schema(description: 'The resourceKey of the content type: {contentResourceKeys}.', enum: [ContentTypeSchemaExpander::CONTENT_RESOURCE_KEYS])]
+        #[Schema(description: 'The resourceKey of the content type: {resourceKeys}.', enum: [ContentTypeSchemaExpander::RESOURCE_KEYS])]
         string $resourceKey,
         string $uuid,
         string $locale,

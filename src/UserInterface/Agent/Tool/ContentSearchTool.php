@@ -26,7 +26,7 @@ use Symfony\AI\Platform\Contract\JsonSchema\Attribute\Schema;
  */
 #[AsTool(
     name: 'sulu_content_search',
-    description: 'Search published website content by keyword, across the resource keys {resourceKeys}. Searches titles and full content text as free text, not a structured attribute filter. Returns matching items with their UUID and resource key. Pass "resourceKey" to restrict results to one content type. Filter by webspace to scope results to one site. Only published content is searchable.',
+    description: 'Search published website content by keyword, across the resource keys {searchableResourceKeys}. Searches titles and full content text as free text, not a structured attribute filter. Returns matching items with their UUID and resource key. Pass "resourceKey" to restrict results to one content type. Filter by webspace to scope results to one site. Only published content is searchable.',
 )]
 final class ContentSearchTool
 {
@@ -49,7 +49,7 @@ final class ContentSearchTool
         string $query,
         string $locale,
         ?string $webspace = null,
-        #[Schema(description: 'ResourceKey of the content type to search: {resourceKeys}. Omit to search all.', enum: [ContentTypeSchemaExpander::RESOURCE_KEYS])]
+        #[Schema(description: 'ResourceKey of the content type to search: {searchableResourceKeys}. Omit to search all.', enum: [ContentTypeSchemaExpander::SEARCHABLE_RESOURCE_KEYS])]
         ?string $resourceKey = null,
         int $page = 1,
         int $limit = 20,

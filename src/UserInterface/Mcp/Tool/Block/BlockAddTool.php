@@ -70,7 +70,7 @@ class BlockAddTool
     #[McpTool(
         name: 'sulu_block_add',
         title: 'Add Block',
-        description: 'Add a content block to a content entity. Pass "resourceKey" (one of {contentResourceKeys}) and the entity "uuid". Blocks are typed components (e.g. "text", "image", "quote") defined by the project. Workflow: 1) Call sulu_get_context to see available block types and their fields. 2) Find the block property name in the template (e.g. "blocks" or "content"). 3) Pass blockType, blockProperty, and blockData as a flat object mapping the block-type\'s template field names to values, e.g. blockData={"title": "Heading", "description": "<p>Body</p>"}. Unknown keys are rejected against the template schema; the internal {name, value} storage shape is rejected too. The block is appended or inserted at `position` (0-based). To add a block inside another, pass parentBlockId with the parent\'s _id. The entity must be re-published after adding blocks.',
+        description: 'Add a content block to a content entity. Pass "resourceKey" (one of {resourceKeys}) and the entity "uuid". Blocks are typed components (e.g. "text", "image", "quote") defined by the project. Workflow: 1) Call sulu_get_context to see available block types and their fields. 2) Find the block property name in the template (e.g. "blocks" or "content"). 3) Pass blockType, blockProperty, and blockData as a flat object mapping the block-type\'s template field names to values, e.g. blockData={"title": "Heading", "description": "<p>Body</p>"}. Unknown keys are rejected against the template schema; the internal {name, value} storage shape is rejected too. The block is appended or inserted at `position` (0-based). To add a block inside another, pass parentBlockId with the parent\'s _id. The entity must be re-published after adding blocks.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -79,7 +79,7 @@ class BlockAddTool
         discoveryContexts: [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function addBlock(
-        #[Schema(description: 'The resourceKey of the content type: {contentResourceKeys}.', enum: [ContentTypeSchemaExpander::CONTENT_RESOURCE_KEYS])]
+        #[Schema(description: 'The resourceKey of the content type: {resourceKeys}.', enum: [ContentTypeSchemaExpander::RESOURCE_KEYS])]
         string $resourceKey,
         string $uuid,
         string $locale,

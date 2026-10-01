@@ -32,7 +32,7 @@ final class ContentTypeSchemaExpanderTest extends TestCase
         ]));
 
         $schema = $expander->expandInputSchema(['type' => 'object', 'properties' => [
-            'resourceKey' => ['type' => 'string', 'enum' => [ContentTypeSchemaExpander::RESOURCE_KEYS]],
+            'resourceKey' => ['type' => 'string', 'enum' => [ContentTypeSchemaExpander::SEARCHABLE_RESOURCE_KEYS]],
         ]]);
 
         self::assertSame(['widgets', 'products'], $schema['properties']['resourceKey']['enum']);

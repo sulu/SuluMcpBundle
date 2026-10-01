@@ -55,7 +55,7 @@ class BlockListTool
     #[McpTool(
         name: 'sulu_block_list',
         title: 'List Blocks',
-        description: 'Get paginated block content for a content entity. Pass "resourceKey" (one of {contentResourceKeys}) and the entity "uuid". Use this after sulu_page_get / sulu_article_get / sulu_snippet_get which return block summaries (index, _id, type, title). Pass the "blockProperty" name (e.g. "blocks", "homeBlocks") and paginate with "page" and "limit". To list blocks inside a parent block (nested blocks), pass parentBlockId with the _id of the parent block — blockProperty is still required to locate the top-level blocks. Returns full block content including HTML for the requested range.',
+        description: 'Get paginated block content for a content entity. Pass "resourceKey" (one of {resourceKeys}) and the entity "uuid". Use this after sulu_page_get / sulu_article_get / sulu_snippet_get which return block summaries (index, _id, type, title). Pass the "blockProperty" name (e.g. "blocks", "homeBlocks") and paginate with "page" and "limit". To list blocks inside a parent block (nested blocks), pass parentBlockId with the _id of the parent block — blockProperty is still required to locate the top-level blocks. Returns full block content including HTML for the requested range.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -64,7 +64,7 @@ class BlockListTool
         discoveryContexts: [ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT, ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function listBlocks(
-        #[Schema(description: 'The resourceKey of the content type: {contentResourceKeys}.', enum: [ContentTypeSchemaExpander::CONTENT_RESOURCE_KEYS])]
+        #[Schema(description: 'The resourceKey of the content type: {resourceKeys}.', enum: [ContentTypeSchemaExpander::RESOURCE_KEYS])]
         string $resourceKey,
         string $uuid,
         string $locale,

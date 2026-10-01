@@ -76,12 +76,12 @@ final class FilteredRegistryTest extends TestCase
             inputSchema: [
                 'type' => 'object',
                 'properties' => [
-                    'resourceKey' => ['type' => 'string', 'description' => 'One of {contentResourceKeys}.', 'enum' => [ContentTypeSchemaExpander::CONTENT_RESOURCE_KEYS]],
-                    'kind' => ['type' => 'string', 'enum' => [ContentTypeSchemaExpander::RESOURCE_KEYS]],
+                    'resourceKey' => ['type' => 'string', 'description' => 'One of {resourceKeys}.', 'enum' => [ContentTypeSchemaExpander::RESOURCE_KEYS]],
+                    'kind' => ['type' => 'string', 'enum' => [ContentTypeSchemaExpander::SEARCHABLE_RESOURCE_KEYS]],
                 ],
                 'required' => ['resourceKey'],
             ],
-            description: 'Works on {resourceKeys}, content on {contentResourceKeys}.',
+            description: 'Works on {searchableResourceKeys}, content on {resourceKeys}.',
             annotations: null,
         );
     }
@@ -265,7 +265,7 @@ final class FilteredRegistryTest extends TestCase
 
     public function testGetResourceFillsThePlaceholdersOfTheDescription(): void
     {
-        $definition = new ResourceDefinition('sulu://templates', 'sulu_templates', description: 'Grouped by {contentResourceKeys}.');
+        $definition = new ResourceDefinition('sulu://templates', 'sulu_templates', description: 'Grouped by {resourceKeys}.');
         $this->inner->getResource('sulu://templates', true)->willReturn(new ResourceReference($definition, static fn () => null));
 
         $registry = new FilteredRegistry($this->inner->reveal(), $this->visibilityResolver([], FakeToolPermissionChecker::grantingAll()), $this->expander());

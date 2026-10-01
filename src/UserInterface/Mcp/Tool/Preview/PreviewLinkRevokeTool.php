@@ -50,7 +50,7 @@ class PreviewLinkRevokeTool
     #[McpTool(
         name: 'sulu_preview_link_revoke',
         title: 'Revoke Preview Link',
-        description: 'Revoke/invalidate a previously generated public preview link for a content entity. After revoking, the preview URL will no longer work. Pass `resourceKey` as one of {resourceKeys}. If no preview link exists for the resource, the operation returns an error — verify a link exists with sulu_preview_link_generate before revoking.',
+        description: 'Revoke/invalidate a previously generated public preview link for a content entity. After revoking, the preview URL will no longer work. Pass `resourceKey` as one of {searchableResourceKeys}. If no preview link exists for the resource, the operation returns an error — verify a link exists with sulu_preview_link_generate before revoking.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[DangerousTool('publish')]
@@ -60,7 +60,7 @@ class PreviewLinkRevokeTool
         discoveryContexts: [ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT, WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT],
     )]
     public function revokePreviewLink(
-        #[Schema(description: 'The resourceKey of the content type to preview: {resourceKeys}.', enum: [ContentTypeSchemaExpander::RESOURCE_KEYS])]
+        #[Schema(description: 'The resourceKey of the content type to preview: {searchableResourceKeys}.', enum: [ContentTypeSchemaExpander::SEARCHABLE_RESOURCE_KEYS])]
         string $resourceKey,
         string $uuid,
         string $locale,

@@ -300,6 +300,6 @@ final class PreviewLinkGenerateToolTest extends TestCase
         $this->assertCount(1, $attributes);
 
         $schema = $attributes[0]->newInstance();
-        $this->assertSame([ContentTypeSchemaExpander::RESOURCE_KEYS], $schema->enum);
+        $this->assertSame([ContentTypeSchemaExpander::SEARCHABLE_RESOURCE_KEYS], $schema->enum);
     }
 }

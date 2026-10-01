@@ -196,7 +196,7 @@ final class TemplateResourceTest extends TestCase
         $attribute = $reflection->getAttributes(McpResource::class)[0]->newInstance();
 
         $this->assertStringContainsString('resourceKey', $attribute->description);
-        $this->assertStringContainsString(ContentTypeSchemaExpander::CONTENT_RESOURCE_KEYS, $attribute->description);
+        $this->assertStringContainsString(ContentTypeSchemaExpander::RESOURCE_KEYS, $attribute->description);
     }
 
     public function testGetTemplatesFlattensSectionFieldsWithoutSectionEntry(): void

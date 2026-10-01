@@ -42,7 +42,7 @@ class ContentSearchTool
     #[McpTool(
         name: 'sulu_content_search',
         title: 'Search Content',
-        description: 'Search published website content by keyword. Searches the resource keys {resourceKeys}. Searches titles and full content text as free text, not a structured attribute filter. Returns matching items with their UUID and resource key. Use the returned resourceKey to pick the right get tool (e.g. sulu_page_get for "pages", sulu_article_get for "articles", or a registered type\'s own get tool) and resourceId as the UUID. Pass "resourceKey" to restrict results to one content type. Filter by webspace to scope results to one site. Only published content is searchable.',
+        description: 'Search published website content by keyword. Searches the resource keys {searchableResourceKeys}. Searches titles and full content text as free text, not a structured attribute filter. Returns matching items with their UUID and resource key. Use the returned resourceKey to pick the right get tool (e.g. sulu_page_get for "pages", sulu_article_get for "articles", or a registered type\'s own get tool) and resourceId as the UUID. Pass "resourceKey" to restrict results to one content type. Filter by webspace to scope results to one site. Only published content is searchable.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -55,7 +55,7 @@ class ContentSearchTool
         string $locale,
         #[Schema(description: 'Webspace key to restrict results to one site (e.g. "example"). Omit to search all webspaces.')]
         ?string $webspace = null,
-        #[Schema(description: 'ResourceKey of the content type to search: {resourceKeys}. Omit to search all.', enum: [ContentTypeSchemaExpander::RESOURCE_KEYS])]
+        #[Schema(description: 'ResourceKey of the content type to search: {searchableResourceKeys}. Omit to search all.', enum: [ContentTypeSchemaExpander::SEARCHABLE_RESOURCE_KEYS])]
         ?string $resourceKey = null,
         int $page = 1,
         int $limit = 20,
