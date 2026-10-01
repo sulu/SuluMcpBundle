@@ -19,9 +19,6 @@ use Symfony\AI\Platform\Contract\JsonSchema\Factory;
 use Symfony\AI\Platform\Tool\Tool;
 
 /**
- * Agent-side counterpart of FilteredRegistry's expansion: fills the resourceKey placeholders on
- * every lookup, because the registered keys are only known at runtime.
- *
  * @phpstan-import-type JsonSchema from Factory
  *
  * @internal

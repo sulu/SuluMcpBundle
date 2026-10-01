@@ -34,8 +34,7 @@ use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
  * `getTool()` stays unfiltered by permission, so calling a hidden tool yields a
  * permission denial rather than a fabricated "not found".
  *
- * Expands the resourceKey placeholders of tool metadata, in `getTool()` too, which the SDK
- * validates arguments against.
+ * The SDK validates arguments against `getTool()`, so it expands placeholders too.
  *
  * @internal
  */

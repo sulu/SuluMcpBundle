@@ -17,11 +17,6 @@ use Mcp\Capability\Attribute\McpTool;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use PHPUnit\Framework\TestCase;
 
-/**
- * A tool description that tells the agent to pass "type" for a content kind
- * is stale once the tool takes "resourceKey", and the agent then sends a
- * parameter the schema does not have.
- */
 #[CoversNothing]
 final class ToolResourceKeyGuidanceTest extends TestCase
 {

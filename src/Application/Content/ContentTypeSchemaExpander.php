@@ -16,8 +16,6 @@ namespace Sulu\Mcp\Application\Content;
 use Mcp\Schema\Tool;
 
 /**
- * Replaces the resourceKey placeholders in tool metadata with the keys registered at runtime.
- *
  * @phpstan-import-type ToolInputSchema from Tool
  *
  * @internal
