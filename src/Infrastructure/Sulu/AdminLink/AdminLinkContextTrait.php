@@ -15,9 +15,6 @@ namespace Sulu\Mcp\Infrastructure\Sulu\AdminLink;
 
 use Sulu\Bundle\AdminBundle\Admin\View\ViewRegistry;
 
-/**
- * @internal
- */
 trait AdminLinkContextTrait
 {
     /**

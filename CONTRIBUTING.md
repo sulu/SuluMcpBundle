@@ -56,7 +56,15 @@ Never skip `composer fix` — the license header and code style are enforced by
 ## Product tools
 
 This bundle has no product tools. [`sulu/product-bundle`](https://github.com/sulu/SuluProductBundle)
-registers them through `ContentTypeExtensionInterface`. Work on them in that repository.
+registers its tools as `#[McpTool]` services. `ContentTypeExtensionInterface` only adds the
+`products` content type. Work on them in that repository.
+
+## Extension API
+
+A bundle that adds a content type or its own tools may use `ContentTypeExtensionInterface`,
+`RequiresPermission`, `PermissionRequirement`, `DangerousTool`, `ContentSecurity`, the admin link
+interfaces and traits, and the block, content and shadow helpers that tools reuse. These classes are
+the extension API and carry no `@internal` tag. Everything else marked `@internal` can change in any release.
 
 Useful links:
 

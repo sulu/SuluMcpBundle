@@ -15,8 +15,6 @@ namespace Sulu\Mcp\Application\AdminLink;
 
 /**
  * Port for building admin deeplinks, implemented in Infrastructure.
- *
- * @internal
  */
 interface AdminLinkGeneratorInterface
 {

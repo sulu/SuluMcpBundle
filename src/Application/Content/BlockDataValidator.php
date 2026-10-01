@@ -31,8 +31,6 @@ use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
  * `item` is used by nearly every card list, so every lookup here walks the chain of
  * (block property, block type) steps down from the template form instead of
  * searching the metadata for a matching name.
- *
- * @internal
  */
 final readonly class BlockDataValidator
 {

@@ -16,8 +16,6 @@ namespace Sulu\Mcp\Domain\Security;
 /**
  * One AND-combined permission requirement: a security-context template (which may
  * contain the `#context#` placeholder) and the PermissionTypes constant required.
- *
- * @internal
  */
 final readonly class PermissionRequirement
 {

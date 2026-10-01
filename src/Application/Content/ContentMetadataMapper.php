@@ -24,8 +24,6 @@ use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
  * that customises the seo/excerpt forms via metadata works with no code change):
  * a metadata field name with a `/` (e.g. `seo/title`) nests under that namespace;
  * a name without (e.g. `seoNoIndex`, `excerptCategories`) is a top-level column.
- *
- * @internal
  */
 final readonly class ContentMetadataMapper
 {
