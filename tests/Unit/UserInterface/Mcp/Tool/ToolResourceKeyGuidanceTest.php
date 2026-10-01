@@ -36,8 +36,8 @@ final class ToolResourceKeyGuidanceTest extends TestCase
         $sources[] = $root . '/README.md';
 
         // Covers descriptions, hints and docs alike. Tools with a real "type" parameter
-        // (contact list, product create) name other values, so only the content type values match.
-        $contentTypes = '(page|article|snippet|product)';
+        // (contact list) name other values, so only the content type values match.
+        $contentTypes = '(page|article|snippet)';
         $stale = [];
         foreach ($sources as $source) {
             $text = (string) \file_get_contents($source);

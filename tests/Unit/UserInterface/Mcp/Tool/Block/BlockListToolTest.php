@@ -30,7 +30,6 @@ use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
-use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Block\BlockListTool;
 use Sulu\Page\Domain\Model\Page;
@@ -239,22 +238,6 @@ final class BlockListToolTest extends TestCase
         $this->assertStringContainsString('has no "en" content yet', $result['error']);
         $this->assertStringContainsString('sulu_page_update', $result['hint']);
         $this->assertStringContainsString('de', $result['hint']);
-    }
-
-    public function testPointsAProductWithoutContentToTheProductUpdateTool(): void
-    {
-        $groupProvider = new TestGroupProvider([]);
-        $tool = new BlockListTool(
-            ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal(), $groupProvider, null, [new FakeContentTypeExtension('product', 'products', draft: new Page('uuid-1'))]),
-            $this->contentManager->reveal(),
-            $this->permissionChecker,
-            ContentTypes::securityResolver($groupProvider, [new FakeContentTypeExtension('product', 'products')]),
-        );
-        $this->contentManager->resolve(Argument::cetera())->willReturn(new PageDimensionContent(new Page()));
-
-        $result = $tool->listBlocks('products', 'uuid-1', 'en', 'blocks');
-
-        $this->assertStringContainsString('sulu_product_update', $result['hint']);
     }
 
     public function testRejectsArticleLocaleWithoutContentInAMultiGroupInstall(): void

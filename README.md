@@ -205,8 +205,7 @@ parameter. Pages, articles and snippets come with the bundle.
 
 Another bundle adds a type by implementing `Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface`.
 A service implementing it is tagged by autoconfiguration, and the unified tools, block tools, preview
-tools and `sulu_content_search` then pick it up. [`sulu/product-bundle`](https://github.com/sulu/SuluProductBundle)
-does this for products and ships its own product tools.
+tools and `sulu_content_search` then pick it up.
 
 ### Authentication
 

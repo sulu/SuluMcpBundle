@@ -27,7 +27,7 @@ final class ContentTypeSchemaExpanderTest extends TestCase
     {
         $expander = new ContentTypeSchemaExpander(new ContentTypeExtensionRegistry([
             new FakeContentTypeExtension('widget', 'widgets'),
-            new FakeContentTypeExtension('product', 'products'),
+            new FakeContentTypeExtension('gadget', 'gadgets'),
             new FakeNotSearchableContentTypeExtension('snippet', 'snippets'),
         ]));
 
@@ -35,6 +35,6 @@ final class ContentTypeSchemaExpanderTest extends TestCase
             'resourceKey' => ['type' => 'string', 'enum' => [ContentTypeSchemaExpander::SEARCHABLE_RESOURCE_KEYS]],
         ]]);
 
-        self::assertSame(['widgets', 'products'], $schema['properties']['resourceKey']['enum']);
+        self::assertSame(['widgets', 'gadgets'], $schema['properties']['resourceKey']['enum']);
     }
 }

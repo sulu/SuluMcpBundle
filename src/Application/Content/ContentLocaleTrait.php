@@ -79,7 +79,7 @@ trait ContentLocaleTrait
             return null;
         }
 
-        $updateTool = ['pages' => 'sulu_page_update', 'articles' => 'sulu_article_update', 'snippets' => 'sulu_snippet_update', 'products' => 'sulu_product_update'][$resourceKey] ?? null;
+        $updateTool = ['pages' => 'sulu_page_update', 'articles' => 'sulu_article_update', 'snippets' => 'sulu_snippet_update'][$resourceKey] ?? null;
 
         return self::missingTranslationError(
             \ucfirst($resourceKey),

@@ -53,7 +53,7 @@ class PreviewLinkGenerateTool
     #[McpTool(
         name: 'sulu_preview_link_generate',
         title: 'Generate Preview Link',
-        description: 'Generate a shareable public preview URL for a draft content entity. Returns a token-protected URL under /admin/p/<token> that reviewers can open without a CMS login. The `webspace` parameter is REQUIRED for every resource key -- Sulu\'s preview renderer needs to know which webspace context (theme, routes, templates) to render the preview under, and articles that aren\'t scoped to a webspace at generation time produce a token that crashes when opened. Use sulu_ping or sulu_get_context to list the available webspaces. Pass `resourceKey` as one of {searchableResourceKeys}: every content type with a preview, including products when the product bundle is installed. Snippets cannot be previewed.',
+        description: 'Generate a shareable public preview URL for a draft content entity. Returns a token-protected URL under /admin/p/<token> that reviewers can open without a CMS login. The `webspace` parameter is REQUIRED for every resource key -- Sulu\'s preview renderer needs to know which webspace context (theme, routes, templates) to render the preview under, and articles that aren\'t scoped to a webspace at generation time produce a token that crashes when opened. Use sulu_ping or sulu_get_context to list the available webspaces. Pass `resourceKey` as one of {searchableResourceKeys}: every content type with a preview. Snippets cannot be previewed.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: false),
     )]
     #[RequiresPermission(

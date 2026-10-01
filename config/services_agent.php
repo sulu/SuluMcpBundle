@@ -20,9 +20,9 @@ use Symfony\Component\DependencyInjection\ContainerInterface;
 
 /*
  * Imported by SuluMcpBundle only when symfony/ai-agent is installed: these classes carry its
- * #[AsTool] attribute, which does not resolve otherwise. Tagged manually (mirroring
- * SuluProductBundle's registerAiTool()) rather than relying on AiBundle's own autoconfiguration,
- * since a project can have symfony/ai-agent installed without registering that bundle.
+ * #[AsTool] attribute, which does not resolve otherwise. Tagged manually rather than
+ * relying on AiBundle's own autoconfiguration, since a project can have symfony/ai-agent
+ * installed without registering that bundle.
  */
 return static function(ContainerConfigurator $container): void {
     $services = $container->services()
