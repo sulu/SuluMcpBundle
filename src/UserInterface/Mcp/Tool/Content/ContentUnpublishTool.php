@@ -56,7 +56,7 @@ class ContentUnpublishTool
     #[McpTool(
         name: 'sulu_content_unpublish',
         title: 'Unpublish Content',
-        description: 'Unpublish a live content entity: removes it from the website but keeps the draft. Set "resourceKey" to one of {resourceKeys}. A resource key a bundle registers may cascade the unpublish to related entities; check that type\'s own tools if unsure. The content is preserved and can be re-published later with sulu_content_publish. Use this to take content offline without deleting it.',
+        description: 'Unpublish a live content entity: removes it from the website but keeps the draft. Set "resourceKey" to one of {resourceKeys} (formerly "type", which is no longer accepted). The response carries "resourceKey" instead of "type". A resource key a bundle registers may cascade the unpublish to related entities; check that type\'s own tools if unsure. The content is preserved and can be re-published later with sulu_content_publish. Use this to take content offline without deleting it.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[DangerousTool('publish')]

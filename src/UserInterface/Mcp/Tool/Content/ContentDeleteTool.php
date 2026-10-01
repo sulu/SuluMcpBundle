@@ -57,7 +57,7 @@ class ContentDeleteTool
     #[McpTool(
         name: 'sulu_content_delete',
         title: 'Delete Content',
-        description: 'Permanently delete a content entity by UUID. Set "resourceKey" to one of {resourceKeys}. Removes both draft and published versions — this cannot be undone. For pages with children, set forceRemoveChildren=true to delete the whole subtree (ignored for other resource keys). Snippets may be referenced by other content; deleting one removes that shared content everywhere it is used. A resource key a bundle registers may cascade the deletion to related entities; check that type\'s own list tool first if unsure.',
+        description: 'Permanently delete a content entity by UUID. Set "resourceKey" to one of {resourceKeys} (formerly "type", which is no longer accepted). The response carries "resourceKey" instead of "type". Removes both draft and published versions — this cannot be undone. For pages with children, set forceRemoveChildren=true to delete the whole subtree (ignored for other resource keys). Snippets may be referenced by other content; deleting one removes that shared content everywhere it is used. A resource key a bundle registers may cascade the deletion to related entities; check that type\'s own list tool first if unsure.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[DangerousTool('delete')]

@@ -50,7 +50,7 @@ class PreviewLinkRevokeTool
     #[McpTool(
         name: 'sulu_preview_link_revoke',
         title: 'Revoke Preview Link',
-        description: 'Revoke/invalidate a previously generated public preview link for a content entity. After revoking, the preview URL will no longer work. Pass `resourceKey` as one of {searchableResourceKeys}. If no preview link exists for the resource, the operation returns an error — verify a link exists with sulu_preview_link_generate before revoking.',
+        description: 'Revoke/invalidate a previously generated public preview link for a content entity. After revoking, the preview URL will no longer work. Pass `resourceKey` as one of {searchableResourceKeys}, the same set as sulu_preview_link_generate. If no preview link exists for the resource, the operation returns an error — verify a link exists with sulu_preview_link_generate before revoking.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[DangerousTool('publish')]
@@ -78,7 +78,7 @@ class PreviewLinkRevokeTool
             if (null === $entity) {
                 return [
                     'error' => \sprintf('%s not found: %s', $resourceKey, $uuid),
-                    'hint' => 'Verify the type ("page"/"article"), uuid and locale.',
+                    'hint' => 'Verify the resourceKey, uuid and locale.',
                 ];
             }
 

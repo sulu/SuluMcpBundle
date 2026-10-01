@@ -188,6 +188,22 @@ Deriving the first entry from `SULU_MCP_SERVER_URL` keeps it correct per environ
 
 `allowed_hosts: false` switches the protection off entirely. Prefer naming the host: the protection is what stops a page in a developer's browser from steering that browser into a local MCP server.
 
+## The agent tool (`symfony/ai-agent`)
+
+With `symfony/ai-agent` installed, `sulu_content_search` is also available as an agent tool. Its description and its `resourceKey` parameter list the registered resource keys. A decorator of `ai.tool_factory` fills them in when the toolbox builds the tool.
+
+An agent in `config/packages/ai.yaml` that lists the tool with its own `name` and `description` bypasses that decorator. The AI bundle builds such a tool from the agent's own memory factory, ahead of `ai.tool_factory`, so the model sees the raw `{searchableResourceKeys}` placeholder. List the tool without them to get the expanded text:
+
+```yaml
+ai:
+    agent:
+        content:
+            tools:
+                - service: 'Sulu\Mcp\UserInterface\Agent\Tool\ContentSearchTool'
+```
+
+If you need your own description, write the resource keys into it by hand.
+
 ## Recommended profiles
 
 **Read-only / staging** — leave `dangerous_tools` at defaults. The AI can read everything and create drafts, but cannot publish, delete or restructure the page tree.

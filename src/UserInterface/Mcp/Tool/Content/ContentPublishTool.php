@@ -56,7 +56,7 @@ class ContentPublishTool
     #[McpTool(
         name: 'sulu_content_publish',
         title: 'Publish Content',
-        description: 'Publish a content entity to make its current draft the live version. Set "resourceKey" to one of {resourceKeys}. A resource key a bundle registers may have its own publish order or cascade rules; check that type\'s own tools if unsure. Content is always created/updated as a draft first — call this after creating or updating to go live. Can be called again to re-publish after edits. IMPORTANT: Always ask the user for confirmation before calling this tool — never publish without explicit user approval.',
+        description: 'Publish a content entity to make its current draft the live version. Set "resourceKey" to one of {resourceKeys} (formerly "type", which is no longer accepted). The response carries "resourceKey" instead of "type". A resource key a bundle registers may have its own publish order or cascade rules; check that type\'s own tools if unsure. Content is always created/updated as a draft first — call this after creating or updating to go live. Can be called again to re-publish after edits. IMPORTANT: Always ask the user for confirmation before calling this tool — never publish without explicit user approval.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[DangerousTool('publish')]

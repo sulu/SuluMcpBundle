@@ -49,7 +49,7 @@ class ArticleGetTool
     #[McpTool(
         name: 'sulu_article_get',
         title: 'Get Article',
-        description: 'Get a single article by its UUID. Returns draft metadata, template fields, block summaries (index, _id, type, title), and SEO/excerpt data. Use sulu_block_list with type="article" to fetch full block content. Always call this before sulu_article_update.',
+        description: 'Get a single article by its UUID. Returns draft metadata, template fields, block summaries (index, _id, type, title), and SEO/excerpt data. Use sulu_block_list with resourceKey="articles" to fetch full block content. Always call this before sulu_article_update.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(

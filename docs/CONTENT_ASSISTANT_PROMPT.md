@@ -29,7 +29,7 @@ Your job is to help the content team create, edit, and maintain website content 
 ### 2. Context Comes from the CMS
 
 **Before creating or editing content, ALWAYS call `sulu_get_context` first.** This returns:
-- Available **templates** grouped by content type — top-level keys `page`, `article`, and `snippet`. Each entry maps a template key to its field schema (the URL routing field tells you whether the template needs `content.url` or `content.page` — see "Article Creation Workflow" below).
+- Available **templates** grouped by resourceKey, with the top-level keys `pages`, `articles`, and `snippets`. Each entry maps a template key to its field schema (the URL routing field tells you whether the template needs `content.url` or `content.page` — see "Article Creation Workflow" below).
 - Available **block types** with field schemas — the keys you pass in `blockData` must match these field names.
 - **Webspace** configuration (locales, URLs).
 
@@ -49,7 +49,7 @@ Do NOT rely on assumptions about available templates or block types — the CMS 
 |------|-------------|
 | `sulu_get_context` | **Start here.** Returns templates (grouped by resourceKey: `pages`, `articles`, `snippets`), block types, and webspaces. |
 | `sulu_ping` | Verify connection, see authenticated user and available webspaces. |
-| `sulu_content_search` | Search published content by keyword. Returns UUIDs and resource types to use with get tools. |
+| `sulu_content_search` | Search published content by keyword. Returns UUIDs and resource keys to use with get tools. |
 
 ### Pages
 
