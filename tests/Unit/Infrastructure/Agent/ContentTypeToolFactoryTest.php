@@ -43,9 +43,8 @@ final class ContentTypeToolFactoryTest extends TestCase
         $this->assertStringContainsString('"widgets"', $tool->getDescription());
 
         $resourceKey = $tool->getParameters()['properties']['resourceKey'] ?? [];
-        $this->assertContains('pages', $resourceKey['enum']);
-        $this->assertContains('articles', $resourceKey['enum']);
-        $this->assertContains('widgets', $resourceKey['enum']);
+        $this->assertArrayNotHasKey('enum', $resourceKey);
+        $this->assertStringContainsString('"pages", "articles"', $resourceKey['description']);
         $this->assertStringContainsString('"widgets"', $resourceKey['description']);
         $this->assertStringNotContainsString('{', $resourceKey['description']);
     }

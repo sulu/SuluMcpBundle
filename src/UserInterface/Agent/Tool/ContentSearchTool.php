@@ -13,7 +13,6 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\UserInterface\Agent\Tool;
 
-use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Search\ContentSearch;
 use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
 use Symfony\AI\Platform\Contract\JsonSchema\Attribute\Schema;
@@ -36,6 +35,10 @@ final class ContentSearchTool
     }
 
     /**
+     * The resourceKey parameter carries no enum: ValidateToolCallArgumentsListener builds its
+     * Choice constraint from the attribute, where the placeholder would reject every value.
+     * The decorator expands the description instead.
+     *
      * @param string $query search keyword
      * @param string $locale IETF locale of the request, e.g. "en", "de".
      * @param string|null $webspace Webspace key to restrict results to one site (e.g.
@@ -49,7 +52,7 @@ final class ContentSearchTool
         string $query,
         string $locale,
         ?string $webspace = null,
-        #[Schema(description: 'ResourceKey of the content type to search: {searchableResourceKeys}. Omit to search all.', enum: [ContentTypeSchemaExpander::SEARCHABLE_RESOURCE_KEYS])]
+        #[Schema(description: 'ResourceKey of the content type to search: {searchableResourceKeys}. Omit to search all.')]
         ?string $resourceKey = null,
         int $page = 1,
         int $limit = 20,
