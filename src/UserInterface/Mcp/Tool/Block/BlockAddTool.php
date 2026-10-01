@@ -212,14 +212,14 @@ class BlockAddTool
      */
     private function nestedTargetProperty(
         array $currentData,
-        string $resourceKey,
+        string $templateType,
         ?string $templateKey,
         string $blockType,
         array $parentPath,
     ): ?string {
         $parentChain = $this->blockTypePath($currentData, $parentPath['property'], $parentPath['indices']);
 
-        $resolved = $this->blockDataValidator->resolveBlockProperty($resourceKey, $templateKey, $parentChain, $blockType);
+        $resolved = $this->blockDataValidator->resolveBlockProperty($templateType, $templateKey, $parentChain, $blockType);
         if (null !== $resolved) {
             return $resolved;
         }

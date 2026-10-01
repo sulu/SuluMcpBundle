@@ -27,12 +27,12 @@ final readonly class ContentSecurityContextResolver
     }
 
     /**
-     * An unknown type gets the empty context, which no permission check grants.
+     * An unknown resource key gets the empty context, which no permission check grants.
      *
      * @param object $aggregate the loaded draft aggregate (Page/Article/Snippet/...)
      */
-    public function forEntity(string $type, object $aggregate, string $locale): ContentSecurity
+    public function forEntity(string $resourceKey, object $aggregate, string $locale): ContentSecurity
     {
-        return $this->contentTypeResolver->find($type)?->getSecurity($aggregate, $locale) ?? new ContentSecurity('');
+        return $this->contentTypeResolver->find($resourceKey)?->getSecurity($aggregate, $locale) ?? new ContentSecurity('');
     }
 }

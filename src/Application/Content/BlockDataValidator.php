@@ -56,7 +56,7 @@ final readonly class BlockDataValidator
      * @return array<string, mixed>|null Error payload, or null when valid
      */
     public function validate(
-        string $contentType,
+        string $templateType,
         ?string $templateKey,
         string $blockType,
         array $blockPath,
@@ -70,7 +70,7 @@ final readonly class BlockDataValidator
             return null;
         }
 
-        $form = $this->resolveBlockPath($contentType, $templateKey, $blockPath);
+        $form = $this->resolveBlockPath($templateType, $templateKey, $blockPath);
 
         if (!$form instanceof FormMetadata) {
             // Block type not discoverable in metadata: skip strict validation rather
@@ -96,7 +96,7 @@ final readonly class BlockDataValidator
      * @param list<array{property: string, type: string}> $parentPath
      */
     public function resolveBlockProperty(
-        string $contentType,
+        string $templateType,
         ?string $templateKey,
         array $parentPath,
         string $blockType,
@@ -105,7 +105,7 @@ final readonly class BlockDataValidator
             return null;
         }
 
-        $parentForm = $this->resolveBlockPath($contentType, $templateKey, $parentPath);
+        $parentForm = $this->resolveBlockPath($templateType, $templateKey, $parentPath);
         if (!$parentForm instanceof FormMetadata) {
             return null;
         }
@@ -130,9 +130,9 @@ final readonly class BlockDataValidator
      *
      * @return array<string, mixed>|null
      */
-    public function validateContentTree(array $content, string $contentType, ?string $templateKey): ?array
+    public function validateContentTree(array $content, string $templateType, ?string $templateKey): ?array
     {
-        return $this->validateBlockLists($content, $this->templateForms($contentType, $templateKey));
+        return $this->validateBlockLists($content, $this->templateForms($templateType, $templateKey));
     }
 
     /**
@@ -288,9 +288,9 @@ final readonly class BlockDataValidator
      *
      * @param list<array{property: string, type: string}> $blockPath
      */
-    private function resolveBlockPath(string $contentType, ?string $templateKey, array $blockPath): ?FormMetadata
+    private function resolveBlockPath(string $templateType, ?string $templateKey, array $blockPath): ?FormMetadata
     {
-        foreach ($this->templateForms($contentType, $templateKey) as $templateForm) {
+        foreach ($this->templateForms($templateType, $templateKey) as $templateForm) {
             $form = $templateForm;
 
             foreach ($blockPath as $step) {
@@ -368,10 +368,10 @@ final readonly class BlockDataValidator
      *
      * @return list<FormMetadata>
      */
-    private function templateForms(string $contentType, ?string $templateKey): array
+    private function templateForms(string $templateType, ?string $templateKey): array
     {
         try {
-            $typed = $this->formMetadataProvider->getMetadata($contentType, $this->localeResolver->resolve(), []);
+            $typed = $this->formMetadataProvider->getMetadata($templateType, $this->localeResolver->resolve(), []);
         } catch (\Throwable) {
             return [];
         }
