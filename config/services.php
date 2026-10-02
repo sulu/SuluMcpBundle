@@ -86,6 +86,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\ContentSearchTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaReadTextTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUpdateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUploadTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Navigation\NavigationGetTool;
@@ -344,6 +345,9 @@ return static function(ContainerConfigurator $container): void {
     // Media tools
     $services->set(MediaListTool::class);
     $services->set(MediaGetTool::class);
+    $services->set(MediaReadTextTool::class)
+        ->arg('$storage', new Reference('sulu_media.storage'))
+        ->arg('$maxFilesizeInMegabytes', '%sulu_media.upload.max_filesize%');
     $services->set(MediaUpdateTool::class);
 
     $services->set(MediaSourceUrlResolver::class)
