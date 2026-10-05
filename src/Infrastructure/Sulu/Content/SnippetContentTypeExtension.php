@@ -13,14 +13,19 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Infrastructure\Sulu\Content;
 
+use Doctrine\ORM\EntityManagerInterface;
+use Sulu\Content\Domain\Model\ContentRichEntityInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Content\Domain\Model\TemplateInterface;
 use Sulu\Content\Infrastructure\Doctrine\DimensionContentQueryEnhancer;
 use Sulu\Mcp\Domain\Content\ContentSecurity;
 use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Domain\Content\NotSearchableContentTypeInterface;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Snippet\Application\Message\ApplyWorkflowTransitionSnippetMessage;
 use Sulu\Snippet\Application\Message\ModifySnippetMessage;
 use Sulu\Snippet\Application\Message\RemoveSnippetMessage;
+use Sulu\Snippet\Domain\Model\SnippetDimensionContentInterface;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
 
 /**
@@ -28,10 +33,10 @@ use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
  */
 final readonly class SnippetContentTypeExtension implements ContentTypeExtensionInterface, NotSearchableContentTypeInterface
 {
-    public const SECURITY_CONTEXT = 'sulu.snippet.snippets';
-
     public function __construct(
         private SnippetRepositoryInterface $repository,
+        private SnippetSecurityContextResolver $snippetContextResolver,
+        private EntityManagerInterface $entityManager,
     ) {
     }
 
@@ -47,12 +52,12 @@ final readonly class SnippetContentTypeExtension implements ContentTypeExtension
 
     public function getViewSecurityContexts(): array
     {
-        return [self::SECURITY_CONTEXT];
+        return $this->snippetContextResolver->candidates();
     }
 
     public function getSecurity(object $aggregate, string $locale): ContentSecurity
     {
-        return new ContentSecurity(self::SECURITY_CONTEXT);
+        return new ContentSecurity($this->snippetContextResolver->forTemplateKey($this->templateKeyOf($aggregate, $locale)));
     }
 
     public function createRemoveMessage(string $uuid, string $locale, bool $forceRemoveChildren = false): object
@@ -107,5 +112,52 @@ final readonly class SnippetContentTypeExtension implements ContentTypeExtension
     public function createTransitionMessage(string $uuid, string $locale, string $transition): object
     {
         return new ApplyWorkflowTransitionSnippetMessage(['uuid' => $uuid], $locale, $transition);
+    }
+
+    /**
+     * A locale the snippet has content in resolves to its own template, queried when the aggregate did not load it.
+     * A ghost has none, so the group comes from the locale it is a ghost of.
+     */
+    private function templateKeyOf(object $aggregate, string $locale): string
+    {
+        if (!$aggregate instanceof ContentRichEntityInterface) {
+            return '';
+        }
+
+        $loaded = [];
+        $unlocalized = null;
+        foreach ($aggregate->getDimensionContents() as $dimensionContent) {
+            if (DimensionContentInterface::STAGE_DRAFT !== $dimensionContent->getStage()) {
+                continue;
+            }
+
+            if (null === $dimensionContent->getLocale()) {
+                $unlocalized = $dimensionContent;
+            } elseif ($dimensionContent instanceof TemplateInterface && null !== $dimensionContent->getTemplateKey()) {
+                $loaded[$dimensionContent->getLocale()] = $dimensionContent->getTemplateKey();
+            }
+        }
+
+        if (isset($loaded[$locale])) {
+            return $loaded[$locale];
+        }
+
+        $source = \in_array($locale, $unlocalized?->getAvailableLocales() ?? [], true) ? $locale : $unlocalized?->getGhostLocale();
+        if (null === $source) {
+            return '';
+        }
+
+        return $loaded[$source] ?? $this->queryTemplateKey($aggregate, $source) ?? '';
+    }
+
+    private function queryTemplateKey(object $aggregate, string $locale): ?string
+    {
+        $dimensionContent = $this->entityManager->getRepository(SnippetDimensionContentInterface::class)->findOneBy([
+            'snippet' => $aggregate,
+            'locale' => $locale,
+            'stage' => DimensionContentInterface::STAGE_DRAFT,
+        ]);
+
+        return $dimensionContent instanceof TemplateInterface ? $dimensionContent->getTemplateKey() : null;
     }
 }

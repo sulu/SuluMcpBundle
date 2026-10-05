@@ -102,7 +102,7 @@ final class ToolPermissionGoldenTest extends TestCase
         PageUpdateTool::class => ['sulu_page_update', [['sulu.webspaces.#context#', PermissionTypes::EDIT]]],
         PreviewLinkGenerateTool::class => ['sulu_preview_link_generate', [['#context#', PermissionTypes::EDIT]]],
         PreviewLinkRevokeTool::class => ['sulu_preview_link_revoke', [['#context#', PermissionTypes::EDIT]]],
-        SnippetCreateTool::class => ['sulu_snippet_create', [['sulu.snippet.snippets', PermissionTypes::EDIT], ['sulu.snippet.snippets', PermissionTypes::ADD]]],
+        SnippetCreateTool::class => ['sulu_snippet_create', [['#context#', PermissionTypes::EDIT], ['#context#', PermissionTypes::ADD]]],
         SnippetGetTool::class => ['sulu_snippet_get', [['sulu.snippet.snippets', PermissionTypes::VIEW]]],
         SnippetListTool::class => ['sulu_snippet_list', [['sulu.snippet.snippets', PermissionTypes::VIEW]]],
         SnippetUpdateTool::class => ['sulu_snippet_update', [['sulu.snippet.snippets', PermissionTypes::EDIT]]],

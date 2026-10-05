@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Application\Security;
 
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
+use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 
 /**
  * Decides whether a tool is shown at discovery time (`tools/list`,
@@ -35,6 +36,7 @@ final readonly class ToolVisibilityResolver
         private ToolPermissionCheckerInterface $permissionChecker,
         private WebspacePermissionResolver $webspacePermissionResolver,
         private ArticleSecurityContextResolver $articleContextResolver,
+        private SnippetSecurityContextResolver $snippetContextResolver,
         private ContentTypeExtensionRegistry $extensionRegistry,
         private array $contextResolvers,
         private array $allowlist,
@@ -150,6 +152,7 @@ final readonly class ToolVisibilityResolver
         return match ($candidate) {
             WebspacePermissionResolver::ANY_WEBSPACE_CONTEXT => [] !== $this->webspacePermissionResolver->permittedWebspaceKeys($permission, $locale),
             ArticleSecurityContextResolver::ANY_ARTICLE_GROUP_CONTEXT => $this->anyArticleGroupGrants($permission, $locale),
+            SnippetSecurityContextResolver::ANY_SNIPPET_GROUP_CONTEXT => $this->anySnippetGroupGrants($permission, $locale),
             ContentTypeExtensionRegistry::ANY_EXTENSION_CONTEXT => $this->anyExtensionGrants($permission, $locale),
             default => $this->permissionChecker->has($candidate, $permission, $locale),
         };
@@ -177,6 +180,21 @@ final readonly class ToolVisibilityResolver
                 if ($this->permissionChecker->has($context, $permission, $locale)) {
                     return true;
                 }
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Expands the snippet-group sentinel, so a user holding only a non-default
+     * group still passes.
+     */
+    private function anySnippetGroupGrants(string $permission, ?string $locale): bool
+    {
+        foreach ($this->snippetContextResolver->candidates() as $context) {
+            if ($this->permissionChecker->has($context, $permission, $locale)) {
+                return true;
             }
         }
 

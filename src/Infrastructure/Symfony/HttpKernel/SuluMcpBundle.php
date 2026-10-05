@@ -19,6 +19,7 @@ use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
+use Sulu\Snippet\Infrastructure\Sulu\Admin\SnippetAdmin;
 use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
 use Symfony\Component\Config\Definition\Configuration;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -158,6 +159,8 @@ class SuluMcpBundle extends AbstractBundle
         $builder->registerForAutoconfiguration(ContentTypeExtensionInterface::class)->addTag('sulu_mcp.content_type_extension');
         $builder->registerForAutoconfiguration(AdminLinkProviderInterface::class)->addTag('sulu_mcp.admin_link_provider');
 
+        $builder->setParameter('sulu_mcp.core.snippet_group_contexts', self::hasSnippetGroupContexts());
+
         $container->import(\dirname(__DIR__, 4) . '/config/services.php');
 
         // Agent-side counterparts of the MCP tools, only importable once symfony/ai-agent's
@@ -177,6 +180,15 @@ class SuluMcpBundle extends AbstractBundle
         }
 
         return InstalledVersions::getPrettyVersion('sulu/mcp-bundle') ?? self::FALLBACK_VERSION;
+    }
+
+    /**
+     * Per-group snippet contexts arrived with Sulu 3.1. Asked of the class rather than of
+     * `%sulu.version%`: it reads `_._._` in tests/Application, and `3.1.x-dev` sorts below `3.1`.
+     */
+    private static function hasSnippetGroupContexts(): bool
+    {
+        return \method_exists(SnippetAdmin::class, 'getSnippetSecurityContext'); // @phpstan-ignore function.impossibleType, function.alreadyNarrowedType (false on sulu/sulu 3.0, true from 3.1)
     }
 
     public function build(ContainerBuilder $container): void
