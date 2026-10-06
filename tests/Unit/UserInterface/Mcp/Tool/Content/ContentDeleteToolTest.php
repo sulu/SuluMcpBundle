@@ -304,6 +304,42 @@ final class ContentDeleteToolTest extends TestCase
         $this->tool->deleteContent('snippets', 'uuid-1', 'en');
     }
 
+    public function testDeleteSnippetIsDeniedWithoutTheGroupOfAnotherLocale(): void
+    {
+        // the reported case: "de" is in the marketing group the role holds, "en" in the default group it does not
+        $this->useTwoSnippetGroups();
+        $this->setupSnippetWithLocales(['en' => 'default', 'de' => 'promo']);
+        $this->permissionChecker->grantingNoneExcept()->grantContext('sulu.snippet.snippets_marketing');
+
+        $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
+
+        $this->expectException(ToolCallException::class);
+        $this->expectExceptionMessage('security context "sulu.snippet.snippets"');
+
+        $this->tool->deleteContent('snippets', 'uuid-1', 'de');
+    }
+
+    public function testDeleteSnippetChecksTheGroupOfEveryLocale(): void
+    {
+        $this->useTwoSnippetGroups();
+        $this->setupSnippetWithLocales(['en' => 'default', 'de' => 'promo']);
+        $this->permissionChecker->grantingNoneExcept()
+            ->grantContext('sulu.snippet.snippets')
+            ->grantContext('sulu.snippet.snippets_marketing');
+
+        $this->messageBus->dispatch(Argument::cetera())
+            ->shouldBeCalledOnce()
+            ->will(fn (array $args) => $args[0]->with(new HandledStamp(null, 'handler')));
+
+        $result = $this->tool->deleteContent('snippets', 'uuid-1', 'de');
+
+        $this->assertTrue($result['deleted']);
+        $this->assertEqualsCanonicalizing(
+            [['sulu.snippet.snippets_marketing', 'de'], ['sulu.snippet.snippets', 'en']],
+            \array_map(static fn (array $call): array => [$call['context'], $call['locale']], $this->permissionChecker->calls()),
+        );
+    }
+
     /**
      * Rebuilds the tool over a two-group install: `default` (template "default") and
      * `marketing` (template "promo").
@@ -330,6 +366,26 @@ final class ContentDeleteToolTest extends TestCase
         $dimensionContent->setLocale('en');
         $dimensionContent->setTemplateKey($templateKey);
         $snippet->addDimensionContent($dimensionContent);
+
+        $this->snippetRepository->getOneBy(Argument::cetera())->willReturn($snippet);
+    }
+
+    /**
+     * @param array<string, string> $templateKeys template key per locale
+     */
+    private function setupSnippetWithLocales(array $templateKeys): void
+    {
+        $snippet = new Snippet('uuid-1');
+        $unlocalized = new SnippetDimensionContent($snippet);
+        $snippet->addDimensionContent($unlocalized);
+
+        foreach ($templateKeys as $locale => $templateKey) {
+            $unlocalized->addAvailableLocale($locale);
+            $dimensionContent = new SnippetDimensionContent($snippet);
+            $dimensionContent->setLocale($locale);
+            $dimensionContent->setTemplateKey($templateKey);
+            $snippet->addDimensionContent($dimensionContent);
+        }
 
         $this->snippetRepository->getOneBy(Argument::cetera())->willReturn($snippet);
     }
