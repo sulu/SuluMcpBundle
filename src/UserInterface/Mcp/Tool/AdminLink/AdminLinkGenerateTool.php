@@ -26,6 +26,7 @@ use Sulu\Bundle\ContactBundle\Admin\ContactAdmin;
 use Sulu\Bundle\MediaBundle\Admin\MediaAdmin;
 use Sulu\Bundle\TagBundle\Admin\TagAdmin;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\AdminLink\AdminLinkResourceResolverInterface;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
@@ -44,12 +45,14 @@ class AdminLinkGenerateTool
 {
     /**
      * @param array<string, array{views?: array<string, string>, security_context?: string, security_class?: class-string}> $resources the `sulu_admin.resources` parameter
+     * @param iterable<AdminLinkResourceResolverInterface> $resolvers
      */
     public function __construct(
         private readonly ResourceViewUrlGeneratorInterface $resourceViewUrlGenerator,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
         private readonly ContentTypeExtensionRegistry $extensionRegistry,
         private readonly array $resources,
+        private readonly iterable $resolvers = [],
     ) {
     }
 
@@ -59,7 +62,7 @@ class AdminLinkGenerateTool
     #[McpTool(
         name: 'sulu_admin_link_generate',
         title: 'Generate Admin Link',
-        description: 'Generate the absolute URL of a resource\'s edit view in the Sulu admin. Use this tool for every admin link. Never build an admin URL yourself: the route differs per resource and a guessed URL opens nothing. Pass the `resourceKey` and the id of the resource, which is the uuid or numeric id other tools return: "pages" takes a page uuid, "articles" an article uuid, "snippets" a snippet uuid, "products" a product uuid, "media" a media id, "tags" and "categories" their ids, "contacts" and "accounts" their ids. Resource keys with an admin edit view: {adminLinkResourceKeys}. The `locale` is required. Pages also need `webspace`. Returns `admin_url`. Returns an error when the resource key has no admin view or you may not view the resource. Read-only. It does not check that the resource exists.',
+        description: 'Generate the absolute URL of a resource\'s edit view in the Sulu admin. Use this tool for every admin link. Never build an admin URL yourself: the route differs per resource and a guessed URL opens nothing. Pass the `resourceKey` and the id of the resource, which is the uuid or numeric id other tools return: "pages" takes a page uuid, "articles" an article uuid, "snippets" a snippet uuid, "products" a product uuid, "media" a media id, "tags" and "categories" their ids, "contacts" and "accounts" their ids. Resource keys with an admin edit view: {adminLinkResourceKeys}. The `locale` is required. Pages also need `webspace`. Returns `admin_url`. An id that is edited inside another resource, such as a product variant, gets the link of that resource. Returns an error when the resource key has no admin view or you may not view the resource. Read-only. It does not check that the resource exists.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -93,6 +96,16 @@ class AdminLinkGenerateTool
         }
 
         $webspace = '' === $webspace ? null : $webspace;
+
+        $pathSuffix = '';
+        $requestedId = $resourceId;
+        foreach ($this->resolvers as $resolver) {
+            if (null !== $target = $resolver->resolve($resourceKey, $resourceId, $locale)) {
+                [$resourceKey, $resourceId, $pathSuffix] = [$target->resourceKey, $target->resourceId, $target->pathSuffix];
+
+                break;
+            }
+        }
 
         if (!isset($this->resources[$resourceKey]['views']['detail'])) {
             return [
@@ -146,13 +159,18 @@ class AdminLinkGenerateTool
             ];
         }
 
-        return [
+        $result = [
             'success' => true,
-            'admin_url' => $url,
+            'admin_url' => $url . $pathSuffix,
             'resourceKey' => $resourceKey,
             'resourceId' => $resourceId,
             'locale' => $locale,
         ];
+        if ($requestedId !== $resourceId) {
+            $result['note'] = \sprintf('"%s" has no admin view of its own, so the link opens "%s" of "%s".', $requestedId, $resourceId, $resourceKey);
+        }
+
+        return $result;
     }
 
     /**

@@ -25,6 +25,8 @@ use Sulu\Bundle\AdminBundle\Admin\View\ResourceViewUrlGeneratorInterface;
 use Sulu\Bundle\AdminBundle\Exception\ResourceViewNotFoundException;
 use Sulu\Bundle\AdminBundle\Exception\ViewNotFoundException;
 use Sulu\Bundle\AdminBundle\Exception\ViewParameterNotFoundException;
+use Sulu\Mcp\Application\AdminLink\AdminLinkResourceResolverInterface;
+use Sulu\Mcp\Application\AdminLink\AdminLinkTarget;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
@@ -184,6 +186,54 @@ final class AdminLinkGenerateToolTest extends TestCase
         self::assertSame('https://example.org/admin/#/w', $result['admin_url']);
     }
 
+    public function testResolverPointsAVariantUuidAtItsParent(): void
+    {
+        $this->generator
+            ->generate('tags', 'detail', ['id' => 'parent', 'locale' => 'en'], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://example.org/admin/#/en/tags/parent');
+
+        $result = $this->tool([self::resolver('tags', 'variant', new AdminLinkTarget('tags', 'parent', '/variants'))])
+            ->generateAdminLink('tags', 'variant', 'en');
+
+        self::assertSame('https://example.org/admin/#/en/tags/parent/variants', $result['admin_url']);
+        self::assertSame('parent', $result['resourceId']);
+        self::assertStringContainsString('"variant"', $result['note']);
+    }
+
+    public function testResourceTheResolverIgnoresIsLinkedAsGiven(): void
+    {
+        $this->generator
+            ->generate('tags', 'detail', ['id' => 'plain', 'locale' => 'en'], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://example.org/admin/#/en/tags/plain');
+
+        $result = $this->tool([self::resolver('tags', 'variant', new AdminLinkTarget('tags', 'parent'))])
+            ->generateAdminLink('tags', 'plain', 'en');
+
+        self::assertSame('https://example.org/admin/#/en/tags/plain', $result['admin_url']);
+        self::assertArrayNotHasKey('note', $result);
+    }
+
+    public function testUnknownEntityIsLinkedAsGivenBecauseTheToolDoesNotCheckExistence(): void
+    {
+        $this->generator
+            ->generate('tags', 'detail', ['id' => 'missing', 'locale' => 'en'], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://example.org/admin/#/en/tags/missing');
+
+        $result = $this->tool([self::resolver('tags', 'variant', null)])->generateAdminLink('tags', 'missing', 'en');
+
+        self::assertSame('https://example.org/admin/#/en/tags/missing', $result['admin_url']);
+    }
+
+    public function testViewPermissionIsCheckedOnTheResolvedTarget(): void
+    {
+        $this->permissionChecker->denyContext('sulu.webspaces.sulu');
+
+        $this->expectException(ToolCallException::class);
+
+        $this->tool([self::resolver('widgets', 'variant', new AdminLinkTarget('pages', 'parent'))])
+            ->generateAdminLink('widgets', 'variant', 'en', 'sulu');
+    }
+
     public function testToolIsReadOnlyAndNamed(): void
     {
         $attribute = (new \ReflectionMethod(AdminLinkGenerateTool::class, 'generateAdminLink'))
@@ -194,13 +244,31 @@ final class AdminLinkGenerateToolTest extends TestCase
         self::assertStringContainsString('Never build an admin URL yourself', (string) $attribute->description);
     }
 
-    private function tool(): AdminLinkGenerateTool
+    private static function resolver(string $key, string $id, ?AdminLinkTarget $target): AdminLinkResourceResolverInterface
+    {
+        return new class($key, $id, $target) implements AdminLinkResourceResolverInterface {
+            public function __construct(private string $key, private string $id, private ?AdminLinkTarget $target)
+            {
+            }
+
+            public function resolve(string $resourceKey, string $resourceId, string $locale): ?AdminLinkTarget
+            {
+                return $this->key === $resourceKey && $this->id === $resourceId ? $this->target : null;
+            }
+        };
+    }
+
+    /**
+     * @param list<AdminLinkResourceResolverInterface> $resolvers
+     */
+    private function tool(array $resolvers = []): AdminLinkGenerateTool
     {
         return new AdminLinkGenerateTool(
             $this->generator->reveal(),
             $this->permissionChecker,
             new ContentTypeExtensionRegistry([new FakeContentTypeExtension()]),
             self::RESOURCES,
+            $resolvers,
         );
     }
 }

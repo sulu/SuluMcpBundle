@@ -405,5 +405,6 @@ return static function(ContainerConfigurator $container): void {
     $services->set(AdminLinkGenerateTool::class)
         ->arg('$resourceViewUrlGenerator', new Reference('sulu_admin.resource_view_url_generator'))
         ->arg('$resources', '%sulu_admin.resources%')
+        ->arg('$resolvers', tagged_iterator('sulu_mcp.admin_link_resource_resolver'))
         ->tag('sulu.context', ['context' => 'admin']);
 };
