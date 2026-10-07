@@ -114,6 +114,7 @@ final class MediaGetToolTest extends TestCase
         $result = $this->tool->getMedia(42, 'en');
 
         $this->assertSame(42, $result['id']);
+        $this->assertSame('media', $result['resourceKey']);
         $this->assertSame('Hero Image', $result['title']);
         $this->assertSame('A beautiful hero image', $result['description']);
         $this->assertSame('(c) 2026 Example', $result['copyright']);

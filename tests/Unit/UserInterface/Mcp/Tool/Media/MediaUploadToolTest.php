@@ -100,6 +100,7 @@ final class MediaUploadToolTest extends TestCase
 
         self::assertTrue($result['success']);
         self::assertSame(101, $result['id']);
+        self::assertSame('media', $result['resourceKey']);
         self::assertSame('direct', $result['resolved_from']);
         self::assertFalse($result['existing']);
         self::assertSame('https://example.com/admin/#/media/en/101', $result['admin_url']);

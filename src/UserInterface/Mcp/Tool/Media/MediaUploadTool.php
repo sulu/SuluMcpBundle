@@ -312,6 +312,7 @@ class MediaUploadTool
     {
         $described = [
             'id' => $media->getId(),
+            'resourceKey' => MediaInterface::RESOURCE_KEY,
             'title' => $media->getTitle(),
             'url' => $media->getUrl(),
             'mimeType' => $media->getMimeType(),

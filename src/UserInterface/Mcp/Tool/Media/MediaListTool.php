@@ -18,6 +18,7 @@ use Mcp\Capability\Attribute\Schema;
 use Mcp\Exception\ToolCallException;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
+use Sulu\Bundle\MediaBundle\Entity\MediaInterface;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
@@ -46,7 +47,7 @@ class MediaListTool
     #[McpTool(
         name: 'sulu_media_list',
         title: 'List Media',
-        description: 'List/search media files. Filter by collection ID, media types, or search text. Note: tag-based filtering is not supported — use search text instead. Returns paginated list with total count.',
+        description: 'List/search media files. Filter by collection ID, media types, or search text. Note: tag-based filtering is not supported — use search text instead. Returns paginated list (id, resourceKey, title, mime type, size, URL) with total count.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -128,6 +129,7 @@ class MediaListTool
 
             $results[] = [
                 'id' => $m->getId(),
+                'resourceKey' => MediaInterface::RESOURCE_KEY,
                 'title' => $m->getTitle(),
                 'mimeType' => $m->getMimeType(),
                 'size' => $m->getSize(),

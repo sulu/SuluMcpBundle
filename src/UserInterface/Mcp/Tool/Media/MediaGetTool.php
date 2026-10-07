@@ -43,7 +43,7 @@ class MediaGetTool
     #[McpTool(
         name: 'sulu_media_get',
         title: 'Get Media',
-        description: 'Get detailed information about a media file by ID. Returns metadata (title, description, copyright, credits, origin, mime type, size), the original URL, and all available format/thumbnail URLs.',
+        description: 'Get detailed information about a media file by ID. Returns the id, resourceKey, metadata (title, description, copyright, credits, origin, mime type, size), the original URL, and all available format/thumbnail URLs.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -73,6 +73,7 @@ class MediaGetTool
 
             return [
                 'id' => $media->getId(),
+                'resourceKey' => MediaInterface::RESOURCE_KEY,
                 'title' => $media->getTitle(),
                 'description' => $media->getDescription(),
                 'copyright' => $media->getCopyright(),

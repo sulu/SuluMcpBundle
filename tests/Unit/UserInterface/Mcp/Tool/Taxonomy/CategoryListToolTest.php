@@ -61,9 +61,11 @@ final class CategoryListToolTest extends TestCase
         $this->assertArrayHasKey('categories', $result);
         $this->assertCount(1, $result['categories']);
         $this->assertSame('Technology', $result['categories'][0]['name']);
+        $this->assertSame('categories', $result['categories'][0]['resourceKey']);
         $this->assertTrue($result['categories'][0]['hasChildren']);
         $this->assertCount(1, $result['categories'][0]['children']);
         $this->assertSame('PHP', $result['categories'][0]['children'][0]['name']);
+        $this->assertSame('categories', $result['categories'][0]['children'][0]['resourceKey']);
         $this->assertFalse($result['categories'][0]['children'][0]['hasChildren']);
     }
 

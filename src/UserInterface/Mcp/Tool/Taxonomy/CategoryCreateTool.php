@@ -17,6 +17,7 @@ use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
+use Sulu\Bundle\CategoryBundle\Entity\CategoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -79,6 +80,7 @@ class CategoryCreateTool
             $result = [
                 'success' => true,
                 'id' => $category->getId(),
+                'resourceKey' => CategoryInterface::RESOURCE_KEY,
                 'name' => $name,
                 'key' => $category->getKey(),
             ];

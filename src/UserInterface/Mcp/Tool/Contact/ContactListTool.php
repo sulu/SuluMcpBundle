@@ -15,7 +15,9 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Contact;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Schema\ToolAnnotations;
+use Sulu\Bundle\ContactBundle\Entity\AccountInterface;
 use Sulu\Bundle\ContactBundle\Entity\AccountRepositoryInterface;
+use Sulu\Bundle\ContactBundle\Entity\ContactInterface;
 use Sulu\Bundle\ContactBundle\Entity\ContactRepositoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -38,7 +40,7 @@ class ContactListTool
     #[McpTool(
         name: 'sulu_contact_list',
         title: 'List Contacts',
-        description: 'List contacts or accounts. Set type="contact" for people or type="account" for organizations. Returns basic info (id, name). Contacts and accounts are used for author attribution and organizational references in content.',
+        description: 'List contacts or accounts. Set type="contact" for people or type="account" for organizations. Returns basic info (id, resourceKey, name). The resourceKey is "contacts" or "accounts". Contacts and accounts are used for author attribution and organizational references in content.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -58,6 +60,7 @@ class ContactListTool
                 foreach (\array_slice($items, $offset, $limit) as $item) {
                     $results[] = [
                         'id' => $item['id'] ?? null,
+                        'resourceKey' => AccountInterface::RESOURCE_KEY,
                         'name' => $item['name'] ?? null,
                     ];
                 }
@@ -72,6 +75,7 @@ class ContactListTool
             foreach ($items as $contact) {
                 $results[] = [
                     'id' => $contact['id'] ?? null,
+                    'resourceKey' => ContactInterface::RESOURCE_KEY,
                     'firstName' => $contact['firstName'] ?? null,
                     'lastName' => $contact['lastName'] ?? null,
                 ];

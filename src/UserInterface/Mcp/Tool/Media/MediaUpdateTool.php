@@ -155,6 +155,7 @@ class MediaUpdateTool
             $result = [
                 'success' => true,
                 'id' => $media->getId(),
+                'resourceKey' => MediaInterface::RESOURCE_KEY,
                 'locale' => $locale,
                 // Read back, not echoed: an argument that did not land must not look applied.
                 'title' => $media->getTitle(),

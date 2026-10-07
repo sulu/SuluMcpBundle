@@ -57,6 +57,7 @@ final class ContactListToolTest extends TestCase
         $this->assertSame('contact', $result['type']);
         $this->assertCount(1, $result['items']);
         $this->assertSame(1, $result['items'][0]['id']);
+        $this->assertSame('contacts', $result['items'][0]['resourceKey']);
         $this->assertSame('John', $result['items'][0]['firstName']);
         $this->assertSame('Doe', $result['items'][0]['lastName']);
     }
@@ -70,6 +71,7 @@ final class ContactListToolTest extends TestCase
         $this->assertSame('account', $result['type']);
         $this->assertCount(1, $result['items']);
         $this->assertSame('Acme Corp', $result['items'][0]['name']);
+        $this->assertSame('accounts', $result['items'][0]['resourceKey']);
     }
 
     public function testListContactsCalculatesOffsetFromPage(): void
