@@ -24,7 +24,12 @@ use Sulu\Bundle\AdminBundle\Exception\ViewParameterNotFoundException;
 use Sulu\Bundle\CategoryBundle\Admin\CategoryAdmin;
 use Sulu\Bundle\ContactBundle\Admin\ContactAdmin;
 use Sulu\Bundle\MediaBundle\Admin\MediaAdmin;
+use Sulu\Bundle\MediaBundle\Entity\Collection;
+use Sulu\Bundle\MediaBundle\Entity\MediaInterface;
+use Sulu\Bundle\MediaBundle\Media\Exception\MediaNotFoundException;
+use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Bundle\TagBundle\Admin\TagAdmin;
+use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\AdminLink\AdminLinkResourceResolverInterface;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
@@ -51,6 +56,7 @@ class AdminLinkGenerateTool
         private readonly ResourceViewUrlGeneratorInterface $resourceViewUrlGenerator,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
         private readonly ContentTypeExtensionRegistry $extensionRegistry,
+        private readonly MediaManagerInterface $mediaManager,
         private readonly array $resources,
         private readonly iterable $resolvers = [],
     ) {
@@ -62,7 +68,7 @@ class AdminLinkGenerateTool
     #[McpTool(
         name: 'sulu_admin_link_generate',
         title: 'Generate Admin Link',
-        description: 'Generate the absolute URL of a resource\'s edit view in the Sulu admin. Use this tool for every admin link. Never build an admin URL yourself: the route differs per resource and a guessed URL opens nothing. Pass the `resourceKey` and the id of the resource, which is the uuid or numeric id other tools return: "pages" takes a page uuid, "articles" an article uuid, "snippets" a snippet uuid, "products" a product uuid, "media" a media id, "tags" and "categories" their ids, "contacts" and "accounts" their ids. Resource keys with an admin edit view: {adminLinkResourceKeys}. The `locale` is required. Pages also need `webspace`. Returns `admin_url`. An id that is edited inside another resource, such as a product variant, gets the link of that resource. Returns an error when the resource key has no admin view or you may not view the resource. Read-only. It does not check that the resource exists.',
+        description: 'Generate the absolute URL of a resource\'s edit view in the Sulu admin. Use this tool for every admin link. Never build an admin URL yourself: the route differs per resource and a guessed URL opens nothing. Pass the `resourceKey` and the id of the resource, which is the uuid or numeric id other tools return: "pages" takes a page uuid, "articles" an article uuid, "snippets" a snippet uuid, "products" a product uuid, "media" a media id, "tags" and "categories" their ids, "contacts" and "accounts" their ids. Resource keys with an admin edit view: {adminLinkResourceKeys}. The `locale` is required. Pages also need `webspace`. Returns `admin_url`. An id that is edited inside another resource, such as a product variant, gets the link of that resource. Returns an error when the resource key has no admin view or you may not view the resource. Read-only. Articles, snippets and media are looked up for the permission check, so a missing one is an error.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -97,7 +103,18 @@ class AdminLinkGenerateTool
 
         $webspace = '' === $webspace ? null : $webspace;
 
+        // The requested key and id are authorized before any resolver runs, so a resolver never
+        // acts on a resource the user may not view.
+        if (!\array_key_exists($resourceKey, $this->resources)) {
+            return $this->noViewError($resourceKey);
+        }
+
+        if (null !== $error = $this->authorize($resourceKey, $resourceId, $locale, $webspace)) {
+            return $error;
+        }
+
         $pathSuffix = '';
+        $requestedKey = $resourceKey;
         $requestedId = $resourceId;
         foreach ($this->resolvers as $resolver) {
             if (null !== $target = $resolver->resolve($resourceKey, $resourceId, $locale)) {
@@ -108,24 +125,13 @@ class AdminLinkGenerateTool
         }
 
         if (!isset($this->resources[$resourceKey]['views']['detail'])) {
-            return [
-                'error' => \sprintf('No admin view exists for resource key "%s".', $resourceKey),
-                'hint' => \sprintf('Use one of: %s.', \implode(', ', $this->detailResourceKeys()) ?: 'none'),
-            ];
+            return $this->noViewError($resourceKey);
         }
 
-        $context = $this->securityContext($resourceKey, $webspace);
-        if (false === $context) {
-            return [
-                'error' => \sprintf('Resource key "%s" needs the "webspace" parameter.', $resourceKey),
-                'hint' => 'Pass the webspace key of the resource. Use sulu_ping to list the webspaces.',
-            ];
-        }
-
-        try {
-            $this->assertMayView($resourceKey, $resourceId, $locale, $context);
-        } catch (PermissionDeniedException $e) {
-            throw new ToolCallException($e->getMessage(), 0, $e);
+        if (($requestedKey !== $resourceKey || $requestedId !== $resourceId)
+            && null !== $error = $this->authorize($resourceKey, $resourceId, $locale, $webspace)
+        ) {
+            return $error;
         }
 
         $viewParameters = ['id' => $resourceId, 'locale' => $locale];
@@ -141,10 +147,7 @@ class AdminLinkGenerateTool
                 UrlGeneratorInterface::ABSOLUTE_URL,
             );
         } catch (ResourceViewNotFoundException) {
-            return [
-                'error' => \sprintf('No admin view exists for resource key "%s".', $resourceKey),
-                'hint' => \sprintf('Use one of: %s.', \implode(', ', $this->detailResourceKeys()) ?: 'none'),
-            ];
+            return $this->noViewError($resourceKey);
         } catch (ViewNotFoundException) {
             return [
                 'error' => \sprintf('The admin edit view of resource key "%s" is not available.', $resourceKey),
@@ -174,6 +177,41 @@ class AdminLinkGenerateTool
     }
 
     /**
+     * @return array<string, mixed>
+     */
+    private function noViewError(string $resourceKey): array
+    {
+        return [
+            'error' => \sprintf('No admin view exists for resource key "%s".', $resourceKey),
+            'hint' => \sprintf('Use one of: %s.', \implode(', ', ContentTypeSchemaExpander::detailResourceKeys($this->resources)) ?: 'none'),
+        ];
+    }
+
+    /**
+     * Null when the user may view the resource, an error result when the check cannot run.
+     *
+     * @return array<string, mixed>|null
+     *
+     * @throws ToolCallException
+     */
+    private function authorize(string $resourceKey, string $resourceId, string $locale, ?string $webspace): ?array
+    {
+        $context = $this->securityContext($resourceKey, $webspace);
+        if (false === $context) {
+            return [
+                'error' => \sprintf('Resource key "%s" needs the "webspace" parameter.', $resourceKey),
+                'hint' => 'Pass the webspace key of the resource. Use sulu_ping to list the webspaces.',
+            ];
+        }
+
+        try {
+            return $this->assertMayView($resourceKey, $resourceId, $locale, $context);
+        } catch (PermissionDeniedException $e) {
+            throw new ToolCallException($e->getMessage(), 0, $e);
+        }
+    }
+
+    /**
      * The declared view context of the resource, with a webspace placeholder filled. Null when
      * the resource declares none, false when it needs a webspace that was not given.
      */
@@ -192,54 +230,87 @@ class AdminLinkGenerateTool
     }
 
     /**
-     * Resources without a declared context have no per-resource permission to check, so a
-     * content type extension's view contexts decide. Resources with neither (tags, categories,
-     * contacts) are gated at the tool level by `discoveryContexts`.
+     * `sulu_admin.resources` only holds the base context of a resource, so the context comes from
+     * the entity where it depends on one: the collection of a media and the group of an article or
+     * snippet. Resources with neither a declared context nor a content type extension (tags,
+     * categories, contacts) have no per-resource permission to check here. The `discoveryContexts`
+     * gate lets a user through who may view any one of the listed contexts, so it does not gate
+     * these resources. What does is Sulu's view registry: it registers their edit views only for
+     * users with the EDIT permission, so a user with view only gets "not available" from the
+     * generator.
+     *
+     * @return array<string, mixed>|null an error result when the entity was not found
      *
      * @throws PermissionDeniedException
      */
-    private function assertMayView(string $resourceKey, string $resourceId, string $locale, ?string $context): void
+    private function assertMayView(string $resourceKey, string $resourceId, string $locale, ?string $context): ?array
     {
-        if (null !== $context) {
-            $securityClass = $this->resources[$resourceKey]['security_class'] ?? null;
-            $this->permissionChecker->check(
-                $context,
-                PermissionTypes::VIEW,
-                $locale,
-                $securityClass,
-                null !== $securityClass ? $resourceId : null,
-            );
-
-            return;
+        if ('media' === $resourceKey && null !== $context) {
+            return $this->assertMayViewMedia($resourceId, $locale, $context);
         }
 
-        $contexts = $this->extensionRegistry->find($resourceKey)?->getViewSecurityContexts() ?? [];
-        if ([] === $contexts) {
-            return;
+        $securityClass = $this->resources[$resourceKey]['security_class'] ?? null;
+        if (null !== $context && null !== $securityClass) {
+            $this->permissionChecker->check($context, PermissionTypes::VIEW, $locale, $securityClass, $resourceId);
+
+            return null;
         }
 
-        foreach ($contexts as $candidate) {
-            if ($this->permissionChecker->has($candidate, PermissionTypes::VIEW, $locale)) {
-                return;
+        $extension = $this->extensionRegistry->find($resourceKey);
+        if (null !== $extension) {
+            $aggregate = $extension->loadDraft($resourceId, $locale, true);
+            if (null === $aggregate) {
+                return [
+                    'error' => \sprintf('The resource "%s" of type "%s" was not found.', $resourceId, $resourceKey),
+                    'hint' => 'Verify the id and locale.',
+                ];
             }
+
+            $this->permissionChecker->check($extension->getSecurity($aggregate, $locale)->context, PermissionTypes::VIEW, $locale);
+
+            return null;
         }
 
-        throw new PermissionDeniedException(\implode(', ', $contexts), PermissionTypes::VIEW, $locale);
+        if (null !== $context) {
+            $this->permissionChecker->check($context, PermissionTypes::VIEW, $locale);
+        }
+
+        return null;
     }
 
     /**
-     * @return list<string>
+     * @return array<string, mixed>|null
+     *
+     * @throws PermissionDeniedException
      */
-    private function detailResourceKeys(): array
+    private function assertMayViewMedia(string $resourceId, string $locale, string $context): ?array
     {
-        $keys = [];
-        foreach ($this->resources as $resourceKey => $resource) {
-            if (isset($resource['views']['detail'])) {
-                $keys[] = (string) $resourceKey;
-            }
+        if (!\ctype_digit($resourceId)) {
+            return [
+                'error' => \sprintf('The media id "%s" is not a number.', $resourceId),
+                'hint' => 'Pass the numeric id other media tools return.',
+            ];
         }
-        \sort($keys);
 
-        return $keys;
+        try {
+            $media = $this->mediaManager->getById((int) $resourceId, $locale);
+        } catch (MediaNotFoundException) {
+            return [
+                'error' => 'Media not found: ' . $resourceId,
+                'hint' => 'Verify the id. Use sulu_media_list to find media.',
+            ];
+        }
+
+        // getEntity() has no return type at all, Media always wraps a MediaInterface
+        /** @var MediaInterface $entity */
+        $entity = $media->getEntity();
+        $collection = $entity->getCollection();
+        if (SystemCollectionManagerInterface::COLLECTION_TYPE === $collection->getType()->getKey()) {
+            $this->permissionChecker->check('sulu.media.system_collections', PermissionTypes::VIEW, $locale);
+        }
+
+        $this->permissionChecker->check($context, PermissionTypes::VIEW, $locale, Collection::class, $collection->getId());
+
+        return null;
     }
 }

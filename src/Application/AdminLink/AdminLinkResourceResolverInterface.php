@@ -22,6 +22,11 @@ interface AdminLinkResourceResolverInterface
 {
     /**
      * Null when this resolver is not responsible, so the resource is linked as given.
+     *
+     * Runs after the user was authorized to view the requested resource key and id. The tool
+     * authorizes the target again when it differs. The target's id is returned to the caller, so
+     * it must not reveal anything beyond the target itself. The requested key must be a
+     * `sulu_admin.resources` key.
      */
     public function resolve(string $resourceKey, string $resourceId, string $locale): ?AdminLinkTarget;
 }

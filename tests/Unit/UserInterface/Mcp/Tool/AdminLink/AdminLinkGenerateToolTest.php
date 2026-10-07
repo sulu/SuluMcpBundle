@@ -25,6 +25,13 @@ use Sulu\Bundle\AdminBundle\Admin\View\ResourceViewUrlGeneratorInterface;
 use Sulu\Bundle\AdminBundle\Exception\ResourceViewNotFoundException;
 use Sulu\Bundle\AdminBundle\Exception\ViewNotFoundException;
 use Sulu\Bundle\AdminBundle\Exception\ViewParameterNotFoundException;
+use Sulu\Bundle\MediaBundle\Api\Media;
+use Sulu\Bundle\MediaBundle\Entity\Collection;
+use Sulu\Bundle\MediaBundle\Entity\CollectionType;
+use Sulu\Bundle\MediaBundle\Entity\Media as MediaEntity;
+use Sulu\Bundle\MediaBundle\Media\Exception\MediaNotFoundException;
+use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
+use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkResourceResolverInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkTarget;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
@@ -45,12 +52,24 @@ final class AdminLinkGenerateToolTest extends TestCase
             'security_class' => 'Sulu\\Page\\Domain\\Model\\Page',
         ],
         'tags' => ['views' => ['detail' => 'sulu_tag.edit_form']],
+        'articles' => [
+            'views' => ['detail' => 'sulu_article.article.edit_tabs_{group}'],
+            'security_context' => 'sulu.article.articles',
+        ],
+        'media' => [
+            'views' => ['detail' => 'sulu_media.form'],
+            'security_context' => 'sulu.media.collections',
+            'security_class' => Collection::class,
+        ],
         'widgets' => ['views' => ['detail' => 'app.widget_edit']],
         'pages_versions' => [],
     ];
 
     /** @var ObjectProphecy<ResourceViewUrlGeneratorInterface> */
     private ObjectProphecy $generator;
+
+    /** @var ObjectProphecy<MediaManagerInterface> */
+    private ObjectProphecy $mediaManager;
 
     private FakeToolPermissionChecker $permissionChecker;
 
@@ -61,6 +80,7 @@ final class AdminLinkGenerateToolTest extends TestCase
         }
 
         $this->generator = $this->prophesize(ResourceViewUrlGeneratorInterface::class);
+        $this->mediaManager = $this->prophesize(MediaManagerInterface::class);
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
     }
 
@@ -105,7 +125,7 @@ final class AdminLinkGenerateToolTest extends TestCase
         $result = $this->tool()->generateAdminLink('nope', '1', 'en');
 
         self::assertSame('No admin view exists for resource key "nope".', $result['error']);
-        self::assertSame('Use one of: pages, tags, widgets.', $result['hint']);
+        self::assertSame('Use one of: articles, media, pages, tags, widgets.', $result['hint']);
     }
 
     public function testResourceKeyThatTheGeneratorRejectsGivesTheSameError(): void
@@ -234,6 +254,142 @@ final class AdminLinkGenerateToolTest extends TestCase
             ->generateAdminLink('widgets', 'variant', 'en', 'sulu');
     }
 
+    public function testArticleIsCheckedAgainstTheGroupOfTheEntityNotTheBaseContext(): void
+    {
+        $this->permissionChecker = FakeToolPermissionChecker::grantingAll()->grantContext('sulu.article.articles_news');
+        $this->generator->generate('articles', 'detail', Argument::cetera())->willReturn('https://example.org/admin/#/articles/a');
+
+        $result = $this->tool([], $this->articles('sulu.article.articles_news'))->generateAdminLink('articles', 'a', 'en');
+
+        self::assertTrue($result['success']);
+        self::assertSame('sulu.article.articles_news', $this->permissionChecker->calls()[0]['context']);
+    }
+
+    public function testUserWithTheBaseGroupOnlyGetsNoLinkForAnotherGroup(): void
+    {
+        $this->permissionChecker = FakeToolPermissionChecker::grantingAll()->grantContext('sulu.article.articles');
+
+        try {
+            $this->tool([], $this->articles('sulu.article.articles_news'))->generateAdminLink('articles', 'a', 'en');
+            self::fail('Expected a permission error.');
+        } catch (ToolCallException) {
+            $this->generator->generate(Argument::cetera())->shouldNotHaveBeenCalled();
+        }
+    }
+
+    public function testMissingArticleIsAnErrorBecauseItsGroupIsUnknown(): void
+    {
+        $extensions = new ContentTypeExtensionRegistry([new FakeContentTypeExtension('article', 'articles', 'sulu.article.articles')]);
+
+        $result = $this->tool([], $extensions)->generateAdminLink('articles', 'gone', 'en');
+
+        self::assertStringContainsString('was not found', $result['error']);
+        $this->generator->generate(Argument::cetera())->shouldNotHaveBeenCalled();
+    }
+
+    public function testMediaIsCheckedAgainstTheCollectionOfTheMediaNotTheMediaId(): void
+    {
+        $this->mediaManager->getById(77, 'en')->willReturn($this->mediaIn(5));
+        $this->generator->generate('media', 'detail', Argument::cetera())->willReturn('https://example.org/admin/#/media/77');
+
+        $result = $this->tool()->generateAdminLink('media', '77', 'en');
+
+        self::assertTrue($result['success']);
+        $call = $this->permissionChecker->calls()[0];
+        self::assertSame('sulu.media.collections', $call['context']);
+        self::assertSame(Collection::class, $call['objectType']);
+        self::assertSame(5, $call['objectId']);
+    }
+
+    public function testMediaInASystemCollectionNeedsTheSystemCollectionPermission(): void
+    {
+        $this->permissionChecker->denyContext('sulu.media.system_collections');
+        $this->mediaManager->getById(77, 'en')->willReturn($this->mediaIn(5, SystemCollectionManagerInterface::COLLECTION_TYPE));
+
+        $this->expectException(ToolCallException::class);
+
+        $this->tool()->generateAdminLink('media', '77', 'en');
+    }
+
+    public function testMediaWithoutViewOnItsCollectionIsDenied(): void
+    {
+        $this->permissionChecker->grantWhen(static fn (string $context, string $permission, ?string $locale, ?string $type, mixed $id): bool => 6 === $id);
+        $this->mediaManager->getById(77, 'en')->willReturn($this->mediaIn(5));
+
+        $this->expectException(ToolCallException::class);
+
+        $this->tool()->generateAdminLink('media', '77', 'en');
+    }
+
+    public function testMissingMediaIsAnError(): void
+    {
+        $this->mediaManager->getById(78, 'en')->willThrow(new MediaNotFoundException(78));
+
+        $result = $this->tool()->generateAdminLink('media', '78', 'en');
+
+        self::assertSame('Media not found: 78', $result['error']);
+    }
+
+    public function testNonNumericMediaIdIsAnError(): void
+    {
+        $result = $this->tool()->generateAdminLink('media', 'abc', 'en');
+
+        self::assertStringContainsString('not a number', $result['error']);
+        $this->mediaManager->getById(Argument::cetera())->shouldNotHaveBeenCalled();
+    }
+
+    public function testResolverDoesNotRunWhenTheRequestedResourceIsDenied(): void
+    {
+        $this->permissionChecker->denyContext('sulu.widget.widgets');
+        $resolver = new class() implements AdminLinkResourceResolverInterface {
+            public int $calls = 0;
+
+            public function resolve(string $resourceKey, string $resourceId, string $locale): ?AdminLinkTarget
+            {
+                ++$this->calls;
+
+                return new AdminLinkTarget('tags', 'parent');
+            }
+        };
+
+        try {
+            $this->tool([$resolver])->generateAdminLink('widgets', 'variant', 'en');
+            self::fail('Expected a permission error.');
+        } catch (ToolCallException) {
+            self::assertSame(0, $resolver->calls);
+        }
+    }
+
+    public function testResolverDoesNotRunForAnUnknownRequestedKey(): void
+    {
+        $resolver = new class() implements AdminLinkResourceResolverInterface {
+            public int $calls = 0;
+
+            public function resolve(string $resourceKey, string $resourceId, string $locale): ?AdminLinkTarget
+            {
+                ++$this->calls;
+
+                return new AdminLinkTarget('tags', 'parent');
+            }
+        };
+
+        $result = $this->tool([$resolver])->generateAdminLink('nope', '1', 'en');
+
+        self::assertStringContainsString('No admin view exists', $result['error']);
+        self::assertSame(0, $resolver->calls);
+    }
+
+    public function testBothTheRequestedAndTheResolvedResourceAreAuthorized(): void
+    {
+        $this->generator->generate('pages', 'detail', Argument::cetera())->willReturn('https://example.org/admin/#/p');
+
+        $this->tool([self::resolver('widgets', 'variant', new AdminLinkTarget('pages', 'parent'))])
+            ->generateAdminLink('widgets', 'variant', 'en', 'sulu');
+
+        $contexts = \array_column($this->permissionChecker->calls(), 'context');
+        self::assertSame(['sulu.widget.widgets', 'sulu.webspaces.sulu'], $contexts);
+    }
+
     public function testToolIsReadOnlyAndNamed(): void
     {
         $attribute = (new \ReflectionMethod(AdminLinkGenerateTool::class, 'generateAdminLink'))
@@ -242,6 +398,34 @@ final class AdminLinkGenerateToolTest extends TestCase
         self::assertSame('sulu_admin_link_generate', $attribute->name);
         self::assertTrue($attribute->annotations?->readOnlyHint);
         self::assertStringContainsString('Never build an admin URL yourself', (string) $attribute->description);
+    }
+
+    private function articles(string $groupContext): ContentTypeExtensionRegistry
+    {
+        return new ContentTypeExtensionRegistry([new FakeContentTypeExtension('article', 'articles', $groupContext, new \stdClass())]);
+    }
+
+    /**
+     * @return Media
+     */
+    private function mediaIn(int $collectionId, ?string $typeKey = null): object
+    {
+        $type = new CollectionType();
+        $type->setKey($typeKey);
+
+        /** @var ObjectProphecy<Collection> $collection */
+        $collection = $this->prophesize(Collection::class);
+        $collection->getId()->willReturn($collectionId);
+        $collection->getType()->willReturn($type);
+
+        $entity = new MediaEntity();
+        $entity->setCollection($collection->reveal());
+
+        /** @var ObjectProphecy<Media> $media */
+        $media = $this->prophesize(Media::class);
+        $media->getEntity()->willReturn($entity);
+
+        return $media->reveal();
     }
 
     private static function resolver(string $key, string $id, ?AdminLinkTarget $target): AdminLinkResourceResolverInterface
@@ -261,12 +445,13 @@ final class AdminLinkGenerateToolTest extends TestCase
     /**
      * @param list<AdminLinkResourceResolverInterface> $resolvers
      */
-    private function tool(array $resolvers = []): AdminLinkGenerateTool
+    private function tool(array $resolvers = [], ?ContentTypeExtensionRegistry $extensions = null): AdminLinkGenerateTool
     {
         return new AdminLinkGenerateTool(
             $this->generator->reveal(),
             $this->permissionChecker,
-            new ContentTypeExtensionRegistry([new FakeContentTypeExtension()]),
+            $extensions ?? new ContentTypeExtensionRegistry([new FakeContentTypeExtension(draft: new \stdClass())]),
+            $this->mediaManager->reveal(),
             self::RESOURCES,
             $resolvers,
         );

@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
     php:
-        name: "PHP ${{ matrix.php-version }} (${{ matrix.dependency-versions }})"
+        name: "PHP ${{ matrix.php-version }} (${{ matrix.dependency-versions }}${{ matrix.sulu-version && format(', Sulu {0}', matrix.sulu-version) || '' }})"
         runs-on: ubuntu-22.04
         timeout-minutes: 30
 
@@ -52,6 +52,14 @@ jobs:
                       php-extensions: 'ctype, iconv, mbstring, sodium, mysql'
                       tools: 'composer:v2'
 
+                    # Remove this job when Sulu 3.1 is tagged: the highest jobs then install it and
+                    # run the tests that skip below 3.1, such as the admin link tool's.
+                    - php-version: '8.4'
+                      dependency-versions: 'highest'
+                      php-extensions: 'ctype, iconv, mbstring, sodium, mysql'
+                      tools: 'composer:v2'
+                      sulu-version: '3.1.x-dev'
+
         services:
             mysql:
                 image: mysql:8.4
@@ -78,6 +86,14 @@ jobs:
               # These tools are not required to run tests, so we are removing them to improve dependency resolving and
               # testing lowest versions.
               run: composer remove "*php-cs-fixer*" "*phpstan*" "*rector*" --dev --no-update
+
+            - name: Require Sulu ${{ matrix.sulu-version }}
+              if: matrix.sulu-version
+              # Dev stability lets Composer pick the dev versions of Sulu's own packages too.
+              run: |
+                  composer config minimum-stability dev
+                  composer config prefer-stable true
+                  composer require "sulu/sulu:${{ matrix.sulu-version }}" --no-update
 
             - name: Install composer dependencies
               uses: ramsey/composer-install@v3

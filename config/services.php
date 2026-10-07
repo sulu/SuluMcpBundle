@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use Sulu\Bundle\AdminBundle\Admin\View\ResourceViewUrlGeneratorInterface;
 use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
@@ -400,11 +401,13 @@ return static function(ContainerConfigurator $container): void {
     $services->set(PreviewLinkGenerateTool::class);
     $services->set(PreviewLinkRevokeTool::class);
 
-    // sulu_admin.resource_view_url_generator exists from Sulu 3.1 and only in the admin
-    // container. RequiredServiceToolsPass drops the tool where it is missing.
-    $services->set(AdminLinkGenerateTool::class)
-        ->arg('$resourceViewUrlGenerator', new Reference('sulu_admin.resource_view_url_generator'))
-        ->arg('$resources', '%sulu_admin.resources%')
-        ->arg('$resolvers', tagged_iterator('sulu_mcp.admin_link_resource_resolver'))
-        ->tag('sulu.context', ['context' => 'admin']);
+    // The resource view URL generator exists from Sulu 3.1 on, so the tool is absent on 3.0. The
+    // service is only in the admin container, hence the sulu.context tag.
+    if (\interface_exists(ResourceViewUrlGeneratorInterface::class)) {
+        $services->set(AdminLinkGenerateTool::class)
+            ->arg('$resourceViewUrlGenerator', new Reference('sulu_admin.resource_view_url_generator'))
+            ->arg('$resources', '%sulu_admin.resources%')
+            ->arg('$resolvers', tagged_iterator('sulu_mcp.admin_link_resource_resolver'))
+            ->tag('sulu.context', ['context' => 'admin']);
+    }
 };
