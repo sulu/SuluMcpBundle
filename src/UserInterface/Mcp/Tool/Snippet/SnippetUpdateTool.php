@@ -175,6 +175,7 @@ class SnippetUpdateTool
             $result = [
                 'success' => true,
                 'uuid' => $updatedSnippet->getUuid(),
+                'resourceKey' => SnippetInterface::RESOURCE_KEY,
                 'data' => $this->compactContent($normalized, $this->detectBlockProperties($normalized)),
             ];
 

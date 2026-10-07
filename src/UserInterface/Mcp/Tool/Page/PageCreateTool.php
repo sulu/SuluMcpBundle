@@ -206,6 +206,7 @@ class PageCreateTool
             $result = [
                 'success' => true,
                 'uuid' => $page->getUuid(),
+                'resourceKey' => PageInterface::RESOURCE_KEY,
                 'data' => $normalized,
             ];
 

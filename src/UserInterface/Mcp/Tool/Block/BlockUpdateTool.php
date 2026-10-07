@@ -195,6 +195,7 @@ class BlockUpdateTool
             $result = [
                 'success' => true,
                 'uuid' => $uuid,
+                'resourceKey' => $resourceKey,
                 'blockProperty' => $foundProperty,
                 'blockPath' => $foundIndices,
             ];

@@ -72,6 +72,7 @@ final class PageReorderToolTest extends TestCase
         self::assertSame(2, $result['position']);
         self::assertSame(3, $result['siblingCount']);
         self::assertSame(self::PARENT_UUID, $result['parentId']);
+        self::assertSame('pages', $result['resourceKey']);
 
         self::assertInstanceOf(Envelope::class, $capturedEnvelope);
         self::assertNotNull($capturedEnvelope->last(EnableFlushStamp::class));

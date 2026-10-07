@@ -248,6 +248,7 @@ class ArticleUpdateTool
             $result = [
                 'success' => true,
                 'uuid' => $updatedArticle->getUuid(),
+                'resourceKey' => ArticleInterface::RESOURCE_KEY,
                 'data' => $this->compactContent($normalized, $this->detectBlockProperties($normalized)),
             ];
 

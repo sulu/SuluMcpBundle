@@ -185,6 +185,7 @@ class BlockAddTool
             return [
                 'success' => true,
                 'uuid' => $uuid,
+                'resourceKey' => $resourceKey,
                 'blockId' => $newBlock['_id'] ?? null,
                 'blockType' => $blockType,
                 'blockCount' => \count($blocks),

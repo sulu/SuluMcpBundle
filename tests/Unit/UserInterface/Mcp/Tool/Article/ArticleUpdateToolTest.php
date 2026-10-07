@@ -193,6 +193,7 @@ final class ArticleUpdateToolTest extends TestCase
         $this->assertArrayHasKey(EnableFlushStamp::class, $capturedEnvelope->all());
         $this->assertTrue($result['success']);
         $this->assertSame('uuid-1', $result['uuid']);
+        $this->assertSame('articles', $result['resourceKey']);
         $this->assertSame('https://example.com/admin/#/en/default/uuid-1', $result['admin_url']);
     }
 

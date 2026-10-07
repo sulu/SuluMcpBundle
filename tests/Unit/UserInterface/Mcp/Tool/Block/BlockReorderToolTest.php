@@ -128,6 +128,7 @@ final class BlockReorderToolTest extends TestCase
         $this->assertSame(3, $result['blockCount']);
         $this->assertSame([2, 0, 1], $result['order']);
         $this->assertSame('test-uuid', $result['uuid']);
+        $this->assertSame($type, $result['resourceKey']);
     }
 
     public function testReorderBlocksReturnsErrorForUnsupportedType(): void

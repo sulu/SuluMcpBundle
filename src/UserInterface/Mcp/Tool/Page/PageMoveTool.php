@@ -157,6 +157,7 @@ class PageMoveTool
             $result = [
                 'success' => true,
                 'uuid' => $moved->getUuid(),
+                'resourceKey' => PageInterface::RESOURCE_KEY,
                 'webspace' => $moved->getWebspaceKey(),
                 'parentId' => $targetParentId,
                 'previousParentId' => $previousParent->getUuid(),

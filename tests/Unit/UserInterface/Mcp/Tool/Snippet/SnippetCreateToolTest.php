@@ -106,6 +106,7 @@ final class SnippetCreateToolTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertSame('snippet-uuid-123', $result['uuid']);
+        $this->assertSame('snippets', $result['resourceKey']);
         $this->assertSame('https://example.com/admin/#/snippets/en/snippet-uuid-123', $result['admin_url']);
     }
 

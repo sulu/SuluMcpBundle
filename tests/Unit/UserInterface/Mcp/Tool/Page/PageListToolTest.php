@@ -110,6 +110,8 @@ final class PageListToolTest extends TestCase
         $this->assertSame(20, $result['limit']);
         $this->assertSame('uuid-1', $result['pages'][0]['uuid']);
         $this->assertSame('uuid-2', $result['pages'][1]['uuid']);
+        $this->assertSame('pages', $result['pages'][0]['resourceKey']);
+        $this->assertSame('pages', $result['pages'][1]['resourceKey']);
     }
 
     public function testListPagesAppliesTemplateFilter(): void

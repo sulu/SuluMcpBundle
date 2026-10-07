@@ -23,6 +23,7 @@ use Sulu\Mcp\Application\Security\AccessControlFilterFactory;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
+use Sulu\Page\Domain\Model\PageInterface;
 use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 
 /**
@@ -56,7 +57,7 @@ class PageListTool
     #[McpTool(
         name: 'sulu_page_list',
         title: 'List Pages',
-        description: 'List pages in a webspace with optional filters. Returns lightweight summaries (title, template, URL, workflow state, dates) — no blocks or HTML content. Use sulu_page_get with a UUID to fetch the full content of a specific page. Use "template" to filter by template key (e.g. "default", "homepage"). Use "parentId" with a page UUID to list only direct children. Results are paginated — use "page" and "limit" to control.',
+        description: 'List pages in a webspace with optional filters. Returns lightweight summaries (uuid, resourceKey, title, template, URL, workflow state, dates) — no blocks or HTML content. Use sulu_page_get with a UUID to fetch the full content of a specific page. Use "template" to filter by template key (e.g. "default", "homepage"). Use "parentId" with a page UUID to list only direct children. Results are paginated — use "page" and "limit" to control.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -157,6 +158,7 @@ class PageListTool
 
             $results[] = [
                 'uuid' => $pageEntity->getUuid(),
+                'resourceKey' => PageInterface::RESOURCE_KEY,
                 'data' => $summary,
             ];
         }

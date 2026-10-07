@@ -142,6 +142,7 @@ class PageTreeTool
 
         return [
             'uuid' => $page->getUuid(),
+            'resourceKey' => PageInterface::RESOURCE_KEY,
             'title' => $dimensionContent->getTitle(),
             'url' => $dimensionContent->getRoute()?->getSlug(),
             'templateKey' => $dimensionContent->getTemplateKey(),

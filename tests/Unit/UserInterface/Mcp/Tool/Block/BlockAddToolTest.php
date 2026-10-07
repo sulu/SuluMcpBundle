@@ -141,6 +141,7 @@ final class BlockAddToolTest extends TestCase
         $this->assertTrue($result['success']);
         $this->assertArrayHasKey('blockId', $result);
         $this->assertSame('generated-id', $result['blockId']);
+        $this->assertSame('pages', $result['resourceKey']);
     }
 
     public function testAddBlockReturnsErrorForUnsupportedType(): void

@@ -191,6 +191,7 @@ class BlockReorderTool
             return [
                 'success' => true,
                 'uuid' => $uuid,
+                'resourceKey' => $resourceKey,
                 'blockCount' => \count($reordered),
                 'order' => $order,
             ];

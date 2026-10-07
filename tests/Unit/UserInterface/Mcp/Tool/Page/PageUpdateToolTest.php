@@ -663,6 +663,7 @@ final class PageUpdateToolTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertSame('uuid-1', $result['uuid']);
+        $this->assertSame('pages', $result['resourceKey']);
         $this->assertSame(
             'https://example.com/admin/#/webspaces/example/pages/en/uuid-1',
             $result['admin_url'],

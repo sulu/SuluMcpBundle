@@ -241,6 +241,7 @@ class PageUpdateTool
             $result = [
                 'success' => true,
                 'uuid' => $updatedPage->getUuid(),
+                'resourceKey' => PageInterface::RESOURCE_KEY,
                 'data' => $this->compactContent($normalized, $this->detectBlockProperties($normalized)),
             ];
 
