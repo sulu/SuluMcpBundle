@@ -17,6 +17,7 @@ use Mcp\Capability\Attribute\McpTool;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
 use Sulu\Bundle\CategoryBundle\Domain\Exception\RemoveCategoryDependantResourcesFoundException;
+use Sulu\Bundle\CategoryBundle\Entity\CategoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -38,7 +39,7 @@ class CategoryDeleteTool
     #[McpTool(
         name: 'sulu_category_delete',
         title: 'Delete Category',
-        description: 'Delete a category by ID. The category must have no children: delete them first (deepest first), otherwise the call fails. Use sulu_category_list to find the children.',
+        description: 'Delete a category by ID. Returns the id, resourceKey and deleted flag. The category must have no children: delete them first (deepest first), otherwise the call fails. Use sulu_category_list to find the children.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[DangerousTool('delete')]
@@ -54,6 +55,7 @@ class CategoryDeleteTool
             return [
                 'success' => true,
                 'id' => $id,
+                'resourceKey' => CategoryInterface::RESOURCE_KEY,
                 'deleted' => true,
             ];
         } catch (\Throwable $e) {
