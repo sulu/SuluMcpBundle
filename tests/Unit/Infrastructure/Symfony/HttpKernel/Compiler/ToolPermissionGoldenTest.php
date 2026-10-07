@@ -37,6 +37,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\ContentSearchTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaListTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaReadTextTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUpdateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUploadTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Navigation\NavigationGetTool;
@@ -86,6 +87,7 @@ final class ToolPermissionGoldenTest extends TestCase
         ContentPublishTool::class => ['sulu_content_publish', [['#context#', PermissionTypes::EDIT], ['#context#', PermissionTypes::LIVE]]],
         ContentUnpublishTool::class => ['sulu_content_unpublish', [['#context#', PermissionTypes::EDIT], ['#context#', PermissionTypes::LIVE]]],
         MediaGetTool::class => ['sulu_media_get', [['sulu.media.collections', PermissionTypes::VIEW]]],
+        MediaReadTextTool::class => ['sulu_media_read_text', [['sulu.media.collections', PermissionTypes::VIEW]]],
         MediaListTool::class => ['sulu_media_list', [['sulu.media.collections', PermissionTypes::VIEW]]],
         MediaUpdateTool::class => ['sulu_media_update', [['sulu.media.collections', PermissionTypes::EDIT]]],
         MediaUploadTool::class => ['sulu_media_upload', [['sulu.media.collections', PermissionTypes::ADD]]],

@@ -120,6 +120,7 @@ Categories and tags help organize articles and pages for filtering, navigation, 
 |------|-------------|
 | `sulu_media_list` | List/search media files by collection, type, or search text. |
 | `sulu_media_get` | Get media details — original URL, all format/thumbnail URLs, metadata including credits and origin. |
+| `sulu_media_read_text` | Read the plain text of a PDF or text document, in pages via offset and maxChars. |
 | `sulu_media_update` | Update media metadata (title, description, copyright, credits, origin). |
 | `sulu_media_upload` | Import an image from a URL into a collection. Off unless the project enabled it. |
 
@@ -350,6 +351,7 @@ Never delete and recreate a page to "move" it — that loses the page's identity
 - Search existing media with `sulu_media_list` before asking users to upload new files
 - Reference media by ID in block fields
 - Use `sulu_media_get` to retrieve URLs and available image formats
+- Use `sulu_media_read_text` to read an attached document such as a datasheet or brochure. Follow `nextOffset` while `truncated` is true
 - Update media metadata (alt text, copyright) with `sulu_media_update` for accessibility and legal compliance
 
 ### Adding Images
