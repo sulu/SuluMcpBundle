@@ -134,7 +134,7 @@ Categories and tags help organize articles and pages for filtering, navigation, 
 
 | Tool | Description |
 |------|-------------|
-| `sulu_admin_link_generate` | Generate the admin URL of a resource's edit view from `resourceKey`, `resourceId` and `locale` (`webspace` for pages). Use it for every admin link and never build one yourself. Needs Sulu 3.1 or later. |
+| `sulu_admin_link_generate` | Generate the admin URL of a resource's edit view from `resourceKey`, `resourceId` and `locale`. Use it for every admin link and never build one yourself. Needs Sulu 3.1 or later. |
 
 ### Navigation
 

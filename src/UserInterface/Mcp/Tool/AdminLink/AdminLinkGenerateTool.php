@@ -31,6 +31,7 @@ use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Bundle\TagBundle\Admin\TagAdmin;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkResourceResolverInterface;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
@@ -41,6 +42,8 @@ use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Mcp\Infrastructure\Sulu\Security\ArticleSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
+use Sulu\Page\Domain\Exception\PageNotFoundException;
+use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 /**
@@ -57,6 +60,7 @@ class AdminLinkGenerateTool
         private readonly ToolPermissionCheckerInterface $permissionChecker,
         private readonly ContentTypeExtensionRegistry $extensionRegistry,
         private readonly MediaManagerInterface $mediaManager,
+        private readonly PageRepositoryInterface $pageRepository,
         private readonly array $resources,
         private readonly iterable $resolvers = [],
     ) {
@@ -68,7 +72,7 @@ class AdminLinkGenerateTool
     #[McpTool(
         name: 'sulu_admin_link_generate',
         title: 'Generate Admin Link',
-        description: 'Generate the absolute URL of a resource\'s edit view in the Sulu admin. Use this tool for every admin link. Never build an admin URL yourself: the route differs per resource and a guessed URL opens nothing. Pass the `resourceKey` and the id of the resource, which is the uuid or numeric id other tools return: "pages" takes a page uuid, "articles" an article uuid, "snippets" a snippet uuid, "products" a product uuid, "media" a media id, "tags" and "categories" their ids, "contacts" and "accounts" their ids. Resource keys with an admin edit view: {adminLinkResourceKeys}. The `locale` is required. Pages also need `webspace`. Returns `admin_url`. An id that is edited inside another resource, such as a product variant, gets the link of that resource. Returns an error when the resource key has no admin view or you may not view the resource. Read-only. Articles, snippets and media are looked up for the permission check, so a missing one is an error.',
+        description: 'Generate the absolute URL of a resource\'s edit view in the Sulu admin. Use this tool for every admin link. Never build an admin URL yourself: the route differs per resource and a guessed URL opens nothing. Pass the `resourceKey` and the id of the resource, which is the uuid or numeric id other tools return: "pages" takes a page uuid, "articles" an article uuid, "snippets" a snippet uuid, "products" a product uuid, "media" a media id, "tags" and "categories" their ids, "contacts" and "accounts" their ids. Resource keys with an admin edit view: {adminLinkResourceKeys}. The `locale` is required. Returns `admin_url`. An id that is edited inside another resource, such as a product variant, gets the link of that resource. Returns an error when the resource key has no admin view or you may not view the resource. Read-only. Articles, snippets and media are looked up for the permission check, so a missing one is an error.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -89,11 +93,13 @@ class AdminLinkGenerateTool
     public function generateAdminLink(
         #[Schema(description: 'The resourceKey of the resource: {adminLinkResourceKeys}.', enum: [ContentTypeSchemaExpander::ADMIN_LINK_RESOURCE_KEYS])]
         string $resourceKey,
-        string $resourceId,
+        string|int $resourceId,
         string $locale,
-        #[Schema(description: 'Webspace key. Required for pages, ignored by most other resources.')]
+        #[Schema(description: 'Optional. Pages use the webspace they are stored in.')]
         ?string $webspace = null,
     ): array {
+        $resourceId = (string) $resourceId;
+
         if ('' === $resourceKey || '' === $resourceId || '' === $locale) {
             return [
                 'error' => 'The parameters "resourceKey", "resourceId" and "locale" are required and must not be empty.',
@@ -107,6 +113,14 @@ class AdminLinkGenerateTool
         // acts on a resource the user may not view.
         if (!\array_key_exists($resourceKey, $this->resources)) {
             return $this->noViewError($resourceKey);
+        }
+
+        // A page belongs to the webspace it is stored in, not to the one the caller names.
+        if ('pages' === $resourceKey) {
+            $webspace = $this->pageWebspace($resourceId, $locale);
+            if (!\is_string($webspace)) {
+                return $webspace;
+            }
         }
 
         if (null !== $error = $this->authorize($resourceKey, $resourceId, $locale, $webspace)) {
@@ -128,10 +142,17 @@ class AdminLinkGenerateTool
             return $this->noViewError($resourceKey);
         }
 
-        if (($requestedKey !== $resourceKey || $requestedId !== $resourceId)
-            && null !== $error = $this->authorize($resourceKey, $resourceId, $locale, $webspace)
-        ) {
-            return $error;
+        if ($requestedKey !== $resourceKey || $requestedId !== $resourceId) {
+            if ('pages' === $resourceKey) {
+                $webspace = $this->pageWebspace($resourceId, $locale);
+                if (!\is_string($webspace)) {
+                    return $webspace;
+                }
+            }
+
+            if (null !== $error = $this->authorize($resourceKey, $resourceId, $locale, $webspace)) {
+                return $error;
+            }
         }
 
         $viewParameters = ['id' => $resourceId, 'locale' => $locale];
@@ -174,6 +195,24 @@ class AdminLinkGenerateTool
         }
 
         return $result;
+    }
+
+    /**
+     * @return string|array<string, mixed> the webspace key of the page, an error result when it does not exist
+     */
+    private function pageWebspace(string $uuid, string $locale): string|array
+    {
+        try {
+            return $this->pageRepository->getOneBy(
+                ['uuid' => $uuid, 'locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT],
+                [PageRepositoryInterface::GROUP_SELECT_PAGE_ADMIN => true],
+            )->getWebspaceKey();
+        } catch (PageNotFoundException) {
+            return [
+                'error' => 'Page not found: ' . $uuid,
+                'hint' => 'Verify the UUID and locale. Use sulu_page_list or sulu_content_search to find pages.',
+            ];
+        }
     }
 
     /**
@@ -235,9 +274,10 @@ class AdminLinkGenerateTool
      * snippet. Resources with neither a declared context nor a content type extension (tags,
      * categories, contacts) have no per-resource permission to check here. The `discoveryContexts`
      * gate lets a user through who may view any one of the listed contexts, so it does not gate
-     * these resources. What does is Sulu's view registry: it registers their edit views only for
-     * users with the EDIT permission, so a user with view only gets "not available" from the
-     * generator.
+     * these resources. What does is Sulu's view registry. It registers the edit views of tags,
+     * contacts, accounts and roles only for users with the EDIT permission, so a user with view
+     * only gets "not available" from the generator. Categories register theirs for VIEW, so view
+     * is enough for a link there.
      *
      * @return array<string, mixed>|null an error result when the entity was not found
      *
@@ -285,6 +325,9 @@ class AdminLinkGenerateTool
      */
     private function assertMayViewMedia(string $resourceId, string $locale, string $context): ?array
     {
+        // Before any lookup, so a user without media access cannot tell existing ids from missing ones.
+        $this->permissionChecker->check($context, PermissionTypes::VIEW, $locale);
+
         if (!\ctype_digit($resourceId)) {
             return [
                 'error' => \sprintf('The media id "%s" is not a number.', $resourceId),

@@ -38,6 +38,9 @@ use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeContentTypeExtension;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\AdminLink\AdminLinkGenerateTool;
+use Sulu\Page\Domain\Exception\PageNotFoundException;
+use Sulu\Page\Domain\Model\Page;
+use Sulu\Page\Domain\Repository\PageRepositoryInterface;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 
 #[CoversClass(AdminLinkGenerateTool::class)]
@@ -71,6 +74,9 @@ final class AdminLinkGenerateToolTest extends TestCase
     /** @var ObjectProphecy<MediaManagerInterface> */
     private ObjectProphecy $mediaManager;
 
+    /** @var ObjectProphecy<PageRepositoryInterface> */
+    private ObjectProphecy $pageRepository;
+
     private FakeToolPermissionChecker $permissionChecker;
 
     protected function setUp(): void
@@ -81,6 +87,9 @@ final class AdminLinkGenerateToolTest extends TestCase
 
         $this->generator = $this->prophesize(ResourceViewUrlGeneratorInterface::class);
         $this->mediaManager = $this->prophesize(MediaManagerInterface::class);
+        $this->pageRepository = $this->prophesize(PageRepositoryInterface::class);
+        $this->pageIn('abc', 'sulu');
+        $this->pageIn('parent', 'sulu');
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
     }
 
@@ -111,13 +120,35 @@ final class AdminLinkGenerateToolTest extends TestCase
         self::assertSame('abc', $call['objectId']);
     }
 
-    public function testAPageWithoutWebspaceIsRefusedBeforeAnyPermissionCheck(): void
+    public function testAPageIsCheckedAgainstItsOwnWebspaceNotTheOneTheCallerNames(): void
     {
+        $this->pageIn('abc', 'other');
+        $this->generator
+            ->generate('pages', 'detail', ['id' => 'abc', 'locale' => 'en', 'webspace' => 'other'], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://example.org/admin/#/other/pages/en/abc/details');
+
+        $this->tool()->generateAdminLink('pages', 'abc', 'en', 'sulu');
+
+        self::assertSame('sulu.webspaces.other', $this->permissionChecker->calls()[0]['context']);
+    }
+
+    public function testAPageNeedsNoWebspaceArgument(): void
+    {
+        $this->generator->generate('pages', 'detail', Argument::cetera())->willReturn('https://example.org/admin/#/p');
+
         $result = $this->tool()->generateAdminLink('pages', 'abc', 'en');
 
-        self::assertStringContainsString('"webspace"', $result['error']);
+        self::assertTrue($result['success']);
+    }
+
+    public function testAMissingPageIsAnError(): void
+    {
+        $this->pageRepository->getOneBy(Argument::cetera())->willThrow(new PageNotFoundException(['uuid' => 'gone']));
+
+        $result = $this->tool()->generateAdminLink('pages', 'gone', 'en');
+
+        self::assertSame('Page not found: gone', $result['error']);
         self::assertSame([], $this->permissionChecker->calls());
-        $this->generator->generate(Argument::cetera())->shouldNotHaveBeenCalled();
     }
 
     public function testUnknownResourceKeyListsTheKeysWithAView(): void
@@ -295,7 +326,9 @@ final class AdminLinkGenerateToolTest extends TestCase
         $result = $this->tool()->generateAdminLink('media', '77', 'en');
 
         self::assertTrue($result['success']);
-        $call = $this->permissionChecker->calls()[0];
+        $calls = $this->permissionChecker->calls();
+        self::assertNull($calls[0]['objectType'], 'The view permission is checked before the lookup.');
+        $call = $calls[1];
         self::assertSame('sulu.media.collections', $call['context']);
         self::assertSame(Collection::class, $call['objectType']);
         self::assertSame(5, $call['objectId']);
@@ -328,6 +361,27 @@ final class AdminLinkGenerateToolTest extends TestCase
         $result = $this->tool()->generateAdminLink('media', '78', 'en');
 
         self::assertSame('Media not found: 78', $result['error']);
+    }
+
+    public function testMediaIsDeniedBeforeAnyLookup(): void
+    {
+        $this->permissionChecker->denyContext('sulu.media.collections');
+
+        try {
+            $this->tool()->generateAdminLink('media', '77', 'en');
+            self::fail('Expected a denial.');
+        } catch (ToolCallException) {
+            $this->mediaManager->getById(Argument::cetera())->shouldNotHaveBeenCalled();
+        }
+    }
+
+    public function testIntegerIdsAreAccepted(): void
+    {
+        $this->generator
+            ->generate('tags', 'detail', ['id' => '7', 'locale' => 'de'], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://example.org/admin/#/de/tags/7');
+
+        self::assertTrue($this->tool()->generateAdminLink('tags', 7, 'de')['success']);
     }
 
     public function testNonNumericMediaIdIsAnError(): void
@@ -442,6 +496,13 @@ final class AdminLinkGenerateToolTest extends TestCase
         };
     }
 
+    private function pageIn(string $uuid, string $webspace): void
+    {
+        $page = new Page();
+        $page->setWebspaceKey($webspace);
+        $this->pageRepository->getOneBy(Argument::withEntry('uuid', $uuid), Argument::cetera())->willReturn($page);
+    }
+
     /**
      * @param list<AdminLinkResourceResolverInterface> $resolvers
      */
@@ -452,6 +513,7 @@ final class AdminLinkGenerateToolTest extends TestCase
             $this->permissionChecker,
             $extensions ?? new ContentTypeExtensionRegistry([new FakeContentTypeExtension(draft: new \stdClass())]),
             $this->mediaManager->reveal(),
+            $this->pageRepository->reveal(),
             self::RESOURCES,
             $resolvers,
         );
