@@ -141,6 +141,33 @@ final class AdminLinkGenerateToolTest extends TestCase
         self::assertTrue($result['success']);
     }
 
+    public function testAPageThatOnlyExistsAsGhostGetsItsLink(): void
+    {
+        $this->generator->generate('pages', 'detail', Argument::cetera())->willReturn('https://example.org/admin/#/p');
+
+        $result = $this->tool()->generateAdminLink('pages', 'abc', 'fr');
+
+        self::assertTrue($result['success']);
+        $this->pageRepository
+            ->getOneBy(Argument::withEntry('loadGhost', true), Argument::cetera())
+            ->shouldHaveBeenCalled();
+    }
+
+    public function testAResolvedPageIsCheckedAndLinkedInItsOwnWebspace(): void
+    {
+        $this->pageIn('parent', 'other');
+        $this->generator
+            ->generate('pages', 'detail', ['id' => 'parent', 'locale' => 'en', 'webspace' => 'other'], UrlGeneratorInterface::ABSOLUTE_URL)
+            ->willReturn('https://example.org/admin/#/other/pages/en/parent/details');
+
+        $result = $this->tool([self::resolver('widgets', 'variant', new AdminLinkTarget('pages', 'parent'))])
+            ->generateAdminLink('widgets', 'variant', 'en', 'sulu');
+
+        self::assertSame('https://example.org/admin/#/other/pages/en/parent/details', $result['admin_url']);
+        $contexts = \array_column($this->permissionChecker->calls(), 'context');
+        self::assertSame(['sulu.widget.widgets', 'sulu.webspaces.other'], $contexts);
+    }
+
     public function testAMissingPageIsAnError(): void
     {
         $this->pageRepository->getOneBy(Argument::cetera())->willThrow(new PageNotFoundException(['uuid' => 'gone']));

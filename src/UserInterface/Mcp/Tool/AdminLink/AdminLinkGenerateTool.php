@@ -72,7 +72,7 @@ class AdminLinkGenerateTool
     #[McpTool(
         name: 'sulu_admin_link_generate',
         title: 'Generate Admin Link',
-        description: 'Generate the absolute URL of a resource\'s edit view in the Sulu admin. Use this tool for every admin link. Never build an admin URL yourself: the route differs per resource and a guessed URL opens nothing. Pass the `resourceKey` and the id of the resource, which is the uuid or numeric id other tools return: "pages" takes a page uuid, "articles" an article uuid, "snippets" a snippet uuid, "products" a product uuid, "media" a media id, "tags" and "categories" their ids, "contacts" and "accounts" their ids. Resource keys with an admin edit view: {adminLinkResourceKeys}. The `locale` is required. Returns `admin_url`. An id that is edited inside another resource, such as a product variant, gets the link of that resource. Returns an error when the resource key has no admin view or you may not view the resource. Read-only. Articles, snippets and media are looked up for the permission check, so a missing one is an error.',
+        description: 'Generate the absolute URL of a resource\'s edit view in the Sulu admin. Use this tool for every admin link. Never build an admin URL yourself: the route differs per resource and a guessed URL opens nothing. Pass the `resourceKey` and the id of the resource, which is the uuid or numeric id other tools return: "pages" takes a page uuid, "articles" an article uuid, "snippets" a snippet uuid, "products" a product uuid, "media" a media id, "tags" and "categories" their ids, "contacts" and "accounts" their ids. Resource keys with an admin edit view: {adminLinkResourceKeys}. The `locale` is required. Returns `admin_url`. An id that is edited inside another resource, such as a product variant, gets the link of that resource. Returns an error when the resource key has no admin view or you may not view the resource. Read-only. Pages, articles, snippets and media are looked up for the permission check, so a missing one is an error.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -109,8 +109,7 @@ class AdminLinkGenerateTool
 
         $webspace = '' === $webspace ? null : $webspace;
 
-        // The requested key and id are authorized before any resolver runs, so a resolver never
-        // acts on a resource the user may not view.
+        // Resolvers only know keys that have an admin view.
         if (!\array_key_exists($resourceKey, $this->resources)) {
             return $this->noViewError($resourceKey);
         }
@@ -204,7 +203,13 @@ class AdminLinkGenerateTool
     {
         try {
             return $this->pageRepository->getOneBy(
-                ['uuid' => $uuid, 'locale' => $locale, 'stage' => DimensionContentInterface::STAGE_DRAFT],
+                [
+                    'uuid' => $uuid,
+                    'locale' => $locale,
+                    'stage' => DimensionContentInterface::STAGE_DRAFT,
+                    // The admin opens a page without content in this locale, so it has a link too.
+                    'loadGhost' => true,
+                ],
                 [PageRepositoryInterface::GROUP_SELECT_PAGE_ADMIN => true],
             )->getWebspaceKey();
         } catch (PageNotFoundException) {
