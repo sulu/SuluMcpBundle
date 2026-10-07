@@ -29,8 +29,17 @@ final readonly class ContentTypeSchemaExpander
 
     public const RESOURCE_KEYS = '{resourceKeys}';
 
+    /**
+     * Every resource key the admin has a `detail` view for, content type or not.
+     */
+    public const ADMIN_LINK_RESOURCE_KEYS = '{adminLinkResourceKeys}';
+
+    /**
+     * @param array<string, array{views?: array<string, string>}> $adminResources the `sulu_admin.resources` parameter
+     */
     public function __construct(
         private ContentTypeExtensionRegistry $extensionRegistry,
+        private array $adminResources = [],
     ) {
     }
 
@@ -41,8 +50,8 @@ final readonly class ContentTypeSchemaExpander
         }
 
         return \str_replace(
-            [self::SEARCHABLE_RESOURCE_KEYS, self::RESOURCE_KEYS],
-            [$this->quoted($this->extensionRegistry->searchableResourceKeys()), $this->quoted($this->extensionRegistry->resourceKeys())],
+            [self::SEARCHABLE_RESOURCE_KEYS, self::RESOURCE_KEYS, self::ADMIN_LINK_RESOURCE_KEYS],
+            [$this->quoted($this->extensionRegistry->searchableResourceKeys()), $this->quoted($this->extensionRegistry->resourceKeys()), $this->quoted($this->adminLinkResourceKeys())],
             $text,
         );
     }
@@ -72,6 +81,8 @@ final readonly class ContentTypeSchemaExpander
                 $schema[$key] = $this->extensionRegistry->searchableResourceKeys();
             } elseif ('enum' === $key && [self::RESOURCE_KEYS] === $value) {
                 $schema[$key] = $this->extensionRegistry->resourceKeys();
+            } elseif ('enum' === $key && [self::ADMIN_LINK_RESOURCE_KEYS] === $value) {
+                $schema[$key] = $this->adminLinkResourceKeys();
             } elseif ('description' === $key && \is_string($value)) {
                 $schema[$key] = $this->expandText($value);
             } elseif (\is_array($value)) {
@@ -80,6 +91,22 @@ final readonly class ContentTypeSchemaExpander
         }
 
         return $schema;
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function adminLinkResourceKeys(): array
+    {
+        $keys = [];
+        foreach ($this->adminResources as $resourceKey => $resource) {
+            if (isset($resource['views']['detail'])) {
+                $keys[] = (string) $resourceKey;
+            }
+        }
+        \sort($keys);
+
+        return $keys;
     }
 
     /**

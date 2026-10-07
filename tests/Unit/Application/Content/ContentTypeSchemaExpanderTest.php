@@ -37,4 +37,20 @@ final class ContentTypeSchemaExpanderTest extends TestCase
 
         self::assertSame(['widgets', 'gadgets'], $schema['properties']['resourceKey']['enum']);
     }
+
+    public function testTheAdminLinkEnumListsEveryResourceKeyWithADetailView(): void
+    {
+        $expander = new ContentTypeSchemaExpander(new ContentTypeExtensionRegistry([]), [
+            'tags' => ['views' => ['detail' => 'sulu_tag.edit_form']],
+            'products' => ['views' => ['detail' => 'app.product_edit']],
+            'pages_versions' => [],
+        ]);
+
+        $schema = $expander->expandInputSchema(['type' => 'object', 'properties' => [
+            'resourceKey' => ['type' => 'string', 'enum' => [ContentTypeSchemaExpander::ADMIN_LINK_RESOURCE_KEYS]],
+        ]]);
+
+        self::assertSame(['products', 'tags'], $schema['properties']['resourceKey']['enum']);
+        self::assertSame('Use "products", "tags".', $expander->expandText('Use ' . ContentTypeSchemaExpander::ADMIN_LINK_RESOURCE_KEYS . '.'));
+    }
 }

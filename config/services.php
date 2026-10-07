@@ -70,6 +70,7 @@ use Sulu\Mcp\UserInterface\Controller\Website\WellKnownController;
 use Sulu\Mcp\UserInterface\Mcp\Resource\GlobalBlocksResource;
 use Sulu\Mcp\UserInterface\Mcp\Resource\TemplatesResource;
 use Sulu\Mcp\UserInterface\Mcp\Resource\WebspacesResource;
+use Sulu\Mcp\UserInterface\Mcp\Tool\AdminLink\AdminLinkGenerateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleListTool;
@@ -316,7 +317,8 @@ return static function(ContainerConfigurator $container): void {
 
     // Block management tools
     $services->set(ContentTypeResolver::class);
-    $services->set(ContentTypeSchemaExpander::class);
+    $services->set(ContentTypeSchemaExpander::class)
+        ->arg('$adminResources', '%sulu_admin.resources%');
     $services->set(ContentMetadataMapper::class)
         ->arg('$formMetadataProvider', new Reference('sulu_admin.form_metadata_provider'));
     $services->set(BlockDataValidator::class)
@@ -397,4 +399,11 @@ return static function(ContainerConfigurator $container): void {
     // Preview link tools
     $services->set(PreviewLinkGenerateTool::class);
     $services->set(PreviewLinkRevokeTool::class);
+
+    // sulu_admin.resource_view_url_generator exists from Sulu 3.1 and only in the admin
+    // container. RequiredServiceToolsPass drops the tool where it is missing.
+    $services->set(AdminLinkGenerateTool::class)
+        ->arg('$resourceViewUrlGenerator', new Reference('sulu_admin.resource_view_url_generator'))
+        ->arg('$resources', '%sulu_admin.resources%')
+        ->tag('sulu.context', ['context' => 'admin']);
 };

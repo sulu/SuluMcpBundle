@@ -44,6 +44,7 @@ final class ToolAnnotationsGoldenTest extends TestCase
         'sulu_page_tree' => [true, null, null, false],
         'sulu_page_list' => [true, null, null, false],
         'sulu_contact_list' => [true, null, null, false],
+        'sulu_admin_link_generate' => [true, null, null, false],
         'sulu_snippet_get' => [true, null, null, false],
         'sulu_snippet_list' => [true, null, null, false],
         'sulu_navigation_get' => [true, null, null, false],

@@ -17,8 +17,10 @@ use Composer\InstalledVersions;
 use Sulu\Mcp\Application\AdminLink\AdminLinkProviderInterface;
 use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\RequiredServiceToolsPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
+use Sulu\Mcp\UserInterface\Mcp\Tool\AdminLink\AdminLinkGenerateTool;
 use Sulu\Snippet\Infrastructure\Sulu\Admin\SnippetAdmin;
 use Symfony\AI\Agent\Toolbox\Attribute\AsTool;
 use Symfony\Component\Config\Definition\Configuration;
@@ -194,6 +196,11 @@ class SuluMcpBundle extends AbstractBundle
     public function build(ContainerBuilder $container): void
     {
         parent::build($container);
+
+        // Before the passes below, so a tool without its service never reaches them.
+        $container->addCompilerPass(new RequiredServiceToolsPass([
+            AdminLinkGenerateTool::class => 'sulu_admin.resource_view_url_generator', // Sulu 3.1+
+        ]), PassConfig::TYPE_BEFORE_OPTIMIZATION, 110);
 
         // Priority 100 so this runs before symfony/mcp-bundle's McpPass.
         $container->addCompilerPass(new DangerousToolsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 100);

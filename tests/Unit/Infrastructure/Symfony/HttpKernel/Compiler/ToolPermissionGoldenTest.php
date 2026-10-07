@@ -19,6 +19,7 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
+use Sulu\Mcp\UserInterface\Mcp\Tool\AdminLink\AdminLinkGenerateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleListTool;
@@ -74,6 +75,7 @@ final class ToolPermissionGoldenTest extends TestCase
      * @var array<class-string, array{0: string, 1: list<array{0: string, 1: string}>}>
      */
     private const GOLDEN = [
+        AdminLinkGenerateTool::class => ['sulu_admin_link_generate', [['#context#', PermissionTypes::VIEW]]],
         ArticleCreateTool::class => ['sulu_article_create', [['#context#', PermissionTypes::EDIT], ['#context#', PermissionTypes::ADD]]],
         ArticleGetTool::class => ['sulu_article_get', [['sulu.article.articles', PermissionTypes::VIEW]]],
         ArticleListTool::class => ['sulu_article_list', [['sulu.article.articles', PermissionTypes::VIEW]]],
