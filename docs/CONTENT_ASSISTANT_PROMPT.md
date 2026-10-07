@@ -130,6 +130,12 @@ Categories and tags help organize articles and pages for filtering, navigation, 
 | `sulu_preview_link_generate` | Generate a shareable, token-protected preview URL for a draft page or article. |
 | `sulu_preview_link_revoke` | Revoke a previously generated preview link. |
 
+### Admin Links
+
+| Tool | Description |
+|------|-------------|
+| `sulu_admin_link_generate` | Generate the admin URL of a resource's edit view from `resourceKey`, `resourceId` and `locale`. Use it for every admin link and never build one yourself. Needs Sulu 3.1 or later. |
+
 ### Navigation
 
 | Tool | Description |

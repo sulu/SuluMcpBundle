@@ -182,7 +182,7 @@ sulu_mcp:
 
 ### Available tools
 
-40 tools spanning the core Sulu domains:
+41 tools spanning the core Sulu domains:
 
 | Domain | Count | Examples |
 |--------|-------|----------|
@@ -196,6 +196,7 @@ sulu_mcp:
 | Preview | 2 | `sulu_preview_link_generate`, `sulu_preview_link_revoke` |
 | Navigation | 1 | `sulu_navigation_get` |
 | Contact | 1 | `sulu_contact_list` |
+| Admin link | 1 | `sulu_admin_link_generate` (Sulu 3.1 and later) |
 | Misc | 3 | `sulu_content_search`, `sulu_get_context`, `sulu_ping` |
 
 The block and unified content tools operate on every registered content type through a `resourceKey`

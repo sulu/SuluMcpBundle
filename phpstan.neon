@@ -5,6 +5,20 @@ parameters:
         - config/
         - src/
     reportUnmatchedIgnoredErrors: false
+    ignoreErrors:
+        # The admin view URL generator exists since Sulu 3.1, the tool is removed on older versions.
+        -
+            paths:
+                - src/UserInterface/Mcp/Tool/AdminLink/AdminLinkGenerateTool.php
+            identifier: class.notFound
+        -
+            paths:
+                - src/UserInterface/Mcp/Tool/AdminLink/AdminLinkGenerateTool.php
+            identifier: argument.type
+        -
+            paths:
+                - src/UserInterface/Mcp/Tool/AdminLink/AdminLinkGenerateTool.php
+            identifier: binaryOp.invalid
     disallowedMethodCalls:
         -
             method: 'Doctrine\Common\Collections\Collection::clear()'

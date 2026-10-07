@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Infrastructure\Symfony\HttpKernel;
 
 use Composer\InstalledVersions;
 use Sulu\Mcp\Application\AdminLink\AdminLinkProviderInterface;
+use Sulu\Mcp\Application\AdminLink\AdminLinkResourceResolverInterface;
 use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
@@ -158,6 +159,7 @@ class SuluMcpBundle extends AbstractBundle
 
         $builder->registerForAutoconfiguration(ContentTypeExtensionInterface::class)->addTag('sulu_mcp.content_type_extension');
         $builder->registerForAutoconfiguration(AdminLinkProviderInterface::class)->addTag('sulu_mcp.admin_link_provider');
+        $builder->registerForAutoconfiguration(AdminLinkResourceResolverInterface::class)->addTag('sulu_mcp.admin_link_resource_resolver');
 
         $builder->setParameter('sulu_mcp.core.snippet_group_contexts', self::hasSnippetGroupContexts());
 
