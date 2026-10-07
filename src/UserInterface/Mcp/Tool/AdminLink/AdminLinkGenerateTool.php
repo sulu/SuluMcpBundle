@@ -311,7 +311,14 @@ class AdminLinkGenerateTool
                 ];
             }
 
-            $this->permissionChecker->check($extension->getSecurity($aggregate, $locale)->context, PermissionTypes::VIEW, $locale);
+            $security = $extension->getSecurity($aggregate, $locale);
+            $this->permissionChecker->check(
+                $security->context,
+                PermissionTypes::VIEW,
+                $locale,
+                $security->aclObjectType,
+                null !== $security->aclObjectType ? $resourceId : null,
+            );
 
             return null;
         }

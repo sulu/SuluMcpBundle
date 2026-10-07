@@ -323,6 +323,33 @@ final class AdminLinkGenerateToolTest extends TestCase
         self::assertSame('sulu.article.articles_news', $this->permissionChecker->calls()[0]['context']);
     }
 
+    public function testAResourceWithOnlyAContextIsDeniedWithoutViewOnThatContext(): void
+    {
+        $this->permissionChecker->denyContext('sulu.article.articles');
+
+        $this->expectException(ToolCallException::class);
+
+        try {
+            $this->tool()->generateAdminLink('articles', 'a', 'en');
+        } finally {
+            $this->generator->generate(Argument::cetera())->shouldNotHaveBeenCalled();
+        }
+    }
+
+    public function testTheAclObjectTypeOfAnExtensionIsCheckedOnTheObject(): void
+    {
+        $this->generator->generate('articles', 'detail', Argument::cetera())->willReturn('https://example.org/admin/#/articles/a');
+        $extensions = new ContentTypeExtensionRegistry([
+            new FakeContentTypeExtension('article', 'articles', 'sulu.article.articles', new \stdClass(), aclObjectType: 'App\\Article'),
+        ]);
+
+        $this->tool([], $extensions)->generateAdminLink('articles', 'a', 'en');
+
+        $call = $this->permissionChecker->calls()[0];
+        self::assertSame('App\\Article', $call['objectType']);
+        self::assertSame('a', $call['objectId']);
+    }
+
     public function testUserWithTheBaseGroupOnlyGetsNoLinkForAnotherGroup(): void
     {
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll()->grantContext('sulu.article.articles');

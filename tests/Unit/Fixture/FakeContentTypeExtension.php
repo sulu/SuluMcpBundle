@@ -27,6 +27,7 @@ class FakeContentTypeExtension implements ContentTypeExtensionInterface
         private readonly string $securityContext = 'sulu.widget.widgets',
         private readonly ?object $draft = null,
         private readonly ?object $transitionEntity = null,
+        private readonly ?string $aclObjectType = null,
     ) {
     }
 
@@ -47,7 +48,7 @@ class FakeContentTypeExtension implements ContentTypeExtensionInterface
 
     public function getSecurity(object $aggregate, string $locale): ContentSecurity
     {
-        return new ContentSecurity($this->securityContext);
+        return new ContentSecurity($this->securityContext, $this->aclObjectType);
     }
 
     public function loadDraft(string $uuid, string $locale, bool $loadGhost = false): ?object
