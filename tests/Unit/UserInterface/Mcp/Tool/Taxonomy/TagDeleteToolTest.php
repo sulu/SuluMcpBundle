@@ -45,6 +45,7 @@ final class TagDeleteToolTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertSame(42, $result['id']);
+        $this->assertSame('tags', $result['resourceKey']);
         $this->assertTrue($result['deleted']);
     }
 

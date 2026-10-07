@@ -46,6 +46,7 @@ final class CategoryDeleteToolTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertSame(42, $result['id']);
+        $this->assertSame('categories', $result['resourceKey']);
         $this->assertTrue($result['deleted']);
     }
 

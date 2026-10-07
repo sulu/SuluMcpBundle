@@ -66,6 +66,7 @@ final class SnippetGetToolTest extends TestCase
         $result = $this->tool->getSnippet('en', 'snippet-uuid');
 
         $this->assertSame('snippet-uuid', $result['uuid']);
+        $this->assertSame('snippets', $result['resourceKey']);
         $this->assertSame('en', $result['locale']);
         $this->assertSame(['title' => 'Footer'], $result['data']);
     }

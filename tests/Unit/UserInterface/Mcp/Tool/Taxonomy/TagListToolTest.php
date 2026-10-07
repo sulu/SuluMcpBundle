@@ -57,7 +57,7 @@ final class TagListToolTest extends TestCase
         $this->assertSame(25, $result['total']);
         $this->assertSame(1, $result['page']);
         $this->assertSame(20, $result['limit']);
-        $this->assertSame(['id' => 1, 'name' => 'tag-1'], $result['tags'][0]);
+        $this->assertSame(['id' => 1, 'resourceKey' => 'tags', 'name' => 'tag-1'], $result['tags'][0]);
     }
 
     public function testListTagsSecondPageReturnsCorrectSlice(): void
@@ -77,7 +77,7 @@ final class TagListToolTest extends TestCase
         $this->assertCount(5, $result['tags'], 'page 2 with limit 20 returns remaining 5 tags');
         $this->assertSame(25, $result['total']);
         $this->assertSame(2, $result['page']);
-        $this->assertSame(['id' => 21, 'name' => 'tag-21'], $result['tags'][0]);
+        $this->assertSame(['id' => 21, 'resourceKey' => 'tags', 'name' => 'tag-21'], $result['tags'][0]);
     }
 
     public function testListTagsCustomLimit(): void

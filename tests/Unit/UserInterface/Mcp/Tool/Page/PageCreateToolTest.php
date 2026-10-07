@@ -166,6 +166,7 @@ final class PageCreateToolTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertSame('page-uuid-123', $result['uuid']);
+        $this->assertSame('pages', $result['resourceKey']);
 
         $this->assertInstanceOf(CreatePageMessage::class, $capturedEnvelope->getMessage());
         $this->assertArrayHasKey(EnableFlushStamp::class, $capturedEnvelope->all());

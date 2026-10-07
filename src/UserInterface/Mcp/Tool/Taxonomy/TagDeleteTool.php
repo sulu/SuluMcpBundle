@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Schema\ToolAnnotations;
+use Sulu\Bundle\TagBundle\Tag\TagInterface;
 use Sulu\Bundle\TagBundle\Tag\TagManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Domain\Security\DangerousTool;
@@ -37,7 +38,7 @@ class TagDeleteTool
     #[McpTool(
         name: 'sulu_tag_delete',
         title: 'Delete Tag',
-        description: 'Delete a tag by ID. This removes the tag but does not affect content that was tagged with it.',
+        description: 'Delete a tag by ID. Returns the id, resourceKey and deleted flag. This removes the tag but does not affect content that was tagged with it.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false),
     )]
     #[DangerousTool('delete')]
@@ -53,6 +54,7 @@ class TagDeleteTool
             return [
                 'success' => true,
                 'id' => $id,
+                'resourceKey' => TagInterface::RESOURCE_KEY,
                 'deleted' => true,
             ];
         } catch (\Throwable $e) {

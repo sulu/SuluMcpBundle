@@ -17,6 +17,7 @@ use Mcp\Capability\Attribute\McpTool;
 use Mcp\Exception\ToolCallException;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Article\Domain\Exception\ArticleNotFoundException;
+use Sulu\Article\Domain\Model\ArticleInterface;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
@@ -49,7 +50,7 @@ class ArticleGetTool
     #[McpTool(
         name: 'sulu_article_get',
         title: 'Get Article',
-        description: 'Get a single article by its UUID. Returns draft metadata, template fields, block summaries (index, _id, type, title), and SEO/excerpt data. Use sulu_block_list with resourceKey="articles" to fetch full block content. Always call this before sulu_article_update.',
+        description: 'Get a single article by its UUID. Returns the uuid and resourceKey, draft metadata, template fields, block summaries (index, _id, type, title), and SEO/excerpt data. Use sulu_block_list with resourceKey="articles" to fetch full block content. Always call this before sulu_article_update.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -89,6 +90,7 @@ class ArticleGetTool
 
             return [
                 'uuid' => $article->getUuid(),
+                'resourceKey' => ArticleInterface::RESOURCE_KEY,
                 'locale' => $locale,
                 'data' => $compacted,
             ];

@@ -90,6 +90,7 @@ final class PageMoveToolTest extends TestCase
 
         self::assertTrue($result['success']);
         self::assertSame(self::NEW_PARENT_UUID, $result['parentId']);
+        self::assertSame('pages', $result['resourceKey']);
         self::assertSame(self::OLD_PARENT_UUID, $result['previousParentId']);
         self::assertSame(2, $result['affectedDescendants']);
         self::assertSame('/products/hardware/drills', $result['url']);

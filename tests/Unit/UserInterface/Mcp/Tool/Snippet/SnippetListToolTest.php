@@ -61,6 +61,7 @@ final class SnippetListToolTest extends TestCase
         $this->assertSame(1, $result['total']);
         $this->assertSame(1, $result['page']);
         $this->assertSame(20, $result['limit']);
+        $this->assertSame('snippets', $result['snippets'][0]['resourceKey']);
     }
 
     public function testListSnippetsReturnsSummaryFieldsOnly(): void

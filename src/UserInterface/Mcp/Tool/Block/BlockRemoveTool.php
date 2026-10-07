@@ -168,6 +168,7 @@ class BlockRemoveTool
             return [
                 'success' => true,
                 'uuid' => $uuid,
+                'resourceKey' => $resourceKey,
                 'removedIndex' => $blockIndex,
                 'blockCount' => \count($blocks),
             ];

@@ -73,6 +73,7 @@ final class ArticleGetToolTest extends TestCase
         $result = $this->tool->getArticle('en', 'test-uuid-123');
 
         $this->assertSame('test-uuid-123', $result['uuid']);
+        $this->assertSame('articles', $result['resourceKey']);
         $this->assertSame('en', $result['locale']);
         $this->assertSame($normalizedData, $result['data']);
         $this->assertArrayNotHasKey('webspace', $result);

@@ -106,6 +106,7 @@ class SnippetCreateTool
             $result = [
                 'success' => true,
                 'uuid' => $snippet->getUuid(),
+                'resourceKey' => SnippetInterface::RESOURCE_KEY,
                 'data' => $normalized,
             ];
 

@@ -153,6 +153,7 @@ final class MediaUpdateToolTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertSame(42, $result['id']);
+        $this->assertSame('media', $result['resourceKey']);
         $this->assertSame('Updated Title', $result['title']);
         $this->assertSame('https://example.com/admin/#/media/en/42', $result['admin_url']);
     }

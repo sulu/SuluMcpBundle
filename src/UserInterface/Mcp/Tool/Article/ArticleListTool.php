@@ -16,6 +16,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Article;
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Mcp\Schema\ToolAnnotations;
+use Sulu\Article\Domain\Model\ArticleInterface;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
@@ -56,7 +57,7 @@ class ArticleListTool
     #[McpTool(
         name: 'sulu_article_list',
         title: 'List Articles',
-        description: 'List articles with optional filters. Returns lightweight summaries (title, template, URL, workflow state, dates) — no blocks or HTML content. Use sulu_article_get with a UUID to fetch the full content of a specific article. Use "template" to filter by template key (e.g. "blog", "default"). Results are paginated — use "page" and "limit" to control.',
+        description: 'List articles with optional filters. Returns lightweight summaries (uuid, resourceKey, title, template, URL, workflow state, dates) — no blocks or HTML content. Use sulu_article_get with a UUID to fetch the full content of a specific article. Use "template" to filter by template key (e.g. "blog", "default"). Results are paginated — use "page" and "limit" to control.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -148,6 +149,7 @@ class ArticleListTool
 
             $results[] = [
                 'uuid' => $articleEntity->getUuid(),
+                'resourceKey' => ArticleInterface::RESOURCE_KEY,
                 'data' => $summary,
             ];
         }

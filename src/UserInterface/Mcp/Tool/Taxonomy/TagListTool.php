@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy;
 
 use Mcp\Capability\Attribute\McpTool;
 use Mcp\Schema\ToolAnnotations;
+use Sulu\Bundle\TagBundle\Tag\TagInterface;
 use Sulu\Bundle\TagBundle\Tag\TagRepositoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -36,7 +37,7 @@ class TagListTool
     #[McpTool(
         name: 'sulu_tag_list',
         title: 'List Tags',
-        description: 'List tags with pagination. Returns a page of tag objects (each with id and name), plus total tag count so you know how many pages exist. Use page and limit to navigate large tag collections.',
+        description: 'List tags with pagination. Returns a page of tag objects (each with id, resourceKey and name), plus total tag count so you know how many pages exist. Use page and limit to navigate large tag collections.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(requirements: [
@@ -52,7 +53,7 @@ class TagListTool
 
             return [
                 'tags' => \array_map(
-                    fn ($tag) => ['id' => $tag->getId(), 'name' => $tag->getName()],
+                    fn ($tag) => ['id' => $tag->getId(), 'resourceKey' => TagInterface::RESOURCE_KEY, 'name' => $tag->getName()],
                     $pageTags,
                 ),
                 'total' => $total,

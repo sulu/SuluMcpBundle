@@ -56,6 +56,7 @@ class TagCreateTool
             $result = [
                 'success' => true,
                 'id' => $tag->getId(),
+                'resourceKey' => TagInterface::RESOURCE_KEY,
                 'name' => $tag->getName(),
             ];
 

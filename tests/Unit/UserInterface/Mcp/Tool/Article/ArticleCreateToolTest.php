@@ -201,6 +201,7 @@ final class ArticleCreateToolTest extends TestCase
         $this->assertArrayHasKey(EnableFlushStamp::class, $capturedEnvelope->all());
         $this->assertTrue($result['success']);
         $this->assertSame('article-uuid-123', $result['uuid']);
+        $this->assertSame('articles', $result['resourceKey']);
         $this->assertSame('https://example.com/admin/#/en/default/article-uuid-123', $result['admin_url']);
     }
 

@@ -116,6 +116,7 @@ final class PageTreeToolTest extends TestCase
         $node = $result['tree'][0];
 
         $this->assertSame('uuid-1', $node['uuid']);
+        $this->assertSame('pages', $node['resourceKey']);
         $this->assertSame('Homepage', $node['title']);
         $this->assertSame('/', $node['url']);
         $this->assertSame('homepage', $node['templateKey']);
@@ -151,6 +152,7 @@ final class PageTreeToolTest extends TestCase
 
         $childNode = $parentNode['children'][0];
         $this->assertSame('uuid-child', $childNode['uuid']);
+        $this->assertSame('pages', $childNode['resourceKey']);
         $this->assertSame('About Us', $childNode['title']);
         $this->assertSame(1, $childNode['depth']);
         $this->assertSame('uuid-parent', $childNode['parentUuid']);

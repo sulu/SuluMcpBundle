@@ -138,6 +138,7 @@ final class BlockUpdateToolTest extends TestCase
         $this->assertInstanceOf(ModifyPageMessage::class, $capturedEnvelope->getMessage());
         $this->assertTrue($result['success']);
         $this->assertSame('page-uuid', $result['uuid']);
+        $this->assertSame('pages', $result['resourceKey']);
         $this->assertSame('block-1', $result['blockId']);
         $this->assertSame('blocks', $result['blockProperty']);
         $this->assertSame([0], $result['blockPath']);
@@ -290,6 +291,7 @@ final class BlockUpdateToolTest extends TestCase
         $this->assertInstanceOf(ModifyArticleMessage::class, $capturedEnvelope->getMessage());
         $this->assertTrue($result['success']);
         $this->assertSame('article-uuid', $result['uuid']);
+        $this->assertSame('articles', $result['resourceKey']);
         $this->assertSame('art-block-1', $result['blockId']);
         $this->assertSame('content', $result['blockProperty']);
     }
@@ -326,6 +328,7 @@ final class BlockUpdateToolTest extends TestCase
         $this->assertInstanceOf(ModifySnippetMessage::class, $capturedEnvelope->getMessage());
         $this->assertTrue($result['success']);
         $this->assertSame('snippet-uuid', $result['uuid']);
+        $this->assertSame('snippets', $result['resourceKey']);
         $this->assertSame('snip-block-1', $result['blockId']);
         $this->assertSame('blocks', $result['blockProperty']);
     }

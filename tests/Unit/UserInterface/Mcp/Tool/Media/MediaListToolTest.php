@@ -84,6 +84,7 @@ final class MediaListToolTest extends TestCase
         $this->assertSame(20, $result['limit']);
         $this->assertSame(1, $result['page']);
         $this->assertSame(1, $result['media'][0]['id']);
+        $this->assertSame('media', $result['media'][0]['resourceKey']);
         $this->assertSame('Photo 1', $result['media'][0]['title']);
         $this->assertSame('image/jpeg', $result['media'][0]['mimeType']);
     }

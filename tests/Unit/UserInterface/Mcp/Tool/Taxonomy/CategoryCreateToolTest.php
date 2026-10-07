@@ -69,6 +69,7 @@ final class CategoryCreateToolTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertSame(10, $result['id']);
+        $this->assertSame('categories', $result['resourceKey']);
         $this->assertSame('Technology', $result['name']);
         $this->assertSame('technology', $result['key']);
         $this->assertSame('https://example.com/admin/#/categories/en/10', $result['admin_url']);

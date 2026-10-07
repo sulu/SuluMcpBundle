@@ -71,7 +71,7 @@ class MediaUploadTool
     #[McpTool(
         name: 'sulu_media_upload',
         title: 'Upload Media From URL',
-        description: 'Import an image from a URL into a media collection and return its media id, ready to use in block and page fields. Pass the URL exactly as it appears on the source page: a Sulu thumbnail URL is rewritten to the original automatically, so never hand-edit it. A URL that already points at this Sulu instance returns the existing media instead of importing a copy. Before calling, gather the image\'s caption and credits from the page it appears on — the alt attribute, a figcaption, a nearby credit line, a meta author tag — and pass them as description and copyright/credits. Do not invent credits: leave the field empty if the page does not state one. Set origin to ai_generated when you created the image yourself, ai_modified when you altered an existing one, and human_created when you copied it from a real site.',
+        description: 'Import an image from a URL into a media collection and return its media id and resourceKey, ready to use in block and page fields. Pass the URL exactly as it appears on the source page: a Sulu thumbnail URL is rewritten to the original automatically, so never hand-edit it. A URL that already points at this Sulu instance returns the existing media instead of importing a copy. Before calling, gather the image\'s caption and credits from the page it appears on — the alt attribute, a figcaption, a nearby credit line, a meta author tag — and pass them as description and copyright/credits. Do not invent credits: leave the field empty if the page does not state one. Set origin to ai_generated when you created the image yourself, ai_modified when you altered an existing one, and human_created when you copied it from a real site.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true),
     )]
     // Not destructive: gated because the server fetches an address the model chose.
@@ -312,6 +312,7 @@ class MediaUploadTool
     {
         $described = [
             'id' => $media->getId(),
+            'resourceKey' => MediaInterface::RESOURCE_KEY,
             'title' => $media->getTitle(),
             'url' => $media->getUrl(),
             'mimeType' => $media->getMimeType(),

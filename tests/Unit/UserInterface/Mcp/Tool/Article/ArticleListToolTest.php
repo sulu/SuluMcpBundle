@@ -87,6 +87,8 @@ final class ArticleListToolTest extends TestCase
         $this->assertSame(20, $result['limit']);
         $this->assertSame('uuid-1', $result['articles'][0]['uuid']);
         $this->assertSame('uuid-2', $result['articles'][1]['uuid']);
+        $this->assertSame('articles', $result['articles'][0]['resourceKey']);
+        $this->assertSame('articles', $result['articles'][1]['resourceKey']);
     }
 
     public function testListArticlesAppliesTemplateFilter(): void

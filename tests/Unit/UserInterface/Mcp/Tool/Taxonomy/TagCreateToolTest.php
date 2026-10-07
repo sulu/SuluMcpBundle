@@ -60,6 +60,7 @@ final class TagCreateToolTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertSame(42, $result['id']);
+        $this->assertSame('tags', $result['resourceKey']);
         $this->assertSame('breaking-news', $result['name']);
         $this->assertSame('https://example.com/admin/#/tags/42', $result['admin_url']);
     }

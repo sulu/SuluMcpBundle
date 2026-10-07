@@ -68,6 +68,7 @@ final class PageGetToolTest extends TestCase
         $result = $this->tool->getPage('example', 'en', 'test-uuid-123');
 
         $this->assertSame('test-uuid-123', $result['uuid']);
+        $this->assertSame('pages', $result['resourceKey']);
         $this->assertSame('example', $result['webspace']);
         $this->assertSame('en', $result['locale']);
         $this->assertSame($normalizedData, $result['data']);

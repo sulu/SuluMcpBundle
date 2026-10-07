@@ -26,6 +26,7 @@ use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Snippet\Domain\Exception\SnippetNotFoundException;
+use Sulu\Snippet\Domain\Model\SnippetInterface;
 use Sulu\Snippet\Domain\Repository\SnippetRepositoryInterface;
 
 /**
@@ -49,7 +50,7 @@ class SnippetGetTool
     #[McpTool(
         name: 'sulu_snippet_get',
         title: 'Get Snippet',
-        description: 'Get a snippet by UUID. Snippets are reusable content blocks (e.g., contact info, footer content) shared across pages. Returns full content data. Snippets are global — not scoped to a webspace.',
+        description: 'Get a snippet by UUID. Snippets are reusable content blocks (e.g., contact info, footer content) shared across pages. Returns the uuid, resourceKey and full content data. Snippets are global — not scoped to a webspace.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -86,6 +87,7 @@ class SnippetGetTool
 
             return [
                 'uuid' => $snippet->getUuid(),
+                'resourceKey' => SnippetInterface::RESOURCE_KEY,
                 'locale' => $locale,
                 'data' => $this->compactContent($normalized, $this->detectBlockProperties($normalized)),
             ];

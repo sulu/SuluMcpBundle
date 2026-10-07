@@ -177,6 +177,7 @@ class ArticleCreateTool
             $result = [
                 'success' => true,
                 'uuid' => $article->getUuid(),
+                'resourceKey' => ArticleInterface::RESOURCE_KEY,
                 'data' => $normalized,
             ];
 

@@ -118,6 +118,7 @@ final class BlockRemoveToolTest extends TestCase
         $this->assertSame(2, $result['blockCount']);
         $this->assertSame(1, $result['removedIndex']);
         $this->assertSame('test-uuid', $result['uuid']);
+        $this->assertSame($type, $result['resourceKey']);
     }
 
     public function testRemoveBlockReturnsErrorForUnsupportedType(): void

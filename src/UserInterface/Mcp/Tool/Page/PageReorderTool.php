@@ -128,6 +128,7 @@ class PageReorderTool
             return [
                 'success' => true,
                 'uuid' => $reordered->getUuid(),
+                'resourceKey' => PageInterface::RESOURCE_KEY,
                 'webspace' => $reordered->getWebspaceKey(),
                 'parentId' => $parent->getUuid(),
                 'position' => $position,
