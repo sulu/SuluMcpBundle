@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Tests\Functional;
 
 use Mcp\Capability\RegistryInterface;
+use Mcp\Schema\Tool;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use Sulu\Bundle\AdminBundle\Admin\View\ResourceViewUrlGeneratorInterface;
 use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
@@ -61,5 +62,39 @@ final class AdminLinkToolRegistrationTest extends FunctionalTestCase
         self::assertContains('pages', $enum);
         self::assertContains('tags', $enum);
         self::assertStringContainsString('"tags"', (string) $expander->expandText($tool->description));
+    }
+
+    /**
+     * Gemini accepts a type list only as a type and null, so a property such as `string|int` breaks every
+     * chat that runs on it.
+     */
+    public function testNoToolDeclaresAUnionOfTwoRealTypes(): void
+    {
+        $container = self::getContainer();
+        $container->get('mcp.server.sulu');
+
+        /** @var RegistryInterface $registry */
+        $registry = $container->get(FilteredRegistry::class . '.inner');
+
+        $unions = [];
+        foreach ($registry->getTools()->references as $name => $tool) {
+            if (!$tool instanceof Tool) {
+                continue;
+            }
+
+            $properties = $tool->inputSchema['properties'] ?? [];
+            if (!\is_array($properties)) {
+                continue;
+            }
+
+            foreach ($properties as $property => $schema) {
+                $type = \is_array($schema) ? ($schema['type'] ?? null) : null;
+                if (\is_array($type) && (2 !== \count($type) || !\in_array('null', $type, true))) {
+                    $unions[] = $name . '.' . $property;
+                }
+            }
+        }
+
+        self::assertSame([], $unions);
     }
 }

@@ -93,6 +93,9 @@ class AdminLinkGenerateTool
     public function generateAdminLink(
         #[Schema(description: 'The resourceKey of the resource: {adminLinkResourceKeys}.', enum: [ContentTypeSchemaExpander::ADMIN_LINK_RESOURCE_KEYS])]
         string $resourceKey,
+        // Gemini rejects a schema type that is a list of two real types, so the id is declared as a string.
+        // An id the model sends as a number is still cast below.
+        #[Schema(type: 'string', description: 'The id of the resource: the UUID, or the numeric id written as a string.')]
         string|int $resourceId,
         string $locale,
         #[Schema(description: 'Optional. Pages use the webspace they are stored in.')]
