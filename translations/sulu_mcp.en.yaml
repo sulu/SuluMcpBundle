@@ -1,2 +1,3 @@
 'mcp:tools': 'Use MCP tools'
 'mcp:resources': 'Read MCP resources'
+'cimd.unverified': '%host% – not verified'
