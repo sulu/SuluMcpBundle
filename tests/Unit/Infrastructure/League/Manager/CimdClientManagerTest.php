@@ -10,6 +10,7 @@ declare(strict_types=1);
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Sulu\Mcp\Tests\Unit\Infrastructure\League\Manager;
 
 use League\Bundle\OAuth2ServerBundle\Manager\InMemory\ClientManager;
@@ -19,8 +20,8 @@ use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Application\OAuth\ClientMetadataFetcher;
 use Sulu\Mcp\Application\OAuth\ClientMetadataValidator;
 use Sulu\Mcp\Infrastructure\League\Manager\CimdClientManager;
-use Symfony\Component\Clock\MockClock;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
+use Symfony\Component\Clock\MockClock;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
@@ -201,7 +202,7 @@ final class CimdClientManagerTest extends TestCase
 
     private function manager(bool $enabled = true): CimdClientManager
     {
-        $client = new MockHttpClient(function (string $method, string $url): MockResponse {
+        $client = new MockHttpClient(function(string $method, string $url): MockResponse {
             $this->requested[] = $url;
 
             return \array_shift($this->responses) ?? new MockResponse('', ['http_code' => 500]);

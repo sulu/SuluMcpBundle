@@ -10,6 +10,7 @@ declare(strict_types=1);
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Sulu\Mcp\Infrastructure\League\Manager;
 
 use League\Bundle\OAuth2ServerBundle\Manager\ClientFilter;
@@ -48,7 +49,8 @@ class CimdClientManager implements ClientManagerInterface
     private const CACHE_PREFIX = 'sulu_mcp_cimd_';
 
     /**
-     * @param list<string> $scopes
+     * @param list<non-empty-string> $scopes
+     * @param (\Closure(): int)|null $now
      */
     public function __construct(
         private readonly ClientManagerInterface $inner,
@@ -64,6 +66,9 @@ class CimdClientManager implements ClientManagerInterface
 
     /**
      * The identifier a metadata URL is stored under.
+     */
+    /**
+     * @return non-empty-string
      */
     public static function storedIdentifier(string $clientIdUrl): string
     {
@@ -147,6 +152,9 @@ class CimdClientManager implements ClientManagerInterface
         return null === $this->now ? \time() : ($this->now)();
     }
 
+    /**
+     * @param non-empty-string $storedIdentifier
+     */
     private function store(string $storedIdentifier, ClientMetadata $metadata): ?ClientInterface
     {
         $client = $this->inner->find($storedIdentifier);

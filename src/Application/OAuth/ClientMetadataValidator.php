@@ -10,6 +10,7 @@ declare(strict_types=1);
  * This source file is subject to the MIT license that is bundled
  * with this source code in the file LICENSE.
  */
+
 namespace Sulu\Mcp\Application\OAuth;
 
 use Sulu\Mcp\Domain\Exception\ClientMetadataException;
@@ -77,7 +78,7 @@ class ClientMetadataValidator
 
         if (\array_key_exists('grant_types', $document)) {
             $grantTypes = $document['grant_types'];
-            if (!\is_array($grantTypes) || !\array_is_list($grantTypes) || [] !== \array_diff($grantTypes, self::ALLOWED_GRANT_TYPES)) {
+            if (!\is_array($grantTypes) || !\array_is_list($grantTypes) || [] !== \array_diff(\array_map(static fn (mixed $grant): string => \is_string($grant) ? $grant : '', $grantTypes), self::ALLOWED_GRANT_TYPES)) {
                 throw new ClientMetadataException('grant_types may only contain authorization_code and refresh_token.');
             }
         }
@@ -90,7 +91,7 @@ class ClientMetadataValidator
     }
 
     /**
-     * @return list<string>
+     * @return list<non-empty-string>
      *
      * @throws ClientMetadataException
      */
@@ -105,7 +106,7 @@ class ClientMetadataValidator
         }
 
         foreach ($value as $uri) {
-            if (!\is_string($uri) || \strlen($uri) > self::MAX_REDIRECT_URI_LENGTH || !RedirectUriPolicy::isAllowed($uri)) {
+            if (!\is_string($uri) || '' === $uri || \strlen($uri) > self::MAX_REDIRECT_URI_LENGTH || !RedirectUriPolicy::isAllowed($uri)) {
                 throw new ClientMetadataException('redirect_uris must be HTTPS or HTTP loopback URIs, or private-use schemes, without fragments.');
             }
         }
