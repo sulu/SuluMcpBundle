@@ -30,7 +30,7 @@ A handful of high-impact tools (delete, publish, block-remove, media-upload) are
 
 ## Authentication
 
-OAuth 2.1 with Dynamic Client Registration, backed by `league/oauth2-server-bundle`. Once a client completes the OAuth flow, every MCP request runs under that Sulu user — operations the user cannot perform in the admin UI also fail via MCP.
+OAuth 2.1 with Client ID Metadata Documents (CIMD) and Dynamic Client Registration, backed by `league/oauth2-server-bundle`. Once a client completes the OAuth flow, every MCP request runs under that Sulu user — operations the user cannot perform in the admin UI also fail via MCP.
 
 After login, Sulu shows an explicit authorization screen naming the client and requested scopes. The client only receives tokens when the Sulu user approves that screen.
 
@@ -42,4 +42,12 @@ php bin/console sulu:mcp:create-client "Claude.ai Production"
 
 The command prints the Client ID, Client Secret, and redirect URI to paste into the client's connector setup. Claude Code and Codex use Dynamic Client Registration and skip this step. ChatGPT's manual connector reveals its callback URL only after the connector is saved, so `sulu:mcp:create-client --client=chatgpt` keeps running and asks you to paste the callback URL before it finishes.
 
-> **Not yet supported:** Client ID Metadata Documents (CIMD), the metadata-URL-based onboarding that ChatGPT increasingly prefers. Tracked as a future enhancement; use DCR or the manual flow in the meantime.
+### Client ID Metadata Documents (CIMD)
+
+A client may send an `https://` URL as its `client_id`. The server fetches the JSON document at that URL, which names the client and lists its redirect URIs, and treats the client as a public client (PKCE required, no secret). Nothing needs to be set up on the Sulu side. The authorization-server metadata advertises `client_id_metadata_document_supported`.
+
+The document is only trusted to describe the client, not to prove who runs it, so the consent screen shows the name together with the host of the URL and marks it as *not verified*. Check the host before you approve.
+
+The document must be served as `application/json` from a public host, at most 16 KB, without redirects. Its `client_id` must equal the URL it was fetched from, and `client_name` and `redirect_uris` are required. It may not declare a client secret or another authentication method than `none`. Documents are cached according to their `Cache-Control` header, between 5 minutes and 24 hours, and a failed fetch is remembered for a minute.
+
+CIMD is on by default; set `sulu_mcp.client_id_metadata_documents.enabled: false` to switch it off. Dynamic Client Registration and clients created with `sulu:mcp:create-client` are unaffected.
