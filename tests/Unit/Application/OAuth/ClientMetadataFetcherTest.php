@@ -190,7 +190,7 @@ final class ClientMetadataFetcherTest extends TestCase
      */
     private function fetcher(array $addresses, MockResponse $response): ClientMetadataFetcher
     {
-        $client = new MockHttpClient(function (string $method, string $url, array $options) use ($response): MockResponse {
+        $client = new MockHttpClient(function(string $method, string $url, array $options) use ($response): MockResponse {
             $this->requests[] = [$url, $options];
 
             return $response;
