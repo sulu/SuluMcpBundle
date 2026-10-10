@@ -21,6 +21,10 @@ sulu_mcp:
         block_remove: false  # sulu_block_remove
         media_upload: false  # sulu_media_upload
 
+    # Let clients identify themselves with an https URL that serves their metadata (CIMD).
+    client_id_metadata_documents:
+        enabled: true
+
     # Limits applied to sulu_media_upload once dangerous_tools.media_upload is true.
     media_upload:
         allowed_hosts: []     # empty allows any public host
@@ -178,6 +182,10 @@ Booleans gating high-impact tools, keyed by category. Each flag is independent â
 When a flag is `false`, the corresponding tool services are removed from the container at compile time â€” they don't appear in MCP `tools/list` and calls fail with "unknown tool" rather than running with an error. To change a flag, edit the YAML and clear the cache (`bin/console cache:clear`).
 
 `media_upload` is the odd one out. `sulu_media_upload` destroys nothing: it imports an image from a URL into a collection. It is gated because it is the only tool that makes the server issue an outbound request to an address the model chose, and that is the operator's decision, not the model's.
+
+### `client_id_metadata_documents.enabled`
+
+Default `true`. Clients may then send an `https://` URL as `client_id`; the server fetches the metadata document there. That is the second place, after `sulu_media_upload`, where the server requests an address a stranger chose, so the fetch is confined: https on the default port only, no IP literals, every resolved address must be public (and the request is pinned to the address that was checked), no redirects, 3 seconds idle and 5 seconds in total, at most 16 KB. Documents declaring a client secret or an authentication method other than `none` are refused. Set it to `false` to stop advertising CIMD and stop fetching; DCR keeps working.
 
 ### `media_upload.*`
 
