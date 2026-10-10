@@ -18,6 +18,7 @@ use League\Bundle\OAuth2ServerBundle\Model\Client;
 use League\Bundle\OAuth2ServerBundle\ValueObject\Grant;
 use League\Bundle\OAuth2ServerBundle\ValueObject\RedirectUri;
 use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
+use Sulu\Mcp\Application\OAuth\RedirectUriPolicy;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -34,7 +35,6 @@ class DynamicClientRegistrationController
 {
     private const ALLOWED_GRANT_TYPES = ['authorization_code', 'refresh_token'];
     private const ALLOWED_TOKEN_ENDPOINT_AUTH_METHODS = ['client_secret_post', 'client_secret_basic', 'none'];
-    private const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1'];
 
     /**
      * @param list<string> $allowedScopes
@@ -65,7 +65,7 @@ class DynamicClientRegistrationController
         }
 
         foreach ($redirectUris as $redirectUri) {
-            if (!$this->isAllowedRedirectUri($redirectUri)) {
+            if (!RedirectUriPolicy::isAllowed($redirectUri)) {
                 return $this->invalidClientMetadata(\sprintf('Invalid redirect URI "%s". Use HTTPS or an HTTP loopback URI, without fragments.', $redirectUri));
             }
         }
@@ -182,28 +182,6 @@ class DynamicClientRegistrationController
         return $strings;
     }
 
-    private function isAllowedRedirectUri(string $uri): bool
-    {
-        $parts = \parse_url($uri);
-        if (false === $parts || !isset($parts['scheme']) || isset($parts['fragment'])) {
-            return false;
-        }
-
-        $scheme = \strtolower($parts['scheme']);
-
-        if ('https' === $scheme) {
-            return isset($parts['host']);
-        }
-
-        if ('http' === $scheme) {
-            return isset($parts['host'])
-                && \in_array($this->normalizeHost($parts['host']), self::LOOPBACK_HOSTS, true);
-        }
-
-        // Private-use URI scheme for native apps (RFC 8252), e.g. "com.example.app:/oauth".
-        return \str_contains($scheme, '.');
-    }
-
     /**
      * @return list<non-empty-string>|null
      */
@@ -225,10 +203,5 @@ class DynamicClientRegistrationController
         }
 
         return \array_values(\array_intersect($requested, $allowedScopes));
-    }
-
-    private function normalizeHost(string $host): string
-    {
-        return \strtolower(\trim($host, '[]'));
     }
 }
