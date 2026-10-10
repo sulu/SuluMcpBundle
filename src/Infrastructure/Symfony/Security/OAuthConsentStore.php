@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Infrastructure\Symfony\Security;
 
 use League\Bundle\OAuth2ServerBundle\Event\AuthorizationRequestResolveEvent;
 use Sulu\Mcp\Domain\Model\OAuthConsentRequest;
+use Sulu\Mcp\Infrastructure\League\Manager\CimdClientManager;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Session\SessionInterface;
 
@@ -35,7 +36,7 @@ final readonly class OAuthConsentStore
             $id,
             $authorizationUrl,
             $this->withConsentRequestId($authorizationUrl, $id),
-            $event->getClient()->getIdentifier(),
+            $this->displayedClientId($request, $event->getClient()->getIdentifier()),
             $event->getClient()->getName(),
             $event->getRedirectUri(),
             \array_values(\array_map(static fn (object $scope): string => (string) $scope, $event->getScopes())),
@@ -45,6 +46,26 @@ final readonly class OAuthConsentStore
         $this->save($request, $consentRequest);
 
         return $consentRequest;
+    }
+
+    /**
+     * A client_id URL is stored under a short derived identifier (see CimdClientManager). The
+     * consent page should show the URL the client presented, but only when it really is the
+     * one this client was resolved from: the query parameter is the client's to choose.
+     */
+    private function displayedClientId(Request $request, string $storedIdentifier): string
+    {
+        $presented = $request->query->get('client_id');
+
+        if (
+            \is_string($presented)
+            && CimdClientManager::isMetadataUrl($presented)
+            && CimdClientManager::storedIdentifier($presented) === $storedIdentifier
+        ) {
+            return $presented;
+        }
+
+        return $storedIdentifier;
     }
 
     public function get(Request $request, string $id): ?OAuthConsentRequest

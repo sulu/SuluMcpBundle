@@ -54,6 +54,13 @@ final class ClientMetadataValidatorTest extends TestCase
         self::assertSame(ClientMetadataValidator::MAX_NAME_LENGTH, \mb_strlen($metadata->clientName));
     }
 
+    public function testStripsControlAndFormatCharactersFromTheName(): void
+    {
+        $metadata = (new ClientMetadataValidator())->validate(self::URL, $this->document(['client_name' => "Good\nName\u{202E}"]));
+
+        self::assertSame('GoodName', $metadata->clientName);
+    }
+
     /**
      * @param array<string, mixed> $overrides
      */

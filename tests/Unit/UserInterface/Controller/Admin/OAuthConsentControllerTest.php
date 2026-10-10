@@ -22,6 +22,7 @@ use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
 use Sulu\Mcp\Domain\Model\OAuthConsentRequest;
+use Sulu\Mcp\Infrastructure\League\Manager\CimdClientManager;
 use Sulu\Mcp\Infrastructure\Symfony\Security\OAuthConsentStore;
 use Sulu\Mcp\UserInterface\Controller\Admin\OAuthConsentController;
 use Symfony\Bundle\SecurityBundle\Security;
@@ -48,9 +49,10 @@ final class OAuthConsentControllerTest extends TestCase
 
         $translator = $this->prophesize(TranslatorInterface::class);
         $translator->trans(Argument::cetera())->will(fn (array $args) => (
-            static fn (string $id): string => match ($id) {
+            static fn (string $id, array $parameters = []): string => match ($id) {
                 'mcp:tools' => 'Use MCP tools',
                 'mcp:resources' => 'Read MCP resources',
+                'cimd.unverified' => ($parameters['%host%'] ?? '') . ' – not verified',
                 default => $id,
             }
         )(...$args));
@@ -73,6 +75,31 @@ final class OAuthConsentControllerTest extends TestCase
         self::assertSame('ChatGPT', $body['clientName']);
         self::assertSame('https://chatgpt.com/oauth/callback', $body['redirectUri']);
         self::assertSame([['id' => 'mcp:tools', 'label' => 'Use MCP tools']], $body['scopes']);
+    }
+
+    public function testDetailsShowsTheUrlHostOfAMetadataClientAsUnverified(): void
+    {
+        $url = 'https://client.example/oauth/metadata.json';
+        $client = new Client('Example Client', CimdClientManager::storedIdentifier($url), null);
+        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=' . \rawurlencode($url));
+        $consentRequest = $this->store->create($request, $this->event(['mcp:tools'], $client));
+
+        $body = $this->json($this->controller->details($request, $consentRequest->getId()));
+
+        self::assertSame($url, $body['clientId']);
+        self::assertSame('Example Client (client.example – not verified)', $body['clientName']);
+    }
+
+    public function testDetailsDoesNotTrustAClientIdUrlThatIsNotTheResolvedClient(): void
+    {
+        $client = new Client('Registered', 'abcdef0123456789abcdef0123456789', 'secret');
+        $request = $this->request('/admin/mcp/authorize?client_id=' . \rawurlencode('https://trusted.example/metadata.json'));
+        $consentRequest = $this->store->create($request, $this->event(['mcp:tools'], $client));
+
+        $body = $this->json($this->controller->details($request, $consentRequest->getId()));
+
+        self::assertSame('abcdef0123456789abcdef0123456789', $body['clientId']);
+        self::assertSame('Registered', $body['clientName']);
     }
 
     public function testDetailsReturnsNotFoundForMissingRequest(): void
@@ -147,7 +174,7 @@ final class OAuthConsentControllerTest extends TestCase
         return $request;
     }
 
-    private function event(array $scopes): AuthorizationRequestResolveEvent
+    private function event(array $scopes, ?Client $client = null): AuthorizationRequestResolveEvent
     {
         $authorizationRequest = $this->prophesize(AuthorizationRequestInterface::class);
         $authorizationRequest->getRedirectUri(Argument::cetera())->willReturn('https://chatgpt.com/oauth/callback');
@@ -156,7 +183,7 @@ final class OAuthConsentControllerTest extends TestCase
         return new AuthorizationRequestResolveEvent(
             $authorizationRequest->reveal(),
             \array_map(static fn (string $scope): Scope => new Scope($scope), $scopes),
-            new Client('ChatGPT', 'client-1', 'secret'),
+            $client ?? new Client('ChatGPT', 'client-1', 'secret'),
             new class() implements UserInterface {
                 public function getRoles(): array
                 {

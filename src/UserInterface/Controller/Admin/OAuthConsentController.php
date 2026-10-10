@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Controller\Admin;
 
 use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Mcp\Domain\Model\OAuthConsentRequest;
+use Sulu\Mcp\Infrastructure\League\Manager\CimdClientManager;
 use Sulu\Mcp\Infrastructure\Symfony\Security\OAuthConsentStore;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -49,7 +50,7 @@ final readonly class OAuthConsentController
 
         return new JsonResponse([
             'clientId' => $consentRequest->getClientId(),
-            'clientName' => $consentRequest->getClientName(),
+            'clientName' => $this->clientName($consentRequest),
             'redirectUri' => $consentRequest->getRedirectUri(),
             'scopes' => \array_map($this->scopePayload(...), $consentRequest->getScopes()),
             'state' => $consentRequest->getState(),
@@ -89,6 +90,24 @@ final readonly class OAuthConsentController
             'id' => $scope,
             'label' => $this->translator->trans($scope, [], 'sulu_mcp', $this->userLocale()),
         ];
+    }
+
+    /**
+     * The name of a client that identified itself by URL is whatever its owner wrote, so it is
+     * shown together with the host of that URL and marked as unverified.
+     */
+    private function clientName(OAuthConsentRequest $consentRequest): string
+    {
+        $clientId = $consentRequest->getClientId();
+        if (!CimdClientManager::isMetadataUrl($clientId)) {
+            return $consentRequest->getClientName();
+        }
+
+        return \sprintf(
+            '%s (%s)',
+            $consentRequest->getClientName(),
+            $this->translator->trans('cimd.unverified', ['%host%' => \parse_url($clientId, \PHP_URL_HOST)], 'sulu_mcp', $this->userLocale()),
+        );
     }
 
     private function userLocale(): ?string

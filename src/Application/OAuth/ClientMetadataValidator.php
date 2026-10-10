@@ -57,6 +57,9 @@ class ClientMetadataValidator
         }
 
         $name = $document['client_name'] ?? null;
+        // Control and format characters (newlines, bidi overrides) could disguise the name on
+        // the consent page.
+        $name = \is_string($name) ? \preg_replace('/[\p{Cc}\p{Cf}]/u', '', $name) : null;
         if (!\is_string($name) || '' === \trim($name)) {
             throw new ClientMetadataException('client_name is required.');
         }
