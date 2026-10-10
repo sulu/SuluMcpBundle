@@ -37,6 +37,7 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  *     dangerous_tools: array<string, bool>,
  *     media_upload: array{allowed_hosts: list<string>},
  *     dynamic_client_registration: array{enabled: bool},
+ *     client_id_metadata_documents: array{enabled: bool},
  * }
  */
 class SuluMcpBundle extends AbstractBundle
@@ -92,6 +93,16 @@ class SuluMcpBundle extends AbstractBundle
                     ->normalizeKeys(false)
                     ->info('Enables tools with hard-to-reverse effects per #[DangerousTool] category (built in: delete, publish, block_remove, media_upload). Unlisted categories stay off; one that no tool declares fails the build.')
                     ->booleanPrototype()->end()
+                ->end()
+                ->arrayNode('client_id_metadata_documents')
+                    ->addDefaultsIfNotSet()
+                    ->info('OAuth Client ID Metadata Documents: clients may identify themselves with an https URL that serves their metadata, instead of registering first.')
+                    ->children()
+                        ->booleanNode('enabled')
+                            ->defaultTrue()
+                            ->info('Set to false to stop advertising CIMD and to stop fetching client metadata. Dynamic client registration is not affected.')
+                        ->end()
+                    ->end()
                 ->end()
                 ->arrayNode('media_upload')
                     ->addDefaultsIfNotSet()
@@ -161,6 +172,7 @@ class SuluMcpBundle extends AbstractBundle
         $builder->setParameter('sulu_mcp.server_url', $config['server_url']);
         $builder->setParameter('sulu_mcp.mcp_path', $config['mcp_path']);
         $builder->setParameter('sulu_mcp.oauth.scopes', self::SCOPES);
+        $builder->setParameter('sulu_mcp.cimd.enabled', $config['client_id_metadata_documents']['enabled']);
         $builder->setParameter('sulu_mcp.dangerous_tools', $config['dangerous_tools']);
 
         $builder->setParameter('sulu_mcp.media_upload.allowed_hosts', \array_map(

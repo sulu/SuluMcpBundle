@@ -50,6 +50,17 @@ final class WellKnownControllerTest extends TestCase
         self::assertSame('https://sulu.example.com/admin/mcp/register', $body['registration_endpoint']);
         self::assertSame(['mcp:tools'], $body['scopes_supported']);
         self::assertContains('none', $body['token_endpoint_auth_methods_supported']);
+        self::assertTrue($body['client_id_metadata_document_supported']);
+    }
+
+    public function testAuthorizationServerMetadataDoesNotAdvertiseCimdWhenDisabled(): void
+    {
+        $controller = new WellKnownController($this->urlGenerator(), 'https://sulu.example.com', '/admin/mcp', ['mcp:tools'], false);
+
+        $body = $this->json($controller->authorizationServerMetadata()->getContent());
+
+        self::assertFalse($body['client_id_metadata_document_supported']);
+        self::assertArrayHasKey('registration_endpoint', $body);
     }
 
     public function testAuthorizationServerMetadataOmitsTheRegistrationEndpointWhenRegistrationIsDisabled(): void
