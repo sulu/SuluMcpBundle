@@ -49,9 +49,8 @@ final readonly class OAuthConsentStore
     }
 
     /**
-     * A client_id URL is stored under a short derived identifier (see CimdClientManager). The
-     * consent page should show the URL the client presented, but only when it really is the
-     * one this client was resolved from: the query parameter is the client's to choose.
+     * Shows the presented client_id URL only when it is the one this client was resolved from:
+     * the query parameter is the client's to choose.
      */
     private function displayedClientId(Request $request, string $storedIdentifier): string
     {

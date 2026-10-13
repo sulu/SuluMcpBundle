@@ -18,10 +18,6 @@ use League\Bundle\OAuth2ServerBundle\Repository\ClientRepository;
 use PHPUnit\Framework\Attributes\CoversNothing;
 use Sulu\Mcp\Infrastructure\League\Manager\CimdClientManager;
 
-/**
- * League resolves clients through its ClientRepository; the CIMD decorator only counts if
- * that is what the repository is handed.
- */
 #[CoversNothing]
 final class CimdWiringTest extends FunctionalTestCase
 {
@@ -39,6 +35,6 @@ final class CimdWiringTest extends FunctionalTestCase
 
         $manager = (new \ReflectionProperty(ClientRepository::class, 'clientManager'))->getValue($repository);
 
-        self::assertInstanceOf(CimdClientManager::class, $manager);
+        self::assertInstanceOf(CimdClientManager::class, $manager, 'League resolves clients through its ClientRepository, so CIMD only counts if that is handed the decorator.');
     }
 }

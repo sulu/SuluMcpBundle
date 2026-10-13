@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Domain\Exception;
 
 /**
- * A Client ID Metadata Document could not be fetched or is not acceptable.
- *
  * @internal
  */
 class ClientMetadataException extends \RuntimeException

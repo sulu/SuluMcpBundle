@@ -93,8 +93,7 @@ final readonly class OAuthConsentController
     }
 
     /**
-     * The name of a client that identified itself by URL is whatever its owner wrote, so it is
-     * shown together with the host of that URL and marked as unverified.
+     * A URL client's name is whatever its owner wrote, so it is shown with the host and marked unverified.
      */
     private function clientName(OAuthConsentRequest $consentRequest): string
     {

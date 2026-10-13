@@ -14,8 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Domain\Exception;
 
 /**
- * The host of a Client ID Metadata Document could not be reached or failed with a server error.
- * The document itself was not rejected.
+ * Reaching the host failed or it answered with a server error. The document itself was not rejected.
  *
  * @internal
  */

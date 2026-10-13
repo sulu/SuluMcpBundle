@@ -259,9 +259,7 @@ return static function(ContainerConfigurator $container): void {
         ->arg('$enabled', '%sulu_mcp.dcr.enabled%')
         ->tag('kernel.event_listener', ['event' => 'kernel.request', 'method' => 'onKernelRequest', 'priority' => 16]);
 
-    // Client ID Metadata Documents. The client is as exposed as MediaDownloader's: it fetches a
-    // URL a stranger chose, so it is built the same way, and ClientMetadataFetcher pins the
-    // address it checked on top of that.
+    // fetches a URL a stranger chose: built like MediaDownloader's client, plus the fetcher's address pinning
     $services->set('sulu_mcp.cimd.http_client', NoPrivateNetworkHttpClient::class)
         ->arg('$client', inline_service(HttpClientInterface::class)->factory([HttpClient::class, 'create']));
 
