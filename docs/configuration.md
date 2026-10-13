@@ -51,6 +51,27 @@ If you change `mcp_path`, also update the `pattern` of the `mcp` firewall in you
 
 `symfony/mcp-bundle` serves named MCP servers, each with its own identity, endpoint and set of exposed capabilities. This bundle prepends one called `sulu`, exposing every registered tool and resource over HTTP at `mcp_path`, so everything that bundle leaves to the project is configured under `mcp.servers.sulu` -- `allowed_hosts` below, and the options with a working default (`pagination_limit`, `instructions`, `session`, the protocol revisions the server answers for) that `symfony/mcp-bundle` documents itself.
 
+### Protocol revisions and sessions
+
+The endpoint answers for two kinds of clients on the same path.
+
+- **Revision 2026-07-28 (stateless).** There is no `initialize` handshake and no `Mcp-Session-Id`. Each request carries the protocol version, client info and client capabilities in `params._meta`, and the headers `MCP-Protocol-Version`, `Mcp-Method` and, for `tools/call`, `Mcp-Name`. A client reads the server's capabilities with `server/discover`. Any server behind a load balancer can answer any request, so nothing needs sticky routing or a shared store.
+- **Earlier revisions (handshake).** The client opens a session with `initialize` and sends the `Mcp-Session-Id` it gets back. `symfony/mcp-bundle` keeps these sessions in `mcp.servers.sulu.session`. The default `file` store lives in the cache directory and works on one server. With several servers, use the `cache` store on a pool backed by shared storage, or route each client to the same server:
+
+```yaml
+# config/packages/mcp.yaml
+mcp:
+    servers:
+        sulu:
+            session:
+                store: cache
+                cache_pool: cache.mcp.sessions   # point this pool at Redis or a database
+```
+
+The era does not change who is calling. The OAuth bearer token on each request identifies the user, every tool runs under that user's Sulu permissions, and [scope enforcement](#scope-enforcement) is the same.
+
+A 2026-07-28 client sees a few differences. The `GET` stream answers `405`, `ping` is gone, and JSON-RPC batches are refused. `subscriptions/listen` replaces the `GET` stream for list-changed notifications. Its delivery bus is `none` by default (`mcp.servers.sulu.subscriptions.bus`), so a stream stays empty. That is fine here, because the tools are registered at build time and never change while the server runs.
+
 ## Routes
 
 The bundle ships its routes in two files, because the two halves are mounted differently. `routing_admin.yaml` carries the OAuth endpoints and takes whichever prefix your project already uses for the rest of the Sulu admin, exactly like every other Sulu bundle. `routing_website.yaml` carries the discovery documents, whose paths RFC 8414 and RFC 9728 anchor in the host's `/.well-known/` namespace and which must therefore never take a route prefix.
@@ -132,7 +153,7 @@ During OAuth authorization, users authenticate with the normal Sulu admin login 
 
 #### Scope enforcement
 
-On the MCP endpoint the bundle inspects every access token league issued: `tools/*` methods require `mcp:tools`, `resources/*` methods require `mcp:resources`, and anything else -- the handshake methods, the `GET` stream, the session `DELETE`, an unreadable body -- requires any one of the two scopes. A JSON-RPC batch requires every scope its members require. A token the firewall authenticated by other means carries no OAuth scopes and is not inspected.
+On the MCP endpoint the bundle inspects every access token league issued: `tools/*` methods require `mcp:tools`, `resources/*` methods require `mcp:resources`, and anything else -- `server/discover`, `subscriptions/listen`, the handshake methods, the `GET` stream, the session `DELETE`, an unreadable body -- requires any one of the two scopes. A JSON-RPC batch (handshake era only) requires every scope its members require. A token the firewall authenticated by other means carries no OAuth scopes and is not inspected.
 
 A token that falls short is answered with `403`, the JSON-RPC error `-32003 Insufficient scope`, and a `WWW-Authenticate: Bearer error="insufficient_scope"` header whose `scope=` names the scopes the request needed -- both scopes in the any-scope case.
 
