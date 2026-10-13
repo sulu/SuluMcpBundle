@@ -20,13 +20,9 @@ use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpClientExcep
 use Symfony\Contracts\HttpClient\HttpClientInterface;
 
 /**
- * Fetches an OAuth Client ID Metadata Document from a URL the client supplied.
- *
- * The URL is attacker-controlled, so the request is constrained: https only, no credentials
- * or fragment in the URL, no IP literals, no redirects, a short timeout and a small size cap.
- * The hostname is resolved here and every address must be public; the request is then pinned
- * to the address that was checked, so DNS cannot answer differently the second time. The
- * injected client is expected to be a NoPrivateNetworkHttpClient as a second lock.
+ * The URL is attacker-controlled: https only, no IP literals, no redirects, short timeout, small size cap.
+ * Every resolved address must be public and the request is pinned to the one checked, so DNS cannot
+ * answer differently the second time. The injected client should be a NoPrivateNetworkHttpClient as a second lock.
  *
  * @internal
  */
@@ -41,8 +37,7 @@ class ClientMetadataFetcher
     private const MAX_DURATION = 5.0;
 
     /**
-     * Ranges IpUtils::PRIVATE_SUBNETS does not name, or names only from a later Symfony release
-     * on: the lowest supported version lacks the carrier-grade NAT and the tunnelling ranges.
+     * Ranges IpUtils::PRIVATE_SUBNETS lacks in the lowest supported Symfony release.
      */
     private const EXTRA_BLOCKED_SUBNETS = [
         '100.64.0.0/10',  // carrier-grade NAT, cloud metadata services live here
@@ -126,7 +121,7 @@ class ClientMetadataFetcher
 
                 $body .= $chunk->getContent();
 
-                // Counted on what arrived: Content-Length is the remote's to understate.
+                // counted on what arrived: Content-Length is the remote's to understate
                 if (\strlen($body) > self::MAX_BODY_SIZE) {
                     $response->cancel();
 
@@ -185,8 +180,7 @@ class ClientMetadataFetcher
             throw new ClientMetadataUnavailableException(\sprintf('The host "%s" does not resolve.', $host));
         }
 
-        // All of them, not just the one connected to: a host that mixes public and internal
-        // records is treated as internal.
+        // every address, not just the one used: a host mixing public and internal records counts as internal
         foreach ($addresses as $address) {
             if (self::isInternal($address)) {
                 throw new ClientMetadataException(\sprintf('The host "%s" resolves to a non-public address.', $host));

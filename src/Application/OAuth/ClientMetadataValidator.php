@@ -16,10 +16,8 @@ namespace Sulu\Mcp\Application\OAuth;
 use Sulu\Mcp\Domain\Exception\ClientMetadataException;
 
 /**
- * Checks a fetched Client ID Metadata Document.
- *
- * Only public clients are accepted: the document cannot carry a secret and the client has to
- * use PKCE, which the authorization server enforces for every client without one.
+ * Only public clients are accepted: the document cannot carry a secret, and the authorization server
+ * demands PKCE from every public client.
  *
  * @internal
  */
@@ -31,9 +29,6 @@ class ClientMetadataValidator
 
     private const ALLOWED_GRANT_TYPES = ['authorization_code', 'refresh_token'];
 
-    /**
-     * Fields that would make the client confidential or give it another way to authenticate.
-     */
     private const FORBIDDEN_FIELDS = ['client_secret', 'client_secret_expires_at', 'jwks', 'jwks_uri'];
 
     /**
@@ -51,15 +46,13 @@ class ClientMetadataValidator
             throw new ClientMetadataException('The metadata document must be a JSON object.');
         }
 
-        // Exact string comparison, no normalisation: a document served at one URL must not be
-        // able to speak for another.
+        // exact comparison, no normalisation: a document must not speak for another URL
         if (($document['client_id'] ?? null) !== $url) {
             throw new ClientMetadataException('The client_id in the metadata document does not match the URL it was fetched from.');
         }
 
         $name = $document['client_name'] ?? null;
-        // Control and format characters (newlines, bidi overrides) could disguise the name on
-        // the consent page.
+        // control and format characters (newlines, bidi overrides) could disguise the name on the consent page
         $name = \is_string($name) ? \preg_replace('/[\p{Cc}\p{Cf}]/u', '', $name) : null;
         if (!\is_string($name) || '' === \trim($name)) {
             throw new ClientMetadataException('client_name is required.');

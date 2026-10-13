@@ -19,7 +19,6 @@ namespace Sulu\Mcp\Application\OAuth;
 final readonly class FetchedClientMetadata
 {
     /**
-     * @param string $body the raw JSON document
      * @param int $ttl seconds the document may be reused, already clamped
      */
     public function __construct(

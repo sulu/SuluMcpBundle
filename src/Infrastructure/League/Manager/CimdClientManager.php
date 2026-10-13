@@ -32,14 +32,9 @@ use Sulu\Mcp\Domain\Exception\ClientMetadataException;
 use Sulu\Mcp\Domain\Exception\ClientMetadataUnavailableException;
 
 /**
- * Resolves an `https://` client_id as an OAuth Client ID Metadata Document, and hands every
- * other identifier to the decorated manager.
- *
- * The tokens and authorization codes of league/oauth2-server-bundle reference
- * `oauth2_client.identifier`, a 32 character column, so a URL cannot be stored as it is. The
- * client is persisted as a public client under a stable 32 character identifier derived from
- * the URL; League only needs that identifier to be the same on every call. Name and redirect
- * URIs are refreshed from the document once the cache entry has expired.
+ * League's tokens and codes reference `oauth2_client.identifier`, a 32 character column, so a URL cannot be
+ * stored as it is. The client is persisted under a stable 32 character identifier derived from the URL.
+ * Every other client_id goes to the decorated manager.
  *
  * @internal
  */
@@ -90,8 +85,7 @@ class CimdClientManager implements ClientManagerInterface
         $entry = $item->isHit() ? $item->get() : null;
         $now = $this->time();
 
-        // The deadline is kept in the value rather than in the cache expiry: it is the
-        // document's own cache lifetime, and it stays testable without a real clock.
+        // the deadline lives in the value, not the cache expiry: it is the document's own lifetime and stays testable
         if (\is_array($entry) && $entry['expires'] > $now) {
             if (!$entry['valid']) {
                 return null;
@@ -113,8 +107,7 @@ class CimdClientManager implements ClientManagerInterface
         } catch (ClientMetadataException $e) {
             $this->logger->warning('Rejected OAuth client metadata document.', ['client_id' => $identifier, 'reason' => $e->getMessage()]);
 
-            // Remembered briefly, so unauthenticated requests cannot make the server fetch
-            // the same URL over and over.
+            // remembered briefly, so requests cannot make the server fetch the same URL over and over
             $this->remember($item, false, self::FAILURE_TTL, $now + self::FAILURE_TTL);
 
             return null;
@@ -146,9 +139,8 @@ class CimdClientManager implements ClientManagerInterface
     }
 
     /**
-     * A client whose host is down keeps working with the data stored at the last successful
-     * fetch, for as long as that entry is kept. Without it, every token refresh of the client
-     * would fail while its host is unreachable. A client never fetched before gets none.
+     * Keeps a client working on its last fetched data while its host is down, as long as the entry is kept.
+     * Without it every token refresh of the client would fail during an outage.
      */
     private function staleClient(CacheItemInterface $item, mixed $entry, string $storedIdentifier): ?ClientInterface
     {
@@ -190,13 +182,12 @@ class CimdClientManager implements ClientManagerInterface
         $client = $this->inner->find($storedIdentifier);
 
         if (null !== $client && $client->isConfidential()) {
-            // Not ours: a metadata document must never take over a client that has a secret.
+            // a metadata document must never take over a client that has a secret
             return null;
         }
 
         if (null === $client) {
-            // Never given a secret: a client that identifies itself by URL is public, and the
-            // authorization server demands PKCE from every public client.
+            // never given a secret: a client identifying itself by URL is public
             $client = new Client($metadata->clientName, $storedIdentifier, null);
         }
 
@@ -209,8 +200,7 @@ class CimdClientManager implements ClientManagerInterface
         $client->setScopes(...\array_map(static fn (string $scope): Scope => new Scope($scope), $this->scopes));
         $client->setAllowPlainTextPkce(false);
 
-        // `active` is left alone: an administrator who deactivated the client keeps it off
-        // however often the document is fetched again.
+        // `active` is left alone: a client an administrator deactivated stays off
         $this->inner->save($client);
 
         return $client;

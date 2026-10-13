@@ -14,8 +14,6 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Application\OAuth;
 
 /**
- * A validated Client ID Metadata Document, reduced to what the authorization server uses.
- *
  * @internal
  */
 final readonly class ClientMetadata
