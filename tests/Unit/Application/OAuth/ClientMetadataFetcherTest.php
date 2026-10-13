@@ -19,6 +19,7 @@ use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Application\OAuth\ClientMetadataFetcher;
 use Sulu\Mcp\Application\OAuth\FetchedClientMetadata;
 use Sulu\Mcp\Domain\Exception\ClientMetadataException;
+use Sulu\Mcp\Domain\Exception\ClientMetadataUnavailableException;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 
@@ -121,6 +122,12 @@ final class ClientMetadataFetcherTest extends TestCase
         yield 'private 192.168' => [['192.168.0.5']];
         yield 'cloud metadata' => [['169.254.169.254']];
         yield 'carrier grade nat' => [['100.64.0.1']];
+        yield 'alibaba cloud metadata' => [['100.100.100.200']];
+        yield 'benchmarking' => [['198.18.0.1']];
+        yield 'documentation' => [['203.0.113.7']];
+        yield 'ipv4 compatible loopback' => [['::7f00:1']];
+        yield '6to4 embedding loopback' => [['2002:7f00:1::1']];
+        yield 'teredo' => [['2001:0:4136:e378:8000:63bf:3fff:fdd2']];
         yield 'ipv6 loopback' => [['::1']];
         yield 'ipv6 unique local' => [['fd00::1']];
         yield 'ipv4 mapped loopback' => [['::ffff:127.0.0.1']];
@@ -129,10 +136,27 @@ final class ClientMetadataFetcherTest extends TestCase
 
     public function testRejectsAHostThatDoesNotResolve(): void
     {
-        $this->expectException(ClientMetadataException::class);
+        $this->expectException(ClientMetadataUnavailableException::class);
         $this->expectExceptionMessage('does not resolve');
 
         $this->fetcher([], new MockResponse('{}'))->fetch(self::URL);
+    }
+
+    public function testReportsAServerErrorAsUnavailable(): void
+    {
+        $this->expectException(ClientMetadataUnavailableException::class);
+
+        $this->fetcher(['93.184.216.34'], new MockResponse('', ['http_code' => 503]))->fetch(self::URL);
+    }
+
+    public function testDoesNotReportARejectedDocumentAsUnavailable(): void
+    {
+        try {
+            $this->fetcher(['93.184.216.34'], new MockResponse('', ['http_code' => 404, 'response_headers' => ['Content-Type: application/json']]))->fetch(self::URL);
+            self::fail('A 404 must be rejected.');
+        } catch (ClientMetadataException $e) {
+            self::assertNotInstanceOf(ClientMetadataUnavailableException::class, $e);
+        }
     }
 
     public function testRefusesToFollowARedirect(): void

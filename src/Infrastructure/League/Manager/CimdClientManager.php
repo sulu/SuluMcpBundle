@@ -29,6 +29,7 @@ use Sulu\Mcp\Application\OAuth\ClientMetadata;
 use Sulu\Mcp\Application\OAuth\ClientMetadataFetcher;
 use Sulu\Mcp\Application\OAuth\ClientMetadataValidator;
 use Sulu\Mcp\Domain\Exception\ClientMetadataException;
+use Sulu\Mcp\Domain\Exception\ClientMetadataUnavailableException;
 
 /**
  * Resolves an `https://` client_id as an OAuth Client ID Metadata Document, and hands every
@@ -65,9 +66,6 @@ class CimdClientManager implements ClientManagerInterface
     }
 
     /**
-     * The identifier a metadata URL is stored under.
-     */
-    /**
      * @return non-empty-string
      */
     public static function storedIdentifier(string $clientIdUrl): string
@@ -90,10 +88,11 @@ class CimdClientManager implements ClientManagerInterface
         $item = $this->cache->getItem(self::CACHE_PREFIX . $storedIdentifier);
 
         $entry = $item->isHit() ? $item->get() : null;
+        $now = $this->time();
 
         // The deadline is kept in the value rather than in the cache expiry: it is the
         // document's own cache lifetime, and it stays testable without a real clock.
-        if (\is_array($entry) && $entry['expires'] > $this->time()) {
+        if (\is_array($entry) && $entry['expires'] > $now) {
             if (!$entry['valid']) {
                 return null;
             }
@@ -107,12 +106,16 @@ class CimdClientManager implements ClientManagerInterface
         try {
             $fetched = $this->fetcher->fetch($identifier);
             $metadata = $this->validator->validate($identifier, $fetched->body);
+        } catch (ClientMetadataUnavailableException $e) {
+            $this->logger->warning('OAuth client metadata document is unavailable.', ['client_id' => $identifier, 'reason' => $e->getMessage()]);
+
+            return $this->staleClient($item, $entry, $storedIdentifier);
         } catch (ClientMetadataException $e) {
             $this->logger->warning('Rejected OAuth client metadata document.', ['client_id' => $identifier, 'reason' => $e->getMessage()]);
 
             // Remembered briefly, so unauthenticated requests cannot make the server fetch
             // the same URL over and over.
-            $this->remember($item, false, self::FAILURE_TTL);
+            $this->remember($item, false, self::FAILURE_TTL, $now + self::FAILURE_TTL);
 
             return null;
         }
@@ -122,7 +125,7 @@ class CimdClientManager implements ClientManagerInterface
             return null;
         }
 
-        $this->remember($item, true, $fetched->ttl);
+        $this->remember($item, true, $fetched->ttl, $now + ClientMetadataFetcher::MAX_TTL);
 
         return $client;
     }
@@ -142,9 +145,36 @@ class CimdClientManager implements ClientManagerInterface
         return $this->inner->list($clientFilter);
     }
 
-    private function remember(CacheItemInterface $item, bool $valid, int $ttl): void
+    /**
+     * A client whose host is down keeps working with the data stored at the last successful
+     * fetch, for as long as that entry is kept. Without it, every token refresh of the client
+     * would fail while its host is unreachable. A client never fetched before gets none.
+     */
+    private function staleClient(CacheItemInterface $item, mixed $entry, string $storedIdentifier): ?ClientInterface
     {
-        $this->cache->save($item->set(['valid' => $valid, 'expires' => $this->time() + $ttl])->expiresAfter(ClientMetadataFetcher::MAX_TTL));
+        $now = $this->time();
+        $keepUntil = \is_array($entry) && true === $entry['valid'] && \is_int($entry['keepUntil'] ?? null) ? $entry['keepUntil'] : 0;
+
+        $client = $keepUntil > $now ? $this->inner->find($storedIdentifier) : null;
+        if (!$client instanceof ClientInterface) {
+            $this->remember($item, false, self::FAILURE_TTL, $now + self::FAILURE_TTL);
+
+            return null;
+        }
+
+        $this->remember($item, true, self::FAILURE_TTL, $keepUntil);
+
+        return $client;
+    }
+
+    /**
+     * @param int $keepUntil timestamp after which the entry is dropped from the cache
+     */
+    private function remember(CacheItemInterface $item, bool $valid, int $ttl, int $keepUntil): void
+    {
+        $now = $this->time();
+
+        $this->cache->save($item->set(['valid' => $valid, 'expires' => $now + $ttl, 'keepUntil' => $keepUntil])->expiresAfter(\max(1, $keepUntil - $now)));
     }
 
     private function time(): int

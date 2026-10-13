@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Application\OAuth;
 
 use Sulu\Mcp\Domain\Exception\ClientMetadataException;
+use Sulu\Mcp\Domain\Exception\ClientMetadataUnavailableException;
 use Symfony\Component\HttpFoundation\IpUtils;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpClientExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;
@@ -40,14 +41,25 @@ class ClientMetadataFetcher
     private const MAX_DURATION = 5.0;
 
     /**
-     * Ranges IpUtils::PRIVATE_SUBNETS does not name.
+     * Ranges IpUtils::PRIVATE_SUBNETS does not name, or names only from a later Symfony release
+     * on: the lowest supported version lacks the carrier-grade NAT and the tunnelling ranges.
      */
     private const EXTRA_BLOCKED_SUBNETS = [
+        '100.64.0.0/10',  // carrier-grade NAT, cloud metadata services live here
         '192.0.0.0/24',   // IETF protocol assignments
+        '192.0.2.0/24',   // documentation
         '192.88.99.0/24', // 6to4 relay anycast
+        '198.18.0.0/15',  // benchmarking
+        '198.51.100.0/24', // documentation
+        '203.0.113.0/24', // documentation
         '224.0.0.0/4',    // multicast
         '255.255.255.255/32',
+        '::/96',          // IPv4-compatible
         '64:ff9b::/96',   // NAT64, embeds an IPv4 address
+        '64:ff9b:1::/48', // NAT64 local use
+        '2001::/32',      // Teredo, embeds an IPv4 address
+        '2001:db8::/32',  // documentation
+        '2002::/16',      // 6to4, embeds an IPv4 address
         'ff00::/8',       // multicast
     ];
 
@@ -87,6 +99,10 @@ class ClientMetadataFetcher
                 throw new ClientMetadataException(\sprintf('The metadata document at "%s" redirects, which is not followed.', $url));
             }
 
+            if ($statusCode >= 500) {
+                throw new ClientMetadataUnavailableException(\sprintf('The metadata document at "%s" returned HTTP %d.', $url, $statusCode));
+            }
+
             if (200 !== $statusCode) {
                 throw new ClientMetadataException(\sprintf('The metadata document at "%s" returned HTTP %d.', $url, $statusCode));
             }
@@ -105,7 +121,7 @@ class ClientMetadataFetcher
             $body = '';
             foreach ($this->httpClient->stream($response) as $chunk) {
                 if ($chunk->isTimeout()) {
-                    throw new ClientMetadataException(\sprintf('The metadata document at "%s" timed out.', $url));
+                    throw new ClientMetadataUnavailableException(\sprintf('The metadata document at "%s" timed out.', $url));
                 }
 
                 $body .= $chunk->getContent();
@@ -118,7 +134,7 @@ class ClientMetadataFetcher
                 }
             }
         } catch (HttpClientExceptionInterface $e) {
-            throw new ClientMetadataException(\sprintf('Could not fetch the metadata document at "%s": %s', $url, $e->getMessage()), 0, $e);
+            throw new ClientMetadataUnavailableException(\sprintf('Could not fetch the metadata document at "%s": %s', $url, $e->getMessage()), 0, $e);
         }
 
         return new FetchedClientMetadata($body, self::lifetime($headers));
@@ -166,7 +182,7 @@ class ClientMetadataFetcher
         $addresses = ($this->resolver)($host);
 
         if ([] === $addresses) {
-            throw new ClientMetadataException(\sprintf('The host "%s" does not resolve.', $host));
+            throw new ClientMetadataUnavailableException(\sprintf('The host "%s" does not resolve.', $host));
         }
 
         // All of them, not just the one connected to: a host that mixes public and internal
