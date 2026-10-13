@@ -170,6 +170,49 @@ final class CimdClientManagerTest extends TestCase
         self::assertCount(2, $this->requested);
     }
 
+    public function testKeepsServingTheStoredClientWhileItsHostIsDown(): void
+    {
+        $this->respond($this->document(), 'Cache-Control: max-age=600');
+        $this->responses[] = new MockResponse('', ['http_code' => 503]);
+        $manager = $this->manager();
+
+        $first = $manager->find(self::URL);
+        $this->clock->sleep(601);
+        $second = $manager->find(self::URL);
+
+        self::assertNotNull($first);
+        self::assertNotNull($second);
+        self::assertSame($first->getIdentifier(), $second->getIdentifier());
+        self::assertCount(2, $this->requested);
+
+        $manager->find(self::URL);
+        self::assertCount(2, $this->requested, 'An outage must not be fetched again on every request.');
+    }
+
+    public function testStopsServingTheStoredClientAfterTheOutageOutlastsTheKeptEntry(): void
+    {
+        $this->respond($this->document(), 'Cache-Control: max-age=600');
+        $this->responses[] = new MockResponse('', ['http_code' => 503]);
+        $manager = $this->manager();
+
+        $manager->find(self::URL);
+        $this->clock->sleep(ClientMetadataFetcher::MAX_TTL + 1);
+
+        self::assertNull($manager->find(self::URL));
+    }
+
+    public function testRejectsTheStoredClientWhenItsDocumentBecomesInvalid(): void
+    {
+        $this->respond($this->document(), 'Cache-Control: max-age=600');
+        $this->respond($this->document(['client_id' => 'https://client.example/other']));
+        $manager = $this->manager();
+
+        $manager->find(self::URL);
+        $this->clock->sleep(601);
+
+        self::assertNull($manager->find(self::URL), 'Only an unreachable host keeps the old data; a rejected document does not.');
+    }
+
     public function testNeverTakesOverAClientThatHasASecret(): void
     {
         $identifier = CimdClientManager::storedIdentifier(self::URL);
