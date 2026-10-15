@@ -30,6 +30,8 @@ use Sulu\Mcp\Application\OAuth\ClientMetadataFetcher;
 use Sulu\Mcp\Application\OAuth\ClientMetadataValidator;
 use Sulu\Mcp\Domain\Exception\ClientMetadataException;
 use Sulu\Mcp\Domain\Exception\ClientMetadataUnavailableException;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
 
 /**
  * League's tokens and codes reference `oauth2_client.identifier`, a 32 character column, so a URL cannot be
@@ -53,6 +55,7 @@ class CimdClientManager implements ClientManagerInterface
         private readonly ClientMetadataFetcher $fetcher,
         private readonly ClientMetadataValidator $validator,
         private readonly CacheItemPoolInterface $cache,
+        private readonly TokenStorageInterface $tokenStorage,
         private readonly array $scopes,
         private readonly bool $enabled = true,
         private readonly LoggerInterface $logger = new NullLogger(),
@@ -71,6 +74,11 @@ class CimdClientManager implements ClientManagerInterface
     public static function isMetadataUrl(string $identifier): bool
     {
         return \str_starts_with($identifier, 'https://');
+    }
+
+    private static function loggable(string $clientId): string
+    {
+        return \preg_replace('/[^\x20-\x7e]/', '?', $clientId) ?? '';
     }
 
     public function find(string $identifier): ?ClientInterface
@@ -97,15 +105,22 @@ class CimdClientManager implements ClientManagerInterface
             }
         }
 
+        // the token endpoint is public: only a signed-in user's authorization request may cause a fetch and a stored client
+        if (!$this->tokenStorage->getToken()?->getUser() instanceof UserInterface) {
+            $client = $this->inner->find($storedIdentifier);
+
+            return null !== $client && !$client->isConfidential() ? $client : null;
+        }
+
         try {
             $fetched = $this->fetcher->fetch($identifier);
             $metadata = $this->validator->validate($identifier, $fetched->body);
         } catch (ClientMetadataUnavailableException $e) {
-            $this->logger->warning('OAuth client metadata document is unavailable.', ['client_id' => $identifier, 'reason' => $e->getMessage()]);
+            $this->logger->warning('OAuth client metadata document is unavailable.', ['client_id' => self::loggable($identifier), 'reason' => $e->getMessage()]);
 
             return $this->staleClient($item, $entry, $storedIdentifier);
         } catch (ClientMetadataException $e) {
-            $this->logger->warning('Rejected OAuth client metadata document.', ['client_id' => $identifier, 'reason' => $e->getMessage()]);
+            $this->logger->warning('Rejected OAuth client metadata document.', ['client_id' => self::loggable($identifier), 'reason' => $e->getMessage()]);
 
             // remembered briefly, so requests cannot make the server fetch the same URL over and over
             $this->remember($item, false, self::FAILURE_TTL, $now + self::FAILURE_TTL);

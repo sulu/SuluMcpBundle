@@ -42,6 +42,6 @@ final class RedirectUriPolicy
         }
 
         // Private-use URI scheme for native apps (RFC 8252), e.g. "com.example.app:/oauth".
-        return \str_contains($scheme, '.');
+        return 1 === \preg_match('/^[a-z][a-z0-9+-]*(\.[a-z0-9+-]+)+$/', $scheme);
     }
 }
