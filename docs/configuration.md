@@ -24,6 +24,10 @@ sulu_mcp:
     # Limits applied to sulu_media_upload once dangerous_tools.media_upload is true.
     media_upload:
         allowed_hosts: []     # empty allows any public host
+
+    # Let clients register themselves at the public registration endpoint (RFC 7591).
+    dynamic_client_registration:
+        enabled: true
 ```
 
 ## Settings
@@ -75,7 +79,7 @@ Keep both imports in a file that is loaded in **every** Sulu context, as above. 
 | `/admin/mcp/authorize` | OAuth authorization endpoint | Sulu admin session |
 | `/admin/mcp/consent/{requestId}` | Consent screen backend (`GET` details, `POST` decision) | Sulu admin session |
 | `/admin/mcp/token` | OAuth token endpoint | client credentials / PKCE |
-| `/admin/mcp/register` | RFC 7591 dynamic client registration | public |
+| `/admin/mcp/register` | RFC 7591 dynamic client registration (can be [switched off](#dynamic_client_registrationenabled)) | public |
 | `/.well-known/oauth-protected-resource/admin/mcp` | RFC 9728 discovery | public |
 | `/.well-known/oauth-authorization-server/admin/mcp` | RFC 8414 discovery | public |
 
@@ -166,6 +170,10 @@ How `sulu_media_upload` behaves once it exists. Deliberately a separate node: `d
 There is no separate size limit. The download stops once it has read `sulu_media.upload.max_filesize` megabytes, counted against the bytes that actually arrive rather than the `Content-Length` the remote claims. Fetching more than the project is willing to store would only be refused by `FileValidator` a moment later, so the two cannot drift apart.
 
 Whatever `allowed_hosts` says, the download is confined: only `http` and `https`, at most three redirects, a bounded duration, and no private, loopback, link-local or reserved address. Redirects are followed one hop at a time and every hop is held to all of these rules, so an allowed host cannot redirect the server to one you did not name. The mime type is determined from the downloaded bytes, not from the `Content-Type` header, and only `image/jpeg`, `image/png`, `image/gif`, `image/webp`, `image/avif` and `image/svg+xml` are accepted. The file is then put through Sulu's registered file inspectors, so an SVG carrying a `<script>`, an external reference or a data URI is refused by `SvgFileInspector` exactly as it would be in the administration interface. Sulu runs those inspectors from `UploadFileSubscriber`, over `$request->files`, which a file assembled in PHP never passes through; the tool therefore invokes them itself, and any inspector a project registers applies to an MCP import too. `sulu_media`'s blocked mime types still apply on top, because the file is stored through `MediaManager` like any other upload.
+
+### `dynamic_client_registration.enabled`
+
+Default `true`. Clients such as Claude Code and Codex register themselves through the public `POST /admin/mcp/register` and each registration stores a new client. Set it to `false` to stop advertising the `registration_endpoint` in the authorization server metadata and to answer the endpoint with `404`. Clients created with `sulu:mcp:create-client` keep working, so with this switched off only clients you provisioned can connect. Clients that rely on DCR can no longer connect without one.
 
 ### Allowed hosts
 

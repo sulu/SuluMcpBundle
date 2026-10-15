@@ -45,6 +45,19 @@ final class DynamicClientRegistrationControllerTest extends TestCase
         );
     }
 
+    public function testRegisterAnswersNotFoundAndStoresNothingWhenRegistrationIsDisabled(): void
+    {
+        $controller = new DynamicClientRegistrationController($this->clientManager->reveal(), $this->clientSecretHasher, ['mcp:tools'], false);
+        $this->clientManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        $response = $controller->register($this->jsonRequest([
+            'client_name' => 'Claude Code',
+            'redirect_uris' => ['http://127.0.0.1:12345/callback'],
+        ]));
+
+        self::assertSame(404, $response->getStatusCode());
+    }
+
     public function testRegisterPersistsClientWithValidatedMetadata(): void
     {
         $capturedClient = null;

@@ -239,11 +239,13 @@ return static function(ContainerConfigurator $container): void {
         ->arg('$serverUrl', '%sulu_mcp.server_url%')
         ->arg('$mcpPath', '%sulu_mcp.mcp_path%')
         ->arg('$scopes', '%sulu_mcp.oauth.scopes%')
+        ->arg('$dcrEnabled', '%sulu_mcp.dcr.enabled%')
         ->tag('controller.service_arguments');
 
     $services->set(DynamicClientRegistrationController::class)
         ->arg('$clientSecretHasher', new Reference('league.oauth2_server.password_hasher'))
         ->arg('$allowedScopes', '%sulu_mcp.oauth.scopes%')
+        ->arg('$enabled', '%sulu_mcp.dcr.enabled%')
         ->tag('controller.service_arguments');
 
     $services->set(OAuthConsentStore::class);

@@ -113,6 +113,19 @@ final class SuluMcpBundleTest extends TestCase
         self::assertSame(['mcp:tools', 'mcp:resources'], $container->getParameter('sulu_mcp.oauth.scopes'));
         self::assertSame([], $container->getParameter('sulu_mcp.dangerous_tools'));
         self::assertSame([], $container->getParameter('sulu_mcp.media_upload.allowed_hosts'));
+        self::assertTrue($container->getParameter('sulu_mcp.dcr.enabled'));
+    }
+
+    public function testDynamicClientRegistrationCanBeSwitchedOff(): void
+    {
+        $container = $this->container();
+
+        $extension = (new SuluMcpBundle())->getContainerExtension();
+        self::assertNotNull($extension);
+
+        $extension->load([['server_url' => 'https://sulu.example.com', 'dynamic_client_registration' => ['enabled' => false]]], $container);
+
+        self::assertFalse($container->getParameter('sulu_mcp.dcr.enabled'));
     }
 
     public function testLoadLowercasesTheAllowedHosts(): void

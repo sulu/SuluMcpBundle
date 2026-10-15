@@ -52,6 +52,16 @@ final class WellKnownControllerTest extends TestCase
         self::assertContains('none', $body['token_endpoint_auth_methods_supported']);
     }
 
+    public function testAuthorizationServerMetadataOmitsTheRegistrationEndpointWhenRegistrationIsDisabled(): void
+    {
+        $controller = new WellKnownController($this->urlGenerator(), 'https://sulu.example.com', '/admin/mcp', ['mcp:tools'], false);
+
+        $body = $this->json($controller->authorizationServerMetadata()->getContent());
+
+        self::assertArrayNotHasKey('registration_endpoint', $body);
+        self::assertSame('https://sulu.example.com/admin/mcp/authorize', $body['authorization_endpoint']);
+    }
+
     private function urlGenerator(): UrlGeneratorInterface
     {
         $routes = new RouteCollection();

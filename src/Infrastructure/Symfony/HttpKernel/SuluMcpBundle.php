@@ -36,6 +36,7 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  *     mcp_path: string,
  *     dangerous_tools: array<string, bool>,
  *     media_upload: array{allowed_hosts: list<string>},
+ *     dynamic_client_registration: array{enabled: bool},
  * }
  */
 class SuluMcpBundle extends AbstractBundle
@@ -105,6 +106,16 @@ class SuluMcpBundle extends AbstractBundle
                         ->end()
                     ->end()
                 ->end()
+                ->arrayNode('dynamic_client_registration')
+                    ->addDefaultsIfNotSet()
+                    ->info('OAuth Dynamic Client Registration (RFC 7591): clients register themselves at the public registration endpoint.')
+                    ->children()
+                        ->booleanNode('enabled')
+                            ->defaultTrue()
+                            ->info('Set to false to stop advertising the registration endpoint and to answer it with 404. Clients created with sulu:mcp:create-client keep working.')
+                        ->end()
+                    ->end()
+                ->end()
             ->end()
         ;
     }
@@ -156,6 +167,8 @@ class SuluMcpBundle extends AbstractBundle
             static fn (string $host): string => \strtolower($host),
             $config['media_upload']['allowed_hosts'],
         ));
+
+        $builder->setParameter('sulu_mcp.dcr.enabled', $config['dynamic_client_registration']['enabled']);
 
         $builder->registerForAutoconfiguration(ContentTypeExtensionInterface::class)->addTag('sulu_mcp.content_type_extension');
         $builder->registerForAutoconfiguration(AdminLinkProviderInterface::class)->addTag('sulu_mcp.admin_link_provider');

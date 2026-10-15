@@ -36,6 +36,7 @@ class WellKnownController
         private readonly string $serverUrl,
         private readonly string $mcpPath = '/admin/mcp',
         private readonly array $scopes = ['mcp:tools', 'mcp:resources'],
+        private readonly bool $dcrEnabled = true,
     ) {
     }
 
@@ -55,7 +56,7 @@ class WellKnownController
     {
         $base = \rtrim($this->serverUrl, '/');
 
-        return new JsonResponse([
+        $metadata = [
             'issuer' => $base . $this->mcpPath,
             'authorization_endpoint' => $base . $this->routePath('sulu_mcp_oauth_authorize'),
             'token_endpoint' => $base . $this->routePath('sulu_mcp_oauth_token'),
@@ -64,8 +65,13 @@ class WellKnownController
             'code_challenge_methods_supported' => ['S256'],
             'token_endpoint_auth_methods_supported' => ['client_secret_post', 'client_secret_basic', 'none'],
             'scopes_supported' => $this->scopes,
-            'registration_endpoint' => $base . $this->routePath('sulu_mcp_client_registration'),
-        ]);
+        ];
+
+        if ($this->dcrEnabled) {
+            $metadata['registration_endpoint'] = $base . $this->routePath('sulu_mcp_client_registration');
+        }
+
+        return new JsonResponse($metadata);
     }
 
     private function routePath(string $route): string
