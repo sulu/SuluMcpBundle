@@ -153,7 +153,7 @@ During OAuth authorization, users authenticate with the normal Sulu admin login 
 
 #### Scope enforcement
 
-On the MCP endpoint the bundle inspects every access token league issued: `tools/*` methods require `mcp:tools`, `resources/*` methods require `mcp:resources`, and anything else -- `server/discover`, `subscriptions/listen`, the handshake methods, the `GET` stream, the session `DELETE`, an unreadable body -- requires any one of the two scopes. A JSON-RPC batch (handshake era only) requires every scope its members require. A token the firewall authenticated by other means carries no OAuth scopes and is not inspected.
+On the MCP endpoint the bundle inspects every access token league issued: `tools/*` methods require `mcp:tools`, `resources/*` methods require `mcp:resources`, and anything else (`server/discover`, `subscriptions/listen`, the handshake methods, the `GET` stream, the session `DELETE`, an unreadable body) requires any one of the two scopes. A JSON-RPC batch (handshake era only) requires every scope its members require. A token the firewall authenticated by other means carries no OAuth scopes and is not inspected.
 
 A token that falls short is answered with `403`, the JSON-RPC error `-32003 Insufficient scope`, and a `WWW-Authenticate: Bearer error="insufficient_scope"` header whose `scope=` names the scopes the request needed -- both scopes in the any-scope case.
 
