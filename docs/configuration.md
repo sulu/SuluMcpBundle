@@ -24,7 +24,7 @@ sulu_mcp:
     # Let clients identify themselves with an https URL that serves their metadata (CIMD).
     client_id_metadata_documents:
         enabled: true
-        trusted_hosts: []    # hosts whose client_id URLs are not marked "not verified" on the consent page
+        trusted_hosts: [claude.ai, chatgpt.com]   # client_id URLs on these hosts are not marked "not verified" on the consent page
 
     # Limits applied to sulu_media_upload once dangerous_tools.media_upload is true.
     media_upload:
@@ -190,13 +190,14 @@ Default `true`. Clients may then send an `https://` URL as `client_id`; the serv
 
 ### `client_id_metadata_documents.trusted_hosts`
 
-Default `[]`. The consent page shows a URL client as `Name (host – not verified)`, because the name is whatever the owner of the document wrote and anyone can host a document that calls itself "Claude". List the hosts you trust and their clients are shown as `Name (host)` instead:
+Default `[claude.ai, chatgpt.com]`. The consent page shows a URL client as `Name (host – not verified)`, because the name is whatever the owner of the document wrote and anyone can host a document that calls itself "Claude". Clients on a trusted host are shown as `Name (host)` instead.
+
+A list you set replaces the default, so name every host you want. An empty list marks every URL client:
 
 ```yaml
 sulu_mcp:
     client_id_metadata_documents:
-        trusted_hosts:
-            - claude.ai
+        trusted_hosts: []
 ```
 
 Entries are bare host names. The match is exact, so `claude.ai` does not cover `evil.claude.ai`. A host you trust has to be one where only the vendor can publish: every URL on it counts, not just the vendor's own metadata document.
