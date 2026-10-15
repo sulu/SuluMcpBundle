@@ -190,7 +190,7 @@ Default `true`. Clients may then send an `https://` URL as `client_id`; the serv
 
 ### `client_id_metadata_documents.trusted_hosts`
 
-Default `[claude.ai, chatgpt.com]`. The consent page shows a URL client as `Name (host – not verified)`, because the name is whatever the owner of the document wrote and anyone can host a document that calls itself "Claude". Clients on a trusted host are shown as `Name (host)` instead.
+Default `[claude.ai, chatgpt.com]`. The consent page shows a URL client as `Name (host, not verified)`, because the name is whatever the owner of the document wrote and anyone can host a document that calls itself "Claude". Clients on a trusted host are shown as `Name (host)` instead.
 
 A list you set replaces the default, so name every host you want. An empty list marks every URL client:
 
