@@ -242,13 +242,12 @@ final class McpScopeListenerTest extends TestCase
         );
     }
 
-    #[DataProvider('provideLeadingWhitespaceWrappers')]
-    public function testRejectsToolsCallSmuggledInAWhitespacePrefixedObjectWrapper(string $content): void
+    #[DataProvider('provideLeadingWhitespace')]
+    public function testRejectsToolsCallPrefixedWithWhitespace(string $prefix): void
     {
-        // The SDK dispatches a whitespace-prefixed object as its values, so the nested tools/call counts.
-        $request = Request::create('/_mcp', 'POST', [], [], [], [], $content);
-        $event = $this->requestEvent($request);
+        $content = $prefix . '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"sulu_page_create"}}';
 
+        $event = $this->requestEvent(Request::create('/_mcp', 'POST', [], [], [], [], $content));
         $this->listener($this->oauthToken(['mcp:resources']))->onKernelRequest($event);
 
         $response = $event->getResponse();
@@ -261,24 +260,36 @@ final class McpScopeListenerTest extends TestCase
 
         $body = \json_decode((string) $response->getContent(), true);
         self::assertIsArray($body);
-        self::assertNull($body['id']);
+        self::assertSame(1, $body['id']);
+    }
+
+    #[DataProvider('provideLeadingWhitespace')]
+    public function testRejectsABatchPrefixedWithWhitespaceByTheScopesOfItsMembers(string $prefix): void
+    {
+        $content = $prefix . '[{"jsonrpc":"2.0","id":1,"method":"tools/call"}]';
+
+        $event = $this->requestEvent(Request::create('/_mcp', 'POST', [], [], [], [], $content));
+        $this->listener($this->oauthToken(['mcp:resources']))->onKernelRequest($event);
+
+        $response = $event->getResponse();
+        self::assertNotNull($response);
+        self::assertSame(403, $response->getStatusCode());
+        self::assertNull(\json_decode((string) $response->getContent(), true)['id']);
     }
 
     /**
      * @return iterable<string, array{string}>
      */
-    public static function provideLeadingWhitespaceWrappers(): iterable
+    public static function provideLeadingWhitespace(): iterable
     {
-        $message = '{"jsonrpc":"2.0","id":1,"method":"tools/call","params":{"name":"sulu_page_create"}}';
-
-        yield 'leading newline' => ["\n{\"x\":{$message}}"];
-        yield 'leading space' => [" {\"x\":{$message}}"];
+        yield 'space' => [' '];
+        yield 'newline' => ["\n"];
+        yield 'tab and carriage return' => ["\t\r\n"];
     }
 
-    public function testWhitespacePrefixedSingleObjectFallsBackToTheAnyScopeRule(): void
+    public function testAnObjectWrappingAMessageIsNotDispatchedAndFollowsTheAnyScopeRule(): void
     {
-        // The SDK dispatches nothing for this shape, so the any-scope rule applies.
-        $content = ' {"jsonrpc":"2.0","id":1,"method":"tools/call"}';
+        $content = ' {"x":{"jsonrpc":"2.0","id":1,"method":"tools/call"}}';
 
         $event = $this->requestEvent(Request::create('/_mcp', 'POST', [], [], [], [], $content));
         $this->listener($this->oauthToken(['mcp:resources']))->onKernelRequest($event);

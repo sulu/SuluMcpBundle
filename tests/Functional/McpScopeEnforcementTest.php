@@ -73,6 +73,17 @@ final class McpScopeEnforcementTest extends FunctionalTestCase
         self::assertSame(1, $body['id']);
     }
 
+    public function testLeadingWhitespaceDoesNotLetAToolsTokenReadResources(): void
+    {
+        $response = $this->mcpRequest(
+            $this->accessToken(),
+            " \n" . '{"jsonrpc":"2.0","id":1,"method":"resources/read","params":{"uri":"x"}}',
+        );
+
+        self::assertSame(403, $response->getStatusCode());
+        self::assertStringContainsString('scope="mcp:resources"', (string) $response->headers->get('WWW-Authenticate'));
+    }
+
     public function testTokenWithTheToolScopePassesTheHandshake(): void
     {
         $response = $this->mcpRequest(

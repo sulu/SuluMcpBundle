@@ -78,8 +78,8 @@ final readonly class McpScopeListener
     }
 
     /**
-     * Splits the body the way the SDK's MessageFactory::create() does: only a raw body
-     * starting with "{" is a single message, anything else is dispatched element-wise.
+     * Splits the body the way the SDK's MessageFactory does: a decoded list is a batch, anything
+     * else is one message. Decoding first keeps the two in step whatever whitespace the body starts with.
      *
      * @return list<mixed>
      */
@@ -90,7 +90,14 @@ final readonly class McpScopeListener
             return [];
         }
 
-        return '{' === ($content[0] ?? '') ? [$decoded] : \array_values($decoded);
+        return \array_is_list($decoded) ? $decoded : [$decoded];
+    }
+
+    private function isBatch(string $content): bool
+    {
+        $decoded = \json_decode($content, true);
+
+        return \is_array($decoded) && \array_is_list($decoded);
     }
 
     /**
@@ -137,7 +144,7 @@ final readonly class McpScopeListener
      */
     private function requestId(string $content, array $messages): mixed
     {
-        if ('{' !== ($content[0] ?? '') || [] === $messages) {
+        if ([] === $messages || $this->isBatch($content)) {
             return null;
         }
 
