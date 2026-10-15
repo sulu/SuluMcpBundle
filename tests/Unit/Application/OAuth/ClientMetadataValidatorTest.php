@@ -74,6 +74,20 @@ final class ClientMetadataValidatorTest extends TestCase
         self::assertSame(['https://claude.ai/api/mcp/auth_callback'], $metadata->redirectUris);
     }
 
+    public function testStripsLineSeparatorsFromTheName(): void
+    {
+        $metadata = (new ClientMetadataValidator())->validate(self::URL, $this->document(['client_name' => "Good\u{2028}Name\u{2029}"]));
+
+        self::assertSame('GoodName', $metadata->clientName);
+    }
+
+    public function testAcceptsAReverseDomainPrivateUseScheme(): void
+    {
+        $document = $this->document(['redirect_uris' => ['com.example.app:/oauth']]);
+
+        self::assertSame(['com.example.app:/oauth'], (new ClientMetadataValidator())->validate(self::URL, $document)->redirectUris);
+    }
+
     public function testTruncatesALongName(): void
     {
         $metadata = (new ClientMetadataValidator())->validate(self::URL, $this->document(['client_name' => \str_repeat('é', 300)]));
@@ -119,6 +133,8 @@ final class ClientMetadataValidatorTest extends TestCase
         yield 'redirect_uri plain http' => [['redirect_uris' => ['http://client.example/cb']], 'redirect_uris must be'];
         yield 'redirect_uri with fragment' => [['redirect_uris' => ['https://client.example/cb#x']], 'redirect_uris must be'];
         yield 'redirect_uri javascript' => [['redirect_uris' => ['javascript:alert(1)']], 'redirect_uris must be'];
+        yield 'redirect_uri private-use scheme with an empty label' => [['redirect_uris' => ['com..example:/cb']], 'redirect_uris must be'];
+        yield 'redirect_uri private-use scheme ending in a dot' => [['redirect_uris' => ['com.example.:/cb']], 'redirect_uris must be'];
         yield 'redirect_uri without scheme' => [['redirect_uris' => ['client.example/cb']], 'redirect_uris must be'];
         yield 'too many redirect_uris' => [['redirect_uris' => \array_map(static fn (int $i): string => 'https://client.example/cb' . $i, \range(1, 11))], 'at most'];
         yield 'client_secret' => [['client_secret' => 'x'], 'only public clients'];

@@ -17,6 +17,9 @@ use League\Bundle\OAuth2ServerBundle\Manager\InMemory\ClientManager;
 use League\Bundle\OAuth2ServerBundle\Model\Client;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\Log\AbstractLogger;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
 use Sulu\Mcp\Application\OAuth\ClientMetadataFetcher;
 use Sulu\Mcp\Application\OAuth\ClientMetadataValidator;
 use Sulu\Mcp\Infrastructure\League\Manager\CimdClientManager;
@@ -25,6 +28,9 @@ use Symfony\Component\Clock\MockClock;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
+use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
+use Symfony\Component\Security\Core\User\InMemoryUser;
 
 #[CoversClass(CimdClientManager::class)]
 final class CimdClientManagerTest extends TestCase
@@ -213,6 +219,45 @@ final class CimdClientManagerTest extends TestCase
         self::assertNull($manager->find(self::URL), 'Only an unreachable host keeps the old data; a rejected document does not.');
     }
 
+    public function testDoesNotFetchOrStoreAClientForAnUnauthenticatedCaller(): void
+    {
+        $this->respond($this->document());
+
+        self::assertNull($this->manager(signedIn: false)->find(self::URL));
+        self::assertSame([], $this->requested, 'The token endpoint is public and must not make the server fetch a URL.');
+        self::assertSame([], $this->inner->list(null));
+    }
+
+    public function testServesAStoredClientWithoutFetchingForAnUnauthenticatedCaller(): void
+    {
+        $this->respond($this->document(), 'Cache-Control: max-age=600');
+        $first = $this->manager()->find(self::URL);
+        $this->clock->sleep(ClientMetadataFetcher::MAX_TTL * 3);
+
+        $second = $this->manager(signedIn: false)->find(self::URL);
+
+        self::assertNotNull($first);
+        self::assertSame($first->getIdentifier(), $second?->getIdentifier(), 'A refresh token must keep working at the token endpoint however old the document is.');
+        self::assertCount(1, $this->requested);
+    }
+
+    public function testLogsAClientIdWithoutControlCharacters(): void
+    {
+        $logger = new class() extends AbstractLogger {
+            /** @var list<array<string, mixed>> */
+            public array $contexts = [];
+
+            public function log($level, string|\Stringable $message, array $context = []): void
+            {
+                $this->contexts[] = $context;
+            }
+        };
+
+        $this->manager(logger: $logger)->find("https://client.example/x\n[fake] forged entry");
+
+        self::assertSame('https://client.example/x?[fake] forged entry', $logger->contexts[0]['client_id'] ?? null);
+    }
+
     public function testNeverTakesOverAClientThatHasASecret(): void
     {
         $identifier = CimdClientManager::storedIdentifier(self::URL);
@@ -243,8 +288,13 @@ final class CimdClientManagerTest extends TestCase
         self::assertSame([], $this->requested);
     }
 
-    private function manager(bool $enabled = true): CimdClientManager
+    private function manager(bool $enabled = true, bool $signedIn = true, ?LoggerInterface $logger = null): CimdClientManager
     {
+        $tokenStorage = new TokenStorage();
+        if ($signedIn) {
+            $tokenStorage->setToken(new UsernamePasswordToken(new InMemoryUser('admin', null), 'admin'));
+        }
+
         $client = new MockHttpClient(function(string $method, string $url): MockResponse {
             $this->requested[] = $url;
 
@@ -256,8 +306,10 @@ final class CimdClientManagerTest extends TestCase
             new ClientMetadataFetcher($client, fn (): array => $this->addresses),
             new ClientMetadataValidator(),
             $this->cache ??= new ArrayAdapter(),
+            $tokenStorage,
             ['mcp:tools', 'mcp:resources'],
             $enabled,
+            logger: $logger ?? new NullLogger(),
             now: fn (): int => $this->clock->now()->getTimestamp(),
         );
     }
