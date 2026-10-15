@@ -37,7 +37,7 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  *     dangerous_tools: array<string, bool>,
  *     media_upload: array{allowed_hosts: list<string>},
  *     dynamic_client_registration: array{enabled: bool},
- *     client_id_metadata_documents: array{enabled: bool},
+ *     client_id_metadata_documents: array{enabled: bool, trusted_hosts: list<string>},
  * }
  */
 class SuluMcpBundle extends AbstractBundle
@@ -101,6 +101,15 @@ class SuluMcpBundle extends AbstractBundle
                         ->booleanNode('enabled')
                             ->defaultTrue()
                             ->info('Set to false to stop advertising CIMD and to stop fetching client metadata. Dynamic client registration is not affected.')
+                        ->end()
+                        ->arrayNode('trusted_hosts')
+                            ->scalarPrototype()->end()
+                            ->defaultValue([])
+                            ->validate()
+                                ->ifTrue(static fn (array $hosts): bool => [] !== \array_filter($hosts, static fn (mixed $host): bool => !\is_string($host) || 1 !== \preg_match('/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i', $host)))
+                                ->thenInvalid('trusted_hosts takes bare host names such as "claude.ai", without scheme, port or path.')
+                            ->end()
+                            ->info('Hosts whose client_id URLs the consent page does not mark as "not verified". The match is exact, subdomains are not included. Empty marks every URL client.')
                         ->end()
                     ->end()
                 ->end()
@@ -173,6 +182,10 @@ class SuluMcpBundle extends AbstractBundle
         $builder->setParameter('sulu_mcp.mcp_path', $config['mcp_path']);
         $builder->setParameter('sulu_mcp.oauth.scopes', self::SCOPES);
         $builder->setParameter('sulu_mcp.cimd.enabled', $config['client_id_metadata_documents']['enabled']);
+        $builder->setParameter('sulu_mcp.cimd.trusted_hosts', \array_map(
+            static fn (string $host): string => \strtolower($host),
+            $config['client_id_metadata_documents']['trusted_hosts'],
+        ));
         $builder->setParameter('sulu_mcp.dangerous_tools', $config['dangerous_tools']);
 
         $builder->setParameter('sulu_mcp.media_upload.allowed_hosts', \array_map(
