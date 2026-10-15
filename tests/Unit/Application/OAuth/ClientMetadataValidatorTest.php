@@ -48,6 +48,32 @@ final class ClientMetadataValidatorTest extends TestCase
         self::assertSame('Example Client', (new ClientMetadataValidator())->validate(self::URL, $document)->clientName);
     }
 
+    public function testIgnoresGrantTypesBesidesAuthorizationCode(): void
+    {
+        $document = $this->document(['grant_types' => ['authorization_code', 'client_credentials']]);
+
+        self::assertSame('Example Client', (new ClientMetadataValidator())->validate(self::URL, $document)->clientName);
+    }
+
+    public function testAcceptsTheDocumentClaudeServes(): void
+    {
+        $url = 'https://claude.ai/oauth/mcp-oauth-client-metadata';
+        $document = \json_encode([
+            'client_id' => $url,
+            'client_name' => 'Claude',
+            'client_uri' => 'https://claude.ai',
+            'redirect_uris' => ['https://claude.ai/api/mcp/auth_callback'],
+            'grant_types' => ['authorization_code', 'refresh_token', 'urn:ietf:params:oauth:grant-type:jwt-bearer'],
+            'response_types' => ['code'],
+            'token_endpoint_auth_method' => 'none',
+        ], \JSON_THROW_ON_ERROR);
+
+        $metadata = (new ClientMetadataValidator())->validate($url, $document);
+
+        self::assertSame('Claude', $metadata->clientName);
+        self::assertSame(['https://claude.ai/api/mcp/auth_callback'], $metadata->redirectUris);
+    }
+
     public function testTruncatesALongName(): void
     {
         $metadata = (new ClientMetadataValidator())->validate(self::URL, $this->document(['client_name' => \str_repeat('é', 300)]));
@@ -101,7 +127,8 @@ final class ClientMetadataValidatorTest extends TestCase
         yield 'client_secret_basic' => [['token_endpoint_auth_method' => 'client_secret_basic'], 'must be "none"'];
         yield 'private_key_jwt' => [['token_endpoint_auth_method' => 'private_key_jwt'], 'must be "none"'];
         yield 'implicit grant' => [['grant_types' => ['implicit']], 'grant_types'];
-        yield 'client credentials' => [['grant_types' => ['authorization_code', 'client_credentials']], 'grant_types'];
+        yield 'client credentials only' => [['grant_types' => ['client_credentials']], 'grant_types'];
+        yield 'grant_types not a list' => [['grant_types' => 'authorization_code'], 'grant_types'];
         yield 'token response type' => [['response_types' => ['token']], 'response_types'];
     }
 
