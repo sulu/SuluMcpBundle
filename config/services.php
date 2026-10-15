@@ -279,6 +279,7 @@ return static function(ContainerConfigurator $container): void {
     $services->set(OAuthConsentStore::class);
 
     $services->set(OAuthConsentController::class)
+        ->arg('$trustedHosts', '%sulu_mcp.cimd.trusted_hosts%')
         ->tag('controller.service_arguments');
 
     $services->set(OAuthConsentAdmin::class)

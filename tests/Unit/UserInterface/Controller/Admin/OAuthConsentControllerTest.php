@@ -42,6 +42,8 @@ final class OAuthConsentControllerTest extends TestCase
 
     private OAuthConsentStore $store;
     private OAuthConsentController $controller;
+    private TranslatorInterface $translator;
+    private Security $security;
 
     protected function setUp(): void
     {
@@ -59,7 +61,9 @@ final class OAuthConsentControllerTest extends TestCase
 
         $security = $this->prophesize(Security::class);
 
-        $this->controller = new OAuthConsentController($this->store, $translator->reveal(), $security->reveal());
+        $this->translator = $translator->reveal();
+        $this->security = $security->reveal();
+        $this->controller = new OAuthConsentController($this->store, $this->translator, $this->security);
     }
 
     public function testDetailsReturnsConsentMetadata(): void
@@ -88,6 +92,32 @@ final class OAuthConsentControllerTest extends TestCase
 
         self::assertSame($url, $body['clientId']);
         self::assertSame('Example Client (client.example – not verified)', $body['clientName']);
+    }
+
+    public function testDetailsDropsTheUnverifiedMarkerForATrustedHost(): void
+    {
+        $url = 'https://Claude.ai/oauth/mcp-oauth-client-metadata';
+        $client = new Client('Claude', CimdClientManager::storedIdentifier($url), null);
+        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=' . \rawurlencode($url));
+        $consentRequest = $this->store->create($request, $this->event(['mcp:tools'], $client));
+        $controller = new OAuthConsentController($this->store, $this->translator, $this->security, ['claude.ai']);
+
+        $body = $this->json($controller->details($request, $consentRequest->getId()));
+
+        self::assertSame('Claude (claude.ai)', $body['clientName']);
+    }
+
+    public function testDetailsKeepsTheMarkerForASubdomainOfATrustedHost(): void
+    {
+        $url = 'https://evil.claude.ai/metadata.json';
+        $client = new Client('Claude', CimdClientManager::storedIdentifier($url), null);
+        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=' . \rawurlencode($url));
+        $consentRequest = $this->store->create($request, $this->event(['mcp:tools'], $client));
+        $controller = new OAuthConsentController($this->store, $this->translator, $this->security, ['claude.ai']);
+
+        $body = $this->json($controller->details($request, $consentRequest->getId()));
+
+        self::assertSame('Claude (evil.claude.ai – not verified)', $body['clientName']);
     }
 
     public function testDetailsDoesNotTrustAClientIdUrlThatIsNotTheResolvedClient(): void

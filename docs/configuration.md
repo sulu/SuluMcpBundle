@@ -24,6 +24,7 @@ sulu_mcp:
     # Let clients identify themselves with an https URL that serves their metadata (CIMD).
     client_id_metadata_documents:
         enabled: true
+        trusted_hosts: []    # hosts whose client_id URLs are not marked "not verified" on the consent page
 
     # Limits applied to sulu_media_upload once dangerous_tools.media_upload is true.
     media_upload:
@@ -186,6 +187,19 @@ When a flag is `false`, the corresponding tool services are removed from the con
 ### `client_id_metadata_documents.enabled`
 
 Default `true`. Clients may then send an `https://` URL as `client_id`; the server fetches the metadata document there. That is the second place, after `sulu_media_upload`, where the server requests an address a stranger chose, so the fetch is confined: https on the default port only, no IP literals, every resolved address must be public (and the request is pinned to the address that was checked), no redirects, 3 seconds idle and 5 seconds in total, at most 16 KB. Documents declaring a client secret or an authentication method other than `none` are refused. Set it to `false` to stop advertising CIMD and stop fetching; DCR keeps working.
+
+### `client_id_metadata_documents.trusted_hosts`
+
+Default `[]`. The consent page shows a URL client as `Name (host – not verified)`, because the name is whatever the owner of the document wrote and anyone can host a document that calls itself "Claude". List the hosts you trust and their clients are shown as `Name (host)` instead:
+
+```yaml
+sulu_mcp:
+    client_id_metadata_documents:
+        trusted_hosts:
+            - claude.ai
+```
+
+Entries are bare host names. The match is exact, so `claude.ai` does not cover `evil.claude.ai`. A host you trust has to be one where only the vendor can publish: every URL on it counts, not just the vendor's own metadata document.
 
 ### `media_upload.*`
 

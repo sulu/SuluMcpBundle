@@ -28,10 +28,14 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class OAuthConsentController
 {
+    /**
+     * @param list<string> $trustedHosts lower-cased hosts whose client_id URLs are not marked unverified
+     */
     public function __construct(
         private OAuthConsentStore $consentStore,
         private TranslatorInterface $translator,
         private Security $security,
+        private array $trustedHosts = [],
     ) {
     }
 
@@ -93,7 +97,8 @@ final readonly class OAuthConsentController
     }
 
     /**
-     * A URL client's name is whatever its owner wrote, so it is shown with the host and marked unverified.
+     * A URL client's name is whatever its owner wrote, so it is shown with the host and marked unverified,
+     * unless the host is one the project trusts.
      */
     private function clientName(OAuthConsentRequest $consentRequest): string
     {
@@ -102,10 +107,15 @@ final readonly class OAuthConsentController
             return $consentRequest->getClientName();
         }
 
+        $host = \strtolower((string) \parse_url($clientId, \PHP_URL_HOST));
+        if (\in_array($host, $this->trustedHosts, true)) {
+            return \sprintf('%s (%s)', $consentRequest->getClientName(), $host);
+        }
+
         return \sprintf(
             '%s (%s)',
             $consentRequest->getClientName(),
-            $this->translator->trans('cimd.unverified', ['%host%' => \parse_url($clientId, \PHP_URL_HOST)], 'sulu_mcp', $this->userLocale()),
+            $this->translator->trans('cimd.unverified', ['%host%' => $host], 'sulu_mcp', $this->userLocale()),
         );
     }
 
