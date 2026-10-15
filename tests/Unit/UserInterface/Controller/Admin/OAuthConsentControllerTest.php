@@ -54,7 +54,7 @@ final class OAuthConsentControllerTest extends TestCase
             static fn (string $id, array $parameters = []): string => match ($id) {
                 'mcp:tools' => 'Use MCP tools',
                 'mcp:resources' => 'Read MCP resources',
-                'cimd.unverified' => ($parameters['%host%'] ?? '') . ' – not verified',
+                'cimd.unverified' => ($parameters['%host%'] ?? '') . ', not verified',
                 default => $id,
             }
         )(...$args));
@@ -91,7 +91,7 @@ final class OAuthConsentControllerTest extends TestCase
         $body = $this->json($this->controller->details($request, $consentRequest->getId()));
 
         self::assertSame($url, $body['clientId']);
-        self::assertSame('Example Client (client.example – not verified)', $body['clientName']);
+        self::assertSame('Example Client (client.example, not verified)', $body['clientName']);
     }
 
     public function testDetailsDropsTheUnverifiedMarkerForATrustedHost(): void
@@ -117,7 +117,7 @@ final class OAuthConsentControllerTest extends TestCase
 
         $body = $this->json($controller->details($request, $consentRequest->getId()));
 
-        self::assertSame('Claude (evil.claude.ai – not verified)', $body['clientName']);
+        self::assertSame('Claude (evil.claude.ai, not verified)', $body['clientName']);
     }
 
     public function testDetailsDoesNotTrustAClientIdUrlThatIsNotTheResolvedClient(): void

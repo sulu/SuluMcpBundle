@@ -46,7 +46,7 @@ Paste the contents of [`CONTENT_ASSISTANT_PROMPT.md`](../CONTENT_ASSISTANT_PROMP
 
 The steps above are the **manual** connector flow. The server also advertises OAuth Dynamic Client Registration (DCR) at its `.well-known` endpoints; if your ChatGPT account onboards connectors automatically via DCR, it registers itself (including its redirect URI) and steps 1 and 3 are unnecessary.
 
-ChatGPT increasingly prefers **Client ID Metadata Documents (CIMD)** — the client identifies itself with a hosted metadata URL instead of a pre-registered client. The bundle supports this: the server advertises `client_id_metadata_document_supported`, fetches the document and shows its name and host on the consent screen, marked as not verified. Nothing has to be configured; see [Client ID Metadata Documents](../README.md#client-id-metadata-documents-cimd). Set `sulu_mcp.client_id_metadata_documents.enabled: false` to turn it off.
+ChatGPT increasingly prefers **Client ID Metadata Documents (CIMD)**: the client identifies itself with a hosted metadata URL instead of a pre-registered client. The bundle supports this: the server advertises `client_id_metadata_document_supported`, fetches the document and shows its name and host on the consent screen. Hosts outside `trusted_hosts` (default `claude.ai` and `chatgpt.com`) are marked as not verified. Nothing has to be configured; see [Client ID Metadata Documents](../README.md#client-id-metadata-documents-cimd). Set `sulu_mcp.client_id_metadata_documents.enabled: false` to turn it off.
 
 ## Troubleshooting
 
