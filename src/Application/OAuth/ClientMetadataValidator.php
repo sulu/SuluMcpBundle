@@ -27,8 +27,6 @@ class ClientMetadataValidator
     public const MAX_REDIRECT_URIS = 10;
     public const MAX_REDIRECT_URI_LENGTH = 2000;
 
-    private const ALLOWED_GRANT_TYPES = ['authorization_code', 'refresh_token'];
-
     private const FORBIDDEN_FIELDS = ['client_secret', 'client_secret_expires_at', 'jwks', 'jwks_uri'];
 
     /**
@@ -71,8 +69,9 @@ class ClientMetadataValidator
 
         if (\array_key_exists('grant_types', $document)) {
             $grantTypes = $document['grant_types'];
-            if (!\is_array($grantTypes) || !\array_is_list($grantTypes) || [] !== \array_diff(\array_map(static fn (mixed $grant): string => \is_string($grant) ? $grant : '', $grantTypes), self::ALLOWED_GRANT_TYPES)) {
-                throw new ClientMetadataException('grant_types may only contain authorization_code and refresh_token.');
+            // other grants a client lists (Claude adds jwt-bearer) are ignored: the stored client only ever gets these two
+            if (!\is_array($grantTypes) || !\array_is_list($grantTypes) || !\in_array('authorization_code', $grantTypes, true)) {
+                throw new ClientMetadataException('grant_types must include authorization_code.');
             }
         }
 
