@@ -11,7 +11,7 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Mcp\Application\OAuth;
+namespace Sulu\Mcp\Infrastructure\OAuth;
 
 /**
  * Which redirect URIs an OAuth client may use: HTTPS, an HTTP loopback address (RFC 8252

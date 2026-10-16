@@ -20,8 +20,8 @@ use PHPUnit\Framework\TestCase;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Sulu\Mcp\Application\OAuth\ClientMetadataFetcher;
-use Sulu\Mcp\Application\OAuth\ClientMetadataValidator;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataFetcher;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataValidator;
 use Sulu\Mcp\Infrastructure\League\Manager\CimdClientManager;
 use Symfony\Component\Cache\Adapter\ArrayAdapter;
 use Symfony\Component\Clock\MockClock;
@@ -275,7 +275,7 @@ final class CimdClientManagerTest extends TestCase
         self::assertNull($this->manager()->find($client->getIdentifier()), 'A request must name the URL, or the consent page cannot show the host.');
     }
 
-    public function testLogsAClientIdWithoutControlCharacters(): void
+    public function testLogsAClientIdAndReasonWithoutControlCharacters(): void
     {
         $logger = new class() extends AbstractLogger {
             /** @var list<array<string, mixed>> */
@@ -290,6 +290,7 @@ final class CimdClientManagerTest extends TestCase
         $this->manager(logger: $logger)->find("https://client.example/x\n[fake] forged entry");
 
         self::assertSame('https://client.example/x?[fake] forged entry', $logger->contexts[0]['client_id'] ?? null);
+        self::assertDoesNotMatchRegularExpression('/[^\x20-\x7e]/', (string) ($logger->contexts[0]['reason'] ?? ''), 'The reason repeats the URL and must not carry a line break either.');
     }
 
     public function testNeverTakesOverAClientThatHasASecret(): void

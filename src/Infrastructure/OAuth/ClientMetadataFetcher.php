@@ -11,10 +11,10 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Mcp\Application\OAuth;
+namespace Sulu\Mcp\Infrastructure\OAuth;
 
-use Sulu\Mcp\Domain\Exception\ClientMetadataException;
-use Sulu\Mcp\Domain\Exception\ClientMetadataUnavailableException;
+use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataException;
+use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataUnavailableException;
 use Symfony\Component\HttpFoundation\IpUtils;
 use Symfony\Contracts\HttpClient\Exception\ExceptionInterface as HttpClientExceptionInterface;
 use Symfony\Contracts\HttpClient\HttpClientInterface;

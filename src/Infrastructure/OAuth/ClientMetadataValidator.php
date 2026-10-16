@@ -11,13 +11,12 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Mcp\Application\OAuth;
+namespace Sulu\Mcp\Infrastructure\OAuth;
 
-use Sulu\Mcp\Domain\Exception\ClientMetadataException;
+use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataException;
 
 /**
- * Only public clients are accepted: the document cannot carry a secret, and the authorization server
- * demands PKCE from every public client.
+ * Only public clients are accepted: the document cannot carry a secret.
  *
  * @internal
  */

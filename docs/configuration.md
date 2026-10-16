@@ -188,6 +188,8 @@ When a flag is `false`, the corresponding tool services are removed from the con
 
 Default `true`. Clients may then send an `https://` URL as `client_id`; the server fetches the metadata document there. That is the second place, after `sulu_media_upload`, where the server requests an address a stranger chose, so the fetch is confined: https on the default port only, no IP literals, every resolved address must be public (and the request is pinned to the address that was checked), no redirects, 3 seconds idle and 5 seconds in total, at most 16 KB. Documents declaring a client secret or an authentication method other than `none` are refused. The DNS lookup before the request uses PHP's resolver, which has no timeout of its own, so the 5 seconds start after it has answered. A slow resolver can hold the request longer. Set it to `false` to stop advertising CIMD and stop fetching; DCR keeps working.
 
+A client that identifies itself by URL is public and has no secret, so PKCE is what protects its authorization code. League requires a code challenge from public clients unless you set `require_code_challenge_for_public_clients` to `false` under `league_oauth2_server.authorization_server`. Keep it on when CIMD is enabled.
+
 ### `client_id_metadata_documents.trusted_hosts`
 
 Default `[claude.ai, chatgpt.com]`. The consent page shows a URL client as `Name (host, not verified)`, because the name is whatever the owner of the document wrote and anyone can host a document that calls itself "Claude". Clients on a trusted host are shown as `Name (host)` instead.
