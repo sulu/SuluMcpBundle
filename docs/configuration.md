@@ -173,7 +173,7 @@ Whatever `allowed_hosts` says, the download is confined: only `http` and `https`
 
 ### `dynamic_client_registration.enabled`
 
-Default `true`. Clients such as Claude Code and Codex register themselves through the public `POST /admin/mcp/register` and each registration stores a new client. Set it to `false` to stop advertising the `registration_endpoint` in the authorization server metadata and to answer the endpoint with `404`. Clients created with `sulu:mcp:create-client` keep working, so with this switched off only clients you provisioned can connect. Clients that rely on DCR can no longer connect without one.
+Default `true`. Clients such as Claude Code and Codex register themselves through the public `POST /admin/mcp/register` and each registration stores a new client. Set it to `false` to stop advertising the `registration_endpoint` in the authorization server metadata and to answer the endpoint with `404`. Clients created with `sulu:mcp:create-client` keep working. Clients that rely on DCR can no longer register, so they need one of those. The switch does not touch clients that registered earlier. They stay in the client store and can keep connecting until you remove them.
 
 ### Allowed hosts
 
