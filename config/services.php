@@ -61,6 +61,7 @@ use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\EventListener\McpExceptionListene
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\EventListener\McpRequestFormatListener;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Infrastructure\Symfony\Security\EntryPoint\McpAuthenticationEntryPoint;
+use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\DynamicClientRegistrationListener;
 use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpLoginSuccessListener;
 use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpScopeListener;
 use Sulu\Mcp\Infrastructure\Symfony\Security\OAuthConsentStore;
@@ -245,8 +246,12 @@ return static function(ContainerConfigurator $container): void {
     $services->set(DynamicClientRegistrationController::class)
         ->arg('$clientSecretHasher', new Reference('league.oauth2_server.password_hasher'))
         ->arg('$allowedScopes', '%sulu_mcp.oauth.scopes%')
-        ->arg('$enabled', '%sulu_mcp.dcr.enabled%')
         ->tag('controller.service_arguments');
+
+    // Priority 16: the router runs at 32 and has set the route, the firewall at 8 has not looked at the request yet.
+    $services->set(DynamicClientRegistrationListener::class)
+        ->arg('$enabled', '%sulu_mcp.dcr.enabled%')
+        ->tag('kernel.event_listener', ['event' => 'kernel.request', 'method' => 'onKernelRequest', 'priority' => 16]);
 
     $services->set(OAuthConsentStore::class);
 

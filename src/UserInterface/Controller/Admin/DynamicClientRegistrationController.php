@@ -43,17 +43,12 @@ class DynamicClientRegistrationController
         private readonly ClientManagerInterface $clientManager,
         private readonly PasswordHasherInterface $clientSecretHasher,
         private readonly array $allowedScopes = ['mcp:tools', 'mcp:resources'],
-        private readonly bool $enabled = true,
     ) {
     }
 
     #[Route('/mcp/register', name: 'sulu_mcp_client_registration', methods: ['POST'])]
     public function register(Request $request): JsonResponse
     {
-        if (!$this->enabled) {
-            return new JsonResponse(['error' => 'not_found', 'error_description' => 'Dynamic client registration is disabled.'], JsonResponse::HTTP_NOT_FOUND);
-        }
-
         try {
             $body = \json_decode($request->getContent(), true, 512, \JSON_THROW_ON_ERROR);
         } catch (\JsonException) {
