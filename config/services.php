@@ -13,6 +13,7 @@ declare(strict_types=1);
 
 namespace Symfony\Component\DependencyInjection\Loader\Configurator;
 
+use League\Bundle\OAuth2ServerBundle\Manager\ClientManagerInterface;
 use Sulu\Bundle\AdminBundle\Admin\View\ResourceViewUrlGeneratorInterface;
 use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
@@ -40,8 +41,13 @@ use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\League\EventListener\OAuthAuthorizationListener;
+use Sulu\Mcp\Infrastructure\League\Manager\CimdClientManager;
+use Sulu\Mcp\Infrastructure\League\Manager\CimdClientRecords;
+use Sulu\Mcp\Infrastructure\League\Manager\DoctrineCimdClientRecords;
 use Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry;
 use Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataFetcher;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataValidator;
 use Sulu\Mcp\Infrastructure\Sulu\Admin\OAuthConsentAdmin;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ArticleAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\CategoryAdminLinkProvider;
@@ -65,6 +71,7 @@ use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\DynamicClientRegistra
 use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpLoginSuccessListener;
 use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpScopeListener;
 use Sulu\Mcp\Infrastructure\Symfony\Security\OAuthConsentStore;
+use Sulu\Mcp\UserInterface\Command\CleanupCimdClientsCommand;
 use Sulu\Mcp\UserInterface\Command\CreateMcpClientCommand;
 use Sulu\Mcp\UserInterface\Controller\Admin\DynamicClientRegistrationController;
 use Sulu\Mcp\UserInterface\Controller\Admin\OAuthConsentController;
@@ -114,6 +121,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagCreateTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagDeleteTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Taxonomy\TagListTool;
 use Sulu\Page\Domain\Repository\NavigationRepositoryInterface;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Reference;
 use Symfony\Component\HttpClient\HttpClient;
 use Symfony\Component\HttpClient\NoPrivateNetworkHttpClient;
@@ -241,6 +249,7 @@ return static function(ContainerConfigurator $container): void {
         ->arg('$mcpPath', '%sulu_mcp.mcp_path%')
         ->arg('$scopes', '%sulu_mcp.oauth.scopes%')
         ->arg('$dcrEnabled', '%sulu_mcp.dcr.enabled%')
+        ->arg('$cimdEnabled', '%sulu_mcp.cimd.enabled%')
         ->tag('controller.service_arguments');
 
     $services->set(DynamicClientRegistrationController::class)
@@ -253,9 +262,33 @@ return static function(ContainerConfigurator $container): void {
         ->arg('$enabled', '%sulu_mcp.dcr.enabled%')
         ->tag('kernel.event_listener', ['event' => 'kernel.request', 'method' => 'onKernelRequest', 'priority' => 16]);
 
+    // fetches a URL a stranger chose: built like MediaDownloader's client, plus the fetcher's address pinning
+    $services->set('sulu_mcp.cimd.http_client', NoPrivateNetworkHttpClient::class)
+        ->arg('$client', inline_service(HttpClientInterface::class)->factory([HttpClient::class, 'create']));
+
+    $services->set(ClientMetadataFetcher::class)
+        ->arg('$httpClient', new Reference('sulu_mcp.cimd.http_client'));
+
+    $services->set(ClientMetadataValidator::class);
+
+    $services->set(DoctrineCimdClientRecords::class);
+    $services->alias(CimdClientRecords::class, DoctrineCimdClientRecords::class);
+
+    $services->set(CimdClientManager::class)
+        ->decorate(ClientManagerInterface::class)
+        ->arg('$inner', new Reference('.inner'))
+        ->arg('$records', new Reference(CimdClientRecords::class))
+        ->arg('$cache', new Reference('cache.app'))
+        ->arg('$tokenStorage', new Reference('security.token_storage'))
+        ->arg('$requestStack', new Reference('request_stack'))
+        ->arg('$scopes', '%sulu_mcp.oauth.scopes%')
+        ->arg('$enabled', '%sulu_mcp.cimd.enabled%')
+        ->arg('$logger', new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE));
+
     $services->set(OAuthConsentStore::class);
 
     $services->set(OAuthConsentController::class)
+        ->arg('$trustedHosts', '%sulu_mcp.cimd.trusted_hosts%')
         ->tag('controller.service_arguments');
 
     $services->set(OAuthConsentAdmin::class)
@@ -302,6 +335,8 @@ return static function(ContainerConfigurator $container): void {
         ->tag('kernel.event_listener', ['event' => 'kernel.request', 'method' => 'onKernelRequest', 'priority' => 64]);
 
     // Commands
+    $services->set(CleanupCimdClientsCommand::class);
+
     $services->set(CreateMcpClientCommand::class)
         ->arg('$clientSecretHasher', new Reference('league.oauth2_server.password_hasher'))
         ->arg('$serverUrl', '%sulu_mcp.server_url%')

@@ -210,7 +210,7 @@ tools and `sulu_content_search` then pick it up.
 
 ### Authentication
 
-Clients authenticate through OAuth 2.1 with Dynamic Client Registration, backed by `league/oauth2-server-bundle`.
+Clients authenticate through OAuth 2.1 with Client ID Metadata Documents and Dynamic Client Registration, backed by `league/oauth2-server-bundle`.
 Sulu opens the administration login when needed and then shows an explicit consent screen naming the client and the
 requested scopes. Tokens are only issued once the user approves that screen.
 
