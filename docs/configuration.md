@@ -56,7 +56,7 @@ If you change `mcp_path`, also update the `pattern` of the `mcp` firewall in you
 The endpoint answers for two kinds of clients on the same path.
 
 - **Revision 2026-07-28 (stateless).** There is no `initialize` handshake and no `Mcp-Session-Id`. Each request carries the protocol version, client info and client capabilities in `params._meta`, and the headers `MCP-Protocol-Version`, `Mcp-Method` and, for `tools/call`, `Mcp-Name`. A client reads the server's capabilities with `server/discover`. Any server behind a load balancer can answer any request, so nothing needs sticky routing or a shared store.
-- **Earlier revisions (handshake).** The client opens a session with `initialize` and sends the `Mcp-Session-Id` it gets back. `symfony/mcp-bundle` keeps these sessions in `mcp.servers.sulu.session`. The default `file` store lives in the cache directory and works on one server. With several servers, use the `cache` store on a pool backed by shared storage, or route each client to the same server:
+- **Earlier revisions (handshake).** The client opens a session with `initialize` and sends the `Mcp-Session-Id` it gets back. `symfony/mcp-bundle` keeps these sessions in `mcp.servers.sulu.session`. The default `file` store lives in the cache directory and works on one server. With several servers, use the `cache` store. It keeps the sessions in `cache.app`, which Symfony already shares between servers when it is backed by Redis or a database. Or route each client to the same server:
 
 ```yaml
 # config/packages/mcp.yaml
@@ -65,7 +65,6 @@ mcp:
         sulu:
             session:
                 store: cache
-                cache_pool: cache.mcp.sessions   # point this pool at Redis or a database
 ```
 
 The era does not change who is calling. The OAuth bearer token on each request identifies the user, every tool runs under that user's Sulu permissions, and [scope enforcement](#scope-enforcement) is the same.
