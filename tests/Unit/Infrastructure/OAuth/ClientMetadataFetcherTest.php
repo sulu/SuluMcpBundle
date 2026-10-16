@@ -17,9 +17,9 @@ use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataFetcher;
-use Sulu\Mcp\Infrastructure\OAuth\FetchedClientMetadata;
 use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataException;
 use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataUnavailableException;
+use Sulu\Mcp\Infrastructure\OAuth\FetchedClientMetadata;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 

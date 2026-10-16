@@ -18,8 +18,8 @@ use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Infrastructure\OAuth\ClientMetadata;
 use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataValidator;
-use Sulu\Mcp\Infrastructure\OAuth\RedirectUriPolicy;
 use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataException;
+use Sulu\Mcp\Infrastructure\OAuth\RedirectUriPolicy;
 
 #[CoversClass(ClientMetadataValidator::class)]
 #[CoversClass(ClientMetadata::class)]
