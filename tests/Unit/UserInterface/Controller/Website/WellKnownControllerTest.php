@@ -55,7 +55,7 @@ final class WellKnownControllerTest extends TestCase
 
     public function testAuthorizationServerMetadataDoesNotAdvertiseCimdWhenDisabled(): void
     {
-        $controller = new WellKnownController($this->urlGenerator(), 'https://sulu.example.com', '/admin/mcp', ['mcp:tools'], false);
+        $controller = new WellKnownController($this->urlGenerator(), 'https://sulu.example.com', '/admin/mcp', ['mcp:tools'], cimdEnabled: false);
 
         $body = $this->json($controller->authorizationServerMetadata()->getContent());
 
@@ -65,7 +65,7 @@ final class WellKnownControllerTest extends TestCase
 
     public function testAuthorizationServerMetadataOmitsTheRegistrationEndpointWhenRegistrationIsDisabled(): void
     {
-        $controller = new WellKnownController($this->urlGenerator(), 'https://sulu.example.com', '/admin/mcp', ['mcp:tools'], false);
+        $controller = new WellKnownController($this->urlGenerator(), 'https://sulu.example.com', '/admin/mcp', ['mcp:tools'], dcrEnabled: false);
 
         $body = $this->json($controller->authorizationServerMetadata()->getContent());
 
