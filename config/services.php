@@ -44,6 +44,8 @@ use Sulu\Mcp\Application\Security\ToolVisibilityResolver;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Infrastructure\League\EventListener\OAuthAuthorizationListener;
 use Sulu\Mcp\Infrastructure\League\Manager\CimdClientManager;
+use Sulu\Mcp\Infrastructure\League\Manager\CimdClientRecords;
+use Sulu\Mcp\Infrastructure\League\Manager\DoctrineCimdClientRecords;
 use Sulu\Mcp\Infrastructure\Mcp\FilteredRegistry;
 use Sulu\Mcp\Infrastructure\Mcp\PermissionAwareCallToolHandler;
 use Sulu\Mcp\Infrastructure\Sulu\Admin\OAuthConsentAdmin;
@@ -69,6 +71,7 @@ use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\DynamicClientRegistra
 use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpLoginSuccessListener;
 use Sulu\Mcp\Infrastructure\Symfony\Security\EventListener\McpScopeListener;
 use Sulu\Mcp\Infrastructure\Symfony\Security\OAuthConsentStore;
+use Sulu\Mcp\UserInterface\Command\CleanupCimdClientsCommand;
 use Sulu\Mcp\UserInterface\Command\CreateMcpClientCommand;
 use Sulu\Mcp\UserInterface\Controller\Admin\DynamicClientRegistrationController;
 use Sulu\Mcp\UserInterface\Controller\Admin\OAuthConsentController;
@@ -268,9 +271,13 @@ return static function(ContainerConfigurator $container): void {
 
     $services->set(ClientMetadataValidator::class);
 
+    $services->set(DoctrineCimdClientRecords::class);
+    $services->alias(CimdClientRecords::class, DoctrineCimdClientRecords::class);
+
     $services->set(CimdClientManager::class)
         ->decorate(ClientManagerInterface::class)
         ->arg('$inner', new Reference('.inner'))
+        ->arg('$records', new Reference(CimdClientRecords::class))
         ->arg('$cache', new Reference('cache.app'))
         ->arg('$tokenStorage', new Reference('security.token_storage'))
         ->arg('$requestStack', new Reference('request_stack'))
@@ -328,6 +335,8 @@ return static function(ContainerConfigurator $container): void {
         ->tag('kernel.event_listener', ['event' => 'kernel.request', 'method' => 'onKernelRequest', 'priority' => 64]);
 
     // Commands
+    $services->set(CleanupCimdClientsCommand::class);
+
     $services->set(CreateMcpClientCommand::class)
         ->arg('$clientSecretHasher', new Reference('league.oauth2_server.password_hasher'))
         ->arg('$serverUrl', '%sulu_mcp.server_url%')

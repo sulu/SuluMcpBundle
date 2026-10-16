@@ -190,6 +190,16 @@ Default `true`. Clients may then send an `https://` URL as `client_id`; the serv
 
 A client that identifies itself by URL is public and has no secret, so PKCE is what protects its authorization code. League requires a code challenge from public clients unless you set `require_code_challenge_for_public_clients` to `false` under `league_oauth2_server.authorization_server`. Keep it on when CIMD is enabled.
 
+Every URL client is stored as a row in League's client table, with a record in `sulu_mcp_cimd_client` that holds its URL, the user who first added it and the time of the last successful fetch. A user can add 20 new URL clients per day. A stored client keeps working at the token endpoint for 30 days after its last successful fetch. Every authorization that fetches the document again starts the 30 days anew. Run `bin/console sulu:mcp:cleanup-clients` from cron to remove the clients that ran out. `--dry-run` lists them first.
+
+`CimdClientManager` decorates League's client manager for the whole application, also when CIMD is switched off. It then passes everything on, with one exception: an authorization request cannot name a client by the `cimd_` identifier it is stored under.
+
+#### Upgrading
+
+The table `sulu_mcp_cimd_client` is new. Create a migration with `bin/console doctrine:migrations:diff` or run `doctrine:schema:update`.
+
+CIMD is on by default. The metadata of the authorization server now contains `client_id_metadata_document_supported: true`, so claude.ai registers with a URL instead of through dynamic client registration on its next connection. Clients that are already registered keep working. Set `client_id_metadata_documents.enabled` to `false` to keep the old behaviour.
+
 ### `client_id_metadata_documents.trusted_hosts`
 
 Default `[claude.ai, chatgpt.com]`. The consent page shows a URL client as `Name (host, not verified)`, because the name is whatever the owner of the document wrote and anyone can host a document that calls itself "Claude". Clients on a trusted host are shown as `Name (host)` instead.

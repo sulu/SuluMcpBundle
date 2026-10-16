@@ -55,6 +55,7 @@ final class CimdClientManagerTest extends TestCase
     {
         $this->clock = new MockClock('2026-01-01 00:00:00');
         $this->inner = new ClientManager(new EventDispatcher());
+        $this->records = new InMemoryCimdClientRecords();
     }
 
     public function testStoresAPublicClientUnderAShortIdentifier(): void
@@ -266,6 +267,82 @@ final class CimdClientManagerTest extends TestCase
         self::assertSame($first->getIdentifier(), $second?->getIdentifier(), 'A cached failure must not hide a stored client from the token endpoint.');
     }
 
+    public function testRecordsWhoStoredTheClientAndWhenItWasFetched(): void
+    {
+        $this->respond($this->document());
+
+        $client = $this->manager()->find(self::URL);
+
+        $record = $this->records->find($client?->getIdentifier() ?? '');
+        self::assertSame(self::URL, $record?->getUrl());
+        self::assertSame('admin', $record?->getCreatedBy());
+        self::assertSame($this->clock->now()->getTimestamp(), $record?->getLastFetchedAt()->getTimestamp());
+    }
+
+    public function testRefusesAUserWhoAddedTooManyClientsToday(): void
+    {
+        $manager = $this->manager();
+        for ($i = 0; $i < CimdClientManager::MAX_NEW_CLIENTS_PER_USER_AND_DAY; ++$i) {
+            $url = \sprintf('https://client.example/%d.json', $i);
+            $this->respond($this->document(['client_id' => $url]));
+            self::assertNotNull($manager->find($url));
+        }
+
+        $url = 'https://client.example/one-too-many.json';
+        $this->respond($this->document(['client_id' => $url]));
+
+        self::assertNull($manager->find($url));
+        $this->clock->sleep(86401);
+        $this->respond($this->document(['client_id' => $url]));
+        self::assertNotNull($this->manager()->find($url), 'The window moves on.');
+    }
+
+    public function testStopsServingAStoredClientThatWasNotFetchedForThirtyDays(): void
+    {
+        $this->respond($this->document(), 'Cache-Control: max-age=600');
+        $this->manager()->find(self::URL);
+
+        $this->clock->sleep(CimdClientManager::STORED_LIFETIME - 1);
+        self::assertNotNull($this->manager(signedIn: false, route: 'sulu_mcp_oauth_token')->find(self::URL));
+
+        $this->clock->sleep(2);
+        self::assertNull($this->manager(signedIn: false, route: 'sulu_mcp_oauth_token')->find(self::URL), 'Nothing refetched the document, so the client is not trusted any longer.');
+    }
+
+    public function testAnAuthorizationRequestRefreshesTheStoredClient(): void
+    {
+        $this->respond($this->document(), 'Cache-Control: max-age=600');
+        $this->manager()->find(self::URL);
+        $this->clock->sleep(CimdClientManager::STORED_LIFETIME - 1);
+        $this->respond($this->document(), 'Cache-Control: max-age=600');
+        $this->manager()->find(self::URL);
+
+        $this->clock->sleep(86400);
+
+        self::assertNotNull($this->manager(signedIn: false, route: 'sulu_mcp_oauth_token')->find(self::URL));
+    }
+
+    public function testRemovingAClientRemovesItsRecord(): void
+    {
+        $this->respond($this->document());
+        $manager = $this->manager();
+        $client = $manager->find(self::URL);
+        self::assertNotNull($client);
+
+        $manager->remove($client);
+
+        self::assertNull($this->records->find($client->getIdentifier()));
+    }
+
+    public function testResolvesAStoredIdentifierOutsideAnAuthorizationRequest(): void
+    {
+        $this->respond($this->document());
+        $client = $this->manager()->find(self::URL);
+        self::assertNotNull($client);
+
+        self::assertNotNull($this->manager(route: 'sulu_mcp_oauth_token')->find($client->getIdentifier()));
+    }
+
     public function testRefusesAStoredIdentifierSuppliedByARequest(): void
     {
         $this->respond($this->document());
@@ -344,6 +421,7 @@ final class CimdClientManagerTest extends TestCase
             new ClientMetadataFetcher($client, fn (): array => $this->addresses),
             new ClientMetadataValidator(),
             $this->cache ??= new ArrayAdapter(),
+            $this->records,
             $tokenStorage,
             $requestStack,
             ['mcp:tools', 'mcp:resources'],
@@ -354,6 +432,8 @@ final class CimdClientManagerTest extends TestCase
     }
 
     private ?ArrayAdapter $cache = null;
+
+    private InMemoryCimdClientRecords $records;
 
     /**
      * @param array<string, mixed> $overrides
