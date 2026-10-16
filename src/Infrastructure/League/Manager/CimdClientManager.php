@@ -30,6 +30,7 @@ use Sulu\Mcp\Application\OAuth\ClientMetadataFetcher;
 use Sulu\Mcp\Application\OAuth\ClientMetadataValidator;
 use Sulu\Mcp\Domain\Exception\ClientMetadataException;
 use Sulu\Mcp\Domain\Exception\ClientMetadataUnavailableException;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -46,6 +47,11 @@ class CimdClientManager implements ClientManagerInterface
 
     private const CACHE_PREFIX = 'sulu_mcp_cimd_';
 
+    private const AUTHORIZE_ROUTE = 'sulu_mcp_oauth_authorize';
+
+    // random identifiers of other clients are plain hex, so this prefix tells a client stored from a URL apart
+    private const STORED_PREFIX = 'cimd_';
+
     /**
      * @param list<non-empty-string> $scopes
      * @param (\Closure(): int)|null $now
@@ -56,6 +62,7 @@ class CimdClientManager implements ClientManagerInterface
         private readonly ClientMetadataValidator $validator,
         private readonly CacheItemPoolInterface $cache,
         private readonly TokenStorageInterface $tokenStorage,
+        private readonly RequestStack $requestStack,
         private readonly array $scopes,
         private readonly bool $enabled = true,
         private readonly LoggerInterface $logger = new NullLogger(),
@@ -68,7 +75,7 @@ class CimdClientManager implements ClientManagerInterface
      */
     public static function storedIdentifier(string $clientIdUrl): string
     {
-        return \substr(\hash('sha256', $clientIdUrl), 0, 32);
+        return self::STORED_PREFIX . \substr(\hash('sha256', $clientIdUrl), 0, 32 - \strlen(self::STORED_PREFIX));
     }
 
     public static function isMetadataUrl(string $identifier): bool
@@ -83,11 +90,24 @@ class CimdClientManager implements ClientManagerInterface
 
     public function find(string $identifier): ?ClientInterface
     {
-        if (!$this->enabled || !self::isMetadataUrl($identifier)) {
+        if (!self::isMetadataUrl($identifier)) {
+            // a request names a URL client by its URL: the stored identifier would show it without its host and unverified marker
+            return \str_starts_with($identifier, self::STORED_PREFIX) ? null : $this->inner->find($identifier);
+        }
+
+        if (!$this->enabled) {
             return $this->inner->find($identifier);
         }
 
         $storedIdentifier = self::storedIdentifier($identifier);
+
+        // the token endpoint is public and stateful firewalls give it a session: only a signed-in user's authorization request may cause a fetch and a stored client
+        if (!$this->isAuthorizationRequest()) {
+            $client = $this->inner->find($storedIdentifier);
+
+            return null !== $client && !$client->isConfidential() ? $client : null;
+        }
+
         $item = $this->cache->getItem(self::CACHE_PREFIX . $storedIdentifier);
 
         $entry = $item->isHit() ? $item->get() : null;
@@ -103,13 +123,6 @@ class CimdClientManager implements ClientManagerInterface
             if (null !== $client) {
                 return $client;
             }
-        }
-
-        // the token endpoint is public: only a signed-in user's authorization request may cause a fetch and a stored client
-        if (!$this->tokenStorage->getToken()?->getUser() instanceof UserInterface) {
-            $client = $this->inner->find($storedIdentifier);
-
-            return null !== $client && !$client->isConfidential() ? $client : null;
         }
 
         try {
@@ -182,6 +195,12 @@ class CimdClientManager implements ClientManagerInterface
         $now = $this->time();
 
         $this->cache->save($item->set(['valid' => $valid, 'expires' => $now + $ttl, 'keepUntil' => $keepUntil])->expiresAfter(\max(1, $keepUntil - $now)));
+    }
+
+    private function isAuthorizationRequest(): bool
+    {
+        return self::AUTHORIZE_ROUTE === $this->requestStack->getCurrentRequest()?->attributes->get('_route')
+            && $this->tokenStorage->getToken()?->getUser() instanceof UserInterface;
     }
 
     private function time(): int
