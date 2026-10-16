@@ -11,15 +11,15 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Mcp\Tests\Unit\Application\OAuth;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\OAuth;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Sulu\Mcp\Application\OAuth\ClientMetadataFetcher;
-use Sulu\Mcp\Application\OAuth\FetchedClientMetadata;
-use Sulu\Mcp\Domain\Exception\ClientMetadataException;
-use Sulu\Mcp\Domain\Exception\ClientMetadataUnavailableException;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataFetcher;
+use Sulu\Mcp\Infrastructure\OAuth\FetchedClientMetadata;
+use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataException;
+use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataUnavailableException;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 

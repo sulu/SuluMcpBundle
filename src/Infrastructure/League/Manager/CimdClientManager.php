@@ -25,11 +25,11 @@ use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
-use Sulu\Mcp\Application\OAuth\ClientMetadata;
-use Sulu\Mcp\Application\OAuth\ClientMetadataFetcher;
-use Sulu\Mcp\Application\OAuth\ClientMetadataValidator;
-use Sulu\Mcp\Domain\Exception\ClientMetadataException;
-use Sulu\Mcp\Domain\Exception\ClientMetadataUnavailableException;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadata;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataFetcher;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataValidator;
+use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataException;
+use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataUnavailableException;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -129,11 +129,11 @@ class CimdClientManager implements ClientManagerInterface
             $fetched = $this->fetcher->fetch($identifier);
             $metadata = $this->validator->validate($identifier, $fetched->body);
         } catch (ClientMetadataUnavailableException $e) {
-            $this->logger->warning('OAuth client metadata document is unavailable.', ['client_id' => self::loggable($identifier), 'reason' => $e->getMessage()]);
+            $this->logger->warning('OAuth client metadata document is unavailable.', ['client_id' => self::loggable($identifier), 'reason' => self::loggable($e->getMessage())]);
 
             return $this->staleClient($item, $entry, $storedIdentifier);
         } catch (ClientMetadataException $e) {
-            $this->logger->warning('Rejected OAuth client metadata document.', ['client_id' => self::loggable($identifier), 'reason' => $e->getMessage()]);
+            $this->logger->warning('Rejected OAuth client metadata document.', ['client_id' => self::loggable($identifier), 'reason' => self::loggable($e->getMessage())]);
 
             // remembered briefly, so requests cannot make the server fetch the same URL over and over
             $this->remember($item, false, self::FAILURE_TTL, $now + self::FAILURE_TTL);

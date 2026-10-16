@@ -11,15 +11,15 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Mcp\Tests\Unit\Application\OAuth;
+namespace Sulu\Mcp\Tests\Unit\Infrastructure\OAuth;
 
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
-use Sulu\Mcp\Application\OAuth\ClientMetadata;
-use Sulu\Mcp\Application\OAuth\ClientMetadataValidator;
-use Sulu\Mcp\Application\OAuth\RedirectUriPolicy;
-use Sulu\Mcp\Domain\Exception\ClientMetadataException;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadata;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataValidator;
+use Sulu\Mcp\Infrastructure\OAuth\RedirectUriPolicy;
+use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataException;
 
 #[CoversClass(ClientMetadataValidator::class)]
 #[CoversClass(ClientMetadata::class)]

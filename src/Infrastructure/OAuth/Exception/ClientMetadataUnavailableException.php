@@ -11,11 +11,13 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Mcp\Domain\Exception;
+namespace Sulu\Mcp\Infrastructure\OAuth\Exception;
 
 /**
+ * Reaching the host failed or it answered with a server error. The document itself was not rejected.
+ *
  * @internal
  */
-class ClientMetadataException extends \RuntimeException
+class ClientMetadataUnavailableException extends ClientMetadataException
 {
 }

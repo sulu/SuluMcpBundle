@@ -11,20 +11,19 @@ declare(strict_types=1);
  * with this source code in the file LICENSE.
  */
 
-namespace Sulu\Mcp\Application\OAuth;
+namespace Sulu\Mcp\Infrastructure\OAuth;
 
 /**
  * @internal
  */
-final readonly class ClientMetadata
+final readonly class FetchedClientMetadata
 {
     /**
-     * @param list<non-empty-string> $redirectUris
+     * @param int $ttl seconds the document may be reused, already clamped
      */
     public function __construct(
-        public string $clientId,
-        public string $clientName,
-        public array $redirectUris,
+        public string $body,
+        public int $ttl,
     ) {
     }
 }
