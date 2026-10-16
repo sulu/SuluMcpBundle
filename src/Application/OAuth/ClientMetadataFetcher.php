@@ -94,7 +94,7 @@ class ClientMetadataFetcher
                 throw new ClientMetadataException(\sprintf('The metadata document at "%s" redirects, which is not followed.', $url));
             }
 
-            if ($statusCode >= 500) {
+            if ($statusCode >= 500 || \in_array($statusCode, [408, 429], true)) {
                 throw new ClientMetadataUnavailableException(\sprintf('The metadata document at "%s" returned HTTP %d.', $url, $statusCode));
             }
 

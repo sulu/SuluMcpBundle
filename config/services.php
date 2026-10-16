@@ -273,6 +273,7 @@ return static function(ContainerConfigurator $container): void {
         ->arg('$inner', new Reference('.inner'))
         ->arg('$cache', new Reference('cache.app'))
         ->arg('$tokenStorage', new Reference('security.token_storage'))
+        ->arg('$requestStack', new Reference('request_stack'))
         ->arg('$scopes', '%sulu_mcp.oauth.scopes%')
         ->arg('$enabled', '%sulu_mcp.cimd.enabled%')
         ->arg('$logger', new Reference('logger', ContainerInterface::NULL_ON_INVALID_REFERENCE));

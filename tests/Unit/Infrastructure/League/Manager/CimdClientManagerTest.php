@@ -28,6 +28,8 @@ use Symfony\Component\Clock\MockClock;
 use Symfony\Component\EventDispatcher\EventDispatcher;
 use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\User\InMemoryUser;
@@ -241,6 +243,38 @@ final class CimdClientManagerTest extends TestCase
         self::assertCount(1, $this->requested);
     }
 
+    public function testDoesNotFetchOnTheTokenEndpointEvenWithASession(): void
+    {
+        $this->respond($this->document());
+
+        self::assertNull($this->manager(route: 'sulu_mcp_oauth_token')->find(self::URL));
+        self::assertSame([], $this->requested, 'A session on the token endpoint does not make it an authorization request.');
+        self::assertSame([], $this->inner->list(null));
+    }
+
+    public function testServesAStoredClientAtTheTokenEndpointAfterAFailedRefetch(): void
+    {
+        $this->respond($this->document(), 'Cache-Control: max-age=600');
+        $first = $this->manager()->find(self::URL);
+        $this->clock->sleep(ClientMetadataFetcher::MAX_TTL * 3);
+        $this->responses[] = new MockResponse('', ['http_code' => 500]);
+        $this->manager()->find(self::URL);
+
+        $second = $this->manager(signedIn: false, route: 'sulu_mcp_oauth_token')->find(self::URL);
+
+        self::assertNotNull($first);
+        self::assertSame($first->getIdentifier(), $second?->getIdentifier(), 'A cached failure must not hide a stored client from the token endpoint.');
+    }
+
+    public function testRefusesAStoredIdentifierSuppliedByARequest(): void
+    {
+        $this->respond($this->document());
+        $client = $this->manager()->find(self::URL);
+
+        self::assertNotNull($client);
+        self::assertNull($this->manager()->find($client->getIdentifier()), 'A request must name the URL, or the consent page cannot show the host.');
+    }
+
     public function testLogsAClientIdWithoutControlCharacters(): void
     {
         $logger = new class() extends AbstractLogger {
@@ -288,8 +322,11 @@ final class CimdClientManagerTest extends TestCase
         self::assertSame([], $this->requested);
     }
 
-    private function manager(bool $enabled = true, bool $signedIn = true, ?LoggerInterface $logger = null): CimdClientManager
+    private function manager(bool $enabled = true, bool $signedIn = true, ?LoggerInterface $logger = null, string $route = 'sulu_mcp_oauth_authorize'): CimdClientManager
     {
+        $requestStack = new RequestStack();
+        $requestStack->push(new Request(attributes: ['_route' => $route]));
+
         $tokenStorage = new TokenStorage();
         if ($signedIn) {
             $tokenStorage->setToken(new UsernamePasswordToken(new InMemoryUser('admin', null), 'admin'));
@@ -307,6 +344,7 @@ final class CimdClientManagerTest extends TestCase
             new ClientMetadataValidator(),
             $this->cache ??= new ArrayAdapter(),
             $tokenStorage,
+            $requestStack,
             ['mcp:tools', 'mcp:resources'],
             $enabled,
             logger: $logger ?? new NullLogger(),

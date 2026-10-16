@@ -149,6 +149,23 @@ final class ClientMetadataFetcherTest extends TestCase
         $this->fetcher(['93.184.216.34'], new MockResponse('', ['http_code' => 503]))->fetch(self::URL);
     }
 
+    #[DataProvider('provideTransientStatuses')]
+    public function testReportsATransientStatusAsUnavailable(int $status): void
+    {
+        $this->expectException(ClientMetadataUnavailableException::class);
+
+        $this->fetcher(['93.184.216.34'], new MockResponse('', ['http_code' => $status]))->fetch(self::URL);
+    }
+
+    /**
+     * @return iterable<string, array{int}>
+     */
+    public static function provideTransientStatuses(): iterable
+    {
+        yield 'request timeout' => [408];
+        yield 'too many requests' => [429];
+    }
+
     public function testDoesNotReportARejectedDocumentAsUnavailable(): void
     {
         try {
