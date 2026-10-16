@@ -25,6 +25,7 @@ use Psr\Cache\CacheItemInterface;
 use Psr\Cache\CacheItemPoolInterface;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
+use Sulu\Mcp\Infrastructure\League\Entity\CimdClientRecord;
 use Sulu\Mcp\Infrastructure\OAuth\ClientMetadata;
 use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataFetcher;
 use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataValidator;
@@ -45,6 +46,12 @@ class CimdClientManager implements ClientManagerInterface
 {
     public const FAILURE_TTL = 60;
 
+    /** a stored client is served without a refetch for this long, then it is gone until a signed-in user authorizes it again */
+    public const STORED_LIFETIME = 30 * 86400;
+
+    /** how many URL clients one user may add per day, because every one is a row nobody consents to */
+    public const MAX_NEW_CLIENTS_PER_USER_AND_DAY = 20;
+
     private const CACHE_PREFIX = 'sulu_mcp_cimd_';
 
     private const AUTHORIZE_ROUTE = 'sulu_mcp_oauth_authorize';
@@ -61,6 +68,7 @@ class CimdClientManager implements ClientManagerInterface
         private readonly ClientMetadataFetcher $fetcher,
         private readonly ClientMetadataValidator $validator,
         private readonly CacheItemPoolInterface $cache,
+        private readonly CimdClientRecords $records,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly RequestStack $requestStack,
         private readonly array $scopes,
@@ -91,8 +99,8 @@ class CimdClientManager implements ClientManagerInterface
     public function find(string $identifier): ?ClientInterface
     {
         if (!self::isMetadataUrl($identifier)) {
-            // a request names a URL client by its URL: the stored identifier would show it without its host and unverified marker
-            return \str_starts_with($identifier, self::STORED_PREFIX) ? null : $this->inner->find($identifier);
+            // an authorization request names a URL client by its URL: the stored identifier would show it without its host and unverified marker
+            return \str_starts_with($identifier, self::STORED_PREFIX) && $this->isAuthorizeRoute() ? null : $this->inner->find($identifier);
         }
 
         if (!$this->enabled) {
@@ -103,9 +111,7 @@ class CimdClientManager implements ClientManagerInterface
 
         // the token endpoint is public and stateful firewalls give it a session: only a signed-in user's authorization request may cause a fetch and a stored client
         if (!$this->isAuthorizationRequest()) {
-            $client = $this->inner->find($storedIdentifier);
-
-            return null !== $client && !$client->isConfidential() ? $client : null;
+            return $this->servableClient($storedIdentifier);
         }
 
         $item = $this->cache->getItem(self::CACHE_PREFIX . $storedIdentifier);
@@ -141,7 +147,7 @@ class CimdClientManager implements ClientManagerInterface
             return null;
         }
 
-        $client = $this->store($storedIdentifier, $metadata);
+        $client = $this->store($storedIdentifier, $identifier, $metadata);
         if (!$client instanceof ClientInterface) {
             return null;
         }
@@ -159,6 +165,7 @@ class CimdClientManager implements ClientManagerInterface
     public function remove(ClientInterface $client): void
     {
         $this->inner->remove($client);
+        $this->records->remove($client->getIdentifier());
     }
 
     public function list(?ClientFilter $clientFilter): array
@@ -197,10 +204,30 @@ class CimdClientManager implements ClientManagerInterface
         $this->cache->save($item->set(['valid' => $valid, 'expires' => $now + $ttl, 'keepUntil' => $keepUntil])->expiresAfter(\max(1, $keepUntil - $now)));
     }
 
+    private function isAuthorizeRoute(): bool
+    {
+        return self::AUTHORIZE_ROUTE === $this->requestStack->getCurrentRequest()?->attributes->get('_route');
+    }
+
     private function isAuthorizationRequest(): bool
     {
-        return self::AUTHORIZE_ROUTE === $this->requestStack->getCurrentRequest()?->attributes->get('_route')
-            && $this->tokenStorage->getToken()?->getUser() instanceof UserInterface;
+        return $this->isAuthorizeRoute() && $this->tokenStorage->getToken()?->getUser() instanceof UserInterface;
+    }
+
+    /**
+     * The stored client, unless its document has not been fetched for STORED_LIFETIME: without a signed-in
+     * user nothing refetches it, so a document that turned invalid or a host that changed hands would count forever.
+     */
+    private function servableClient(string $storedIdentifier): ?ClientInterface
+    {
+        $record = $this->records->find($storedIdentifier);
+        if (null === $record || $record->getLastFetchedAt()->getTimestamp() + self::STORED_LIFETIME <= $this->time()) {
+            return null;
+        }
+
+        $client = $this->inner->find($storedIdentifier);
+
+        return null !== $client && !$client->isConfidential() ? $client : null;
     }
 
     private function time(): int
@@ -211,9 +238,11 @@ class CimdClientManager implements ClientManagerInterface
     /**
      * @param non-empty-string $storedIdentifier
      */
-    private function store(string $storedIdentifier, ClientMetadata $metadata): ?ClientInterface
+    private function store(string $storedIdentifier, string $url, ClientMetadata $metadata): ?ClientInterface
     {
         $client = $this->inner->find($storedIdentifier);
+        $record = $this->records->find($storedIdentifier);
+        $at = (new \DateTimeImmutable())->setTimestamp($this->time());
 
         if (null !== $client && $client->isConfidential()) {
             // a metadata document must never take over a client that has a secret
@@ -221,6 +250,15 @@ class CimdClientManager implements ClientManagerInterface
         }
 
         if (null === $client) {
+            $user = $this->tokenStorage->getToken()?->getUserIdentifier() ?? '';
+            $since = $at->modify('-1 day');
+
+            if ($this->records->countCreatedBy($user, $since) >= self::MAX_NEW_CLIENTS_PER_USER_AND_DAY) {
+                $this->logger->warning('A user added too many OAuth clients by URL.', ['user' => self::loggable($user)]);
+
+                return null;
+            }
+
             // never given a secret: a client identifying itself by URL is public
             $client = new Client($metadata->clientName, $storedIdentifier, null);
         }
@@ -236,6 +274,12 @@ class CimdClientManager implements ClientManagerInterface
 
         // `active` is left alone: a client an administrator deactivated stays off
         $this->inner->save($client);
+
+        if (null === $record) {
+            $record = new CimdClientRecord($storedIdentifier, $url, $this->tokenStorage->getToken()?->getUserIdentifier() ?? '', $at);
+        }
+        $record->fetched($at);
+        $this->records->save($record);
 
         return $client;
     }

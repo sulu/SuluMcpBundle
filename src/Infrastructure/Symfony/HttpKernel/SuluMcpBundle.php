@@ -162,6 +162,22 @@ class SuluMcpBundle extends AbstractBundle
             ]);
         }
 
+        if ($builder->hasExtension('doctrine')) {
+            $builder->prependExtensionConfig('doctrine', [
+                'orm' => [
+                    'mappings' => [
+                        'SuluMcp' => [
+                            'type' => 'attribute',
+                            'is_bundle' => false,
+                            'dir' => \dirname(__DIR__, 2) . '/League/Entity',
+                            'prefix' => 'Sulu\\Mcp\\Infrastructure\\League\\Entity',
+                            'alias' => 'SuluMcp',
+                        ],
+                    ],
+                ],
+            ]);
+        }
+
         if ($builder->hasExtension('league_oauth2_server')) {
             // Only `scopes.available`; everything else is the project's to configure.
             $builder->prependExtensionConfig('league_oauth2_server', [
