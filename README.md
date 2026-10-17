@@ -191,7 +191,7 @@ sulu_mcp:
 | Articles | 4 | `sulu_article_create`, `sulu_article_update`, `sulu_article_get`, `sulu_article_list` |
 | Snippets | 4 | `sulu_snippet_create`, `sulu_snippet_update`, `sulu_snippet_get`, `sulu_snippet_list` |
 | Unified content | 3 | `sulu_content_delete`, `sulu_content_publish`, `sulu_content_unpublish` |
-| Media | 4 | `sulu_media_list`, `sulu_media_get`, `sulu_media_update`, `sulu_media_upload` |
+| Media | 5 | `sulu_media_list`, `sulu_media_get`, `sulu_media_read_text`, `sulu_media_update`, `sulu_media_upload` |
 | Taxonomy | 6 | `sulu_tag_*`, `sulu_category_*` |
 | Preview | 2 | `sulu_preview_link_generate`, `sulu_preview_link_revoke` |
 | Navigation | 1 | `sulu_navigation_get` |

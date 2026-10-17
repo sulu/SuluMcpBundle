@@ -15,7 +15,7 @@ Sulu MCP Bundle is a Symfony bundle that turns a Sulu 3.x installation into an [
 
 ## What it exposes
 
-The bundle ships **40 tools** spanning the core Sulu domains:
+The bundle ships **41 tools** spanning the core Sulu domains:
 
 - Pages, articles, snippets — full lifecycle (CRUD, publish/unpublish, blocks, SEO, excerpt).
 - Media, taxonomy (tags, categories), contacts.

@@ -37,7 +37,8 @@
         "league/oauth2-server-bundle": "^1.2",
         "nyholm/psr7": "^1.4",
         "symfony/psr-http-message-bridge": "^7.3 || ^8.0",
-        "symfony/password-hasher": "^7.3 || ^8.0"
+        "symfony/password-hasher": "^7.3 || ^8.0",
+        "smalot/pdfparser": "^2.12"
     },
     "require-dev": {
         "php-cs-fixer/shim": "^3.15",

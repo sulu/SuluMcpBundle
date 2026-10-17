@@ -55,6 +55,7 @@ final class ToolAnnotationsGoldenTest extends TestCase
         'sulu_block_list' => [true, null, null, false],
         'sulu_media_list' => [true, null, null, false],
         'sulu_media_get' => [true, null, null, false],
+        'sulu_media_read_text' => [true, null, null, false],
 
         // create: additive, reversible, never idempotent
         'sulu_page_create' => [false, false, false, false],
