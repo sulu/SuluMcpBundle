@@ -45,7 +45,8 @@ Most clients need nothing on the Sulu side:
 Create a client up front only for a client that supports neither, such as Claude Cowork, or as the fallback for ChatGPT:
 
 ```bash
-php bin/console sulu:mcp:create-client "Claude Cowork Production"
+php bin/console sulu:mcp:create-client "Claude Cowork" --client=claude-cowork \
+    --redirect-uri="<the callback URI Cowork shows in its connector setup screen>"
 ```
 
 The command prints the Client ID, Client Secret, and redirect URI to paste into the client's connector setup. ChatGPT's manual connector reveals its callback URL only after the connector is saved, so `sulu:mcp:create-client --client=chatgpt` keeps running and asks you to paste the callback URL before it finishes.

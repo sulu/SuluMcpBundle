@@ -217,10 +217,13 @@ Clients authenticate through OAuth 2.1 with Client ID Metadata Documents and Dyn
 Sulu opens the administration login when needed and then shows an explicit consent screen naming the client and the
 requested scopes. Tokens are only issued once the user approves that screen.
 
-For hosted clients, create an OAuth client up front:
+Most clients need nothing on the Sulu side. Claude.ai, Claude Code, ChatGPT and Codex identify themselves with a
+Client ID Metadata Document, and Mistral Le Chat registers itself through Dynamic Client Registration. Create a client
+up front only for a client that supports neither, such as Claude Cowork, or as the fallback for ChatGPT:
 
 ```bash
-bin/console sulu:mcp:create-client "Claude.ai Production"
+bin/console sulu:mcp:create-client "Claude Cowork" --client=claude-cowork \
+    --redirect-uri="<the callback URI Cowork shows in its connector setup screen>"
 ```
 
 ## ❤️&nbsp; Support and Contributions
