@@ -7,11 +7,12 @@ Sulu MCP Bundle is a Symfony bundle that turns a Sulu 3.x installation into an [
 - [Configuration](configuration.md) — all bundle config options with examples.
 - [Content Assistant Prompt](CONTENT_ASSISTANT_PROMPT.md) — recommended system prompt for AI clients.
 - Client setup:
-  - [Claude.ai](clients/claude-ai.md) — hosted web/desktop app, OAuth connector.
-  - [Claude Code](clients/claude-code.md) — CLI, configured via `.mcp.json`.
+  - [Claude.ai](clients/claude-ai.md): hosted web/desktop app, custom connector, no client to create.
+  - [Claude Code](clients/claude-code.md): CLI, configured via `.mcp.json`.
   - [Claude Cowork](clients/claude-cowork.md) — collaborative workspace, OAuth connector.
-  - [ChatGPT](clients/chatgpt.md) — custom connector, one-command manual OAuth setup.
-  - [Codex](clients/codex.md) — CLI, public client over loopback OAuth.
+  - [ChatGPT](clients/chatgpt.md): custom connector, no client to create. A manual client stays as the fallback.
+  - [Codex](clients/codex.md): CLI, public client over loopback OAuth.
+  - [Mistral Le Chat](clients/mistral-le-chat.md): custom connector, registers itself.
 
 ## What it exposes
 
@@ -30,17 +31,25 @@ A handful of high-impact tools (delete, publish, block-remove, media-upload) are
 
 ## Authentication
 
-OAuth 2.1 with Client ID Metadata Documents (CIMD) and Dynamic Client Registration, backed by `league/oauth2-server-bundle`. Once a client completes the OAuth flow, every MCP request runs under that Sulu user. Operations the user cannot perform in the admin UI also fail via MCP.
+OAuth 2.1 with Client ID Metadata Documents (CIMD) and Dynamic Client Registration (DCR), backed by `league/oauth2-server-bundle`. Once a client completes the OAuth flow, every MCP request runs under that Sulu user. Operations the user cannot perform in the admin UI also fail via MCP.
 
 After login, Sulu shows an explicit authorization screen naming the client and requested scopes. The client only receives tokens when the Sulu user approves that screen.
 
-For hosted clients (Claude.ai, Claude Cowork), create an OAuth client up front:
+Most clients need nothing on the Sulu side:
+
+| Client | How it identifies itself |
+|--------|--------------------------|
+| Claude.ai, Claude Code, ChatGPT, Codex | [CIMD](#client-id-metadata-documents-cimd): the `client_id` is an https URL that serves the client's name and redirect URIs |
+| Mistral Le Chat | DCR: the client registers itself at `/admin/mcp/register` |
+
+Create a client up front only for a client that supports neither, such as Claude Cowork, or as the fallback for ChatGPT:
 
 ```bash
-php bin/console sulu:mcp:create-client "Claude.ai Production"
+php bin/console sulu:mcp:create-client "Claude Cowork" --client=claude-cowork \
+    --redirect-uri="<the callback URI Cowork shows in its connector setup screen>"
 ```
 
-The command prints the Client ID, Client Secret, and redirect URI to paste into the client's connector setup. Claude Code and Codex use Dynamic Client Registration and skip this step. ChatGPT's manual connector reveals its callback URL only after the connector is saved, so `sulu:mcp:create-client --client=chatgpt` keeps running and asks you to paste the callback URL before it finishes.
+The command prints the Client ID, Client Secret, and redirect URI to paste into the client's connector setup. ChatGPT's manual connector reveals its callback URL only after the connector is saved, so `sulu:mcp:create-client --client=chatgpt` keeps running and asks you to paste the callback URL before it finishes.
 
 ### Client ID Metadata Documents (CIMD)
 

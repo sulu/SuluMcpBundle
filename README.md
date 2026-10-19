@@ -153,7 +153,8 @@ bin/console doctrine:migrations:migrate
 The MCP endpoint then answers at `/admin/mcp`. The [`docs/`](docs/) directory documents the
 [configuration reference](docs/configuration.md), the **required security setup**, and per-client connection guides for
 [Claude.ai](docs/clients/claude-ai.md), [Claude Code](docs/clients/claude-code.md),
-[Claude Cowork](docs/clients/claude-cowork.md), [ChatGPT](docs/clients/chatgpt.md) and [Codex](docs/clients/codex.md).
+[Claude Cowork](docs/clients/claude-cowork.md), [ChatGPT](docs/clients/chatgpt.md), [Codex](docs/clients/codex.md) and
+[Mistral Le Chat](docs/clients/mistral-le-chat.md).
 
 ## 💡&nbsp; Key Concepts
 
@@ -216,10 +217,13 @@ Clients authenticate through OAuth 2.1 with Client ID Metadata Documents and Dyn
 Sulu opens the administration login when needed and then shows an explicit consent screen naming the client and the
 requested scopes. Tokens are only issued once the user approves that screen.
 
-For hosted clients, create an OAuth client up front:
+Most clients need nothing on the Sulu side. Claude.ai, Claude Code, ChatGPT and Codex identify themselves with a
+Client ID Metadata Document, and Mistral Le Chat registers itself through Dynamic Client Registration. Create a client
+up front only for a client that supports neither, such as Claude Cowork, or as the fallback for ChatGPT:
 
 ```bash
-bin/console sulu:mcp:create-client "Claude.ai Production"
+bin/console sulu:mcp:create-client "Claude Cowork" --client=claude-cowork \
+    --redirect-uri="<the callback URI Cowork shows in its connector setup screen>"
 ```
 
 ## ❤️&nbsp; Support and Contributions

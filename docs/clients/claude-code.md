@@ -25,7 +25,7 @@ Or write `.mcp.json` by hand:
 
 ## 2. Authenticate
 
-On first use, Claude Code triggers the OAuth flow in your browser via Dynamic Client Registration — no manual client setup needed. You log in to Sulu, approve the scopes, and Claude Code stores the token.
+On first use, Claude Code triggers the OAuth flow in your browser. It identifies itself with a Client ID Metadata Document and a loopback redirect on a random port, so there is no client to set up on the Sulu side. You log in to Sulu, approve the scopes, and Claude Code stores the token.
 
 To force a fresh login:
 
@@ -40,6 +40,6 @@ Add the contents of [`CONTENT_ASSISTANT_PROMPT.md`](../CONTENT_ASSISTANT_PROMPT.
 ## Troubleshooting
 
 - **`Server failed to start`** — confirm the URL is reachable from your machine and ends in `/admin/mcp`. Check the Symfony log for OAuth/CORS errors.
-- **Authentication succeeds, then the server rejects the connection** — the browser reports success and Claude Code reports rejected credentials. The transport is refusing the `Host` header, not the token: set `mcp.http.allowed_hosts` (see [configuration](../configuration.md#allowed-hosts)). Nothing is written to the Symfony log in this case; the response body is `Forbidden: Invalid Host header.`
+- **Authentication succeeds, then the server rejects the connection** — the browser reports success and Claude Code reports rejected credentials. The transport is refusing the `Host` header, not the token: set `mcp.servers.sulu.http.allowed_hosts` (see [configuration](../configuration.md#allowed-hosts)). Nothing is written to the Symfony log in this case; the response body is `Forbidden: Invalid Host header.`
 - **Tools missing** — `dangerous_tools.*` defaults to `false`. Enable categories in `config/packages/sulu_mcp.yaml`.
 - **Tokens expire after re-deploy** — clearing the OAuth tables on Sulu invalidates issued tokens; re-run `claude mcp logout sulu` and reconnect.
