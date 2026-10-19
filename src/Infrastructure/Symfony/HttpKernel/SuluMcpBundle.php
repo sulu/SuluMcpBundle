@@ -18,6 +18,7 @@ use Sulu\Mcp\Application\AdminLink\AdminLinkProviderInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkResourceResolverInterface;
 use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\LoopbackAuthCodeGrantPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
 use Sulu\Snippet\Infrastructure\Sulu\Admin\SnippetAdmin;
@@ -255,6 +256,7 @@ class SuluMcpBundle extends AbstractBundle
         $container->addCompilerPass(new DangerousToolsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 100);
         $container->addCompilerPass(new ToolPermissionMapPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 90);
         $container->addCompilerPass(new ToolReferenceHandlerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 80);
+        $container->addCompilerPass(new LoopbackAuthCodeGrantPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 70);
     }
 
     /**
