@@ -398,6 +398,34 @@ final class CimdClientManagerTest extends TestCase
         self::assertNull($this->manager()->find($client->getIdentifier()), 'A request must name the URL, or the consent page cannot show the host.');
     }
 
+    public function testServesTheStoredIdentifierToTheRequestThatResolvedTheUrl(): void
+    {
+        $this->respond($this->document());
+        $manager = $this->manager();
+
+        $client = $manager->find(self::URL);
+
+        self::assertNotNull($client);
+        self::assertSame(
+            $client->getIdentifier(),
+            $manager->find($client->getIdentifier())?->getIdentifier(),
+            'league resolves the client again by its stored identifier for the consent request, scopes and the code, in the same request.',
+        );
+    }
+
+    public function testDoesNotServeTheStoredIdentifierOfAnotherUrlInTheSameRequest(): void
+    {
+        $this->respond($this->document(['client_id' => 'https://other.example/metadata.json']));
+        $this->respond($this->document());
+        $manager = $this->manager();
+        $other = $manager->find('https://other.example/metadata.json');
+        $client = $this->manager()->find(self::URL);
+
+        self::assertNotNull($other);
+        self::assertNotNull($client);
+        self::assertNull($manager->find($client->getIdentifier()));
+    }
+
     public function testLogsAClientIdAndReasonWithoutControlCharacters(): void
     {
         $logger = new class() extends AbstractLogger {

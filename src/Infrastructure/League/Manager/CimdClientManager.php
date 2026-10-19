@@ -31,6 +31,7 @@ use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataFetcher;
 use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataValidator;
 use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataException;
 use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataUnavailableException;
+use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
 use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -60,6 +61,9 @@ class CimdClientManager implements ClientManagerInterface
     // random identifiers of other clients are plain hex, so this prefix tells a client stored from a URL apart
     private const STORED_PREFIX = 'cimd_';
 
+    /** @var \WeakMap<Request, array<string, true>> */
+    private \WeakMap $resolvedByUrl;
+
     /**
      * @param list<non-empty-string> $scopes
      * @param (\Closure(): int)|null $now
@@ -78,6 +82,7 @@ class CimdClientManager implements ClientManagerInterface
         private readonly ?\Closure $now = null,
         private readonly ?LockFactory $lockFactory = null,
     ) {
+        $this->resolvedByUrl = new \WeakMap();
     }
 
     /**
@@ -105,9 +110,10 @@ class CimdClientManager implements ClientManagerInterface
                 return $this->inner->find($identifier);
             }
 
-            // an authorization request names a URL client by its URL: the stored identifier would show it without its host and unverified marker
+            // an authorization request names a URL client by its URL: the stored identifier would show it without its host and unverified marker.
+            // league looks the client up again by its stored identifier for the consent request, scopes and the code, so the request that resolved the URL may use it
             if ($this->isAuthorizeRoute()) {
-                return null;
+                return $this->wasResolvedByUrl($identifier) ? $this->inner->find($identifier) : null;
             }
 
             // a request gets the same expiry under either name, only a lookup without a request (the cleanup command) sees the row as it is
@@ -118,6 +124,35 @@ class CimdClientManager implements ClientManagerInterface
             return $this->inner->find($identifier);
         }
 
+        $client = $this->findByUrl($identifier);
+        if ($client instanceof ClientInterface) {
+            $this->markResolvedByUrl($client->getIdentifier());
+        }
+
+        return $client;
+    }
+
+    private function wasResolvedByUrl(string $storedIdentifier): bool
+    {
+        $request = $this->requestStack->getCurrentRequest();
+
+        return null !== $request && isset($this->resolvedByUrl[$request][$storedIdentifier]);
+    }
+
+    private function markResolvedByUrl(string $storedIdentifier): void
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        if (null === $request) {
+            return;
+        }
+
+        $resolved = $this->resolvedByUrl[$request] ?? [];
+        $resolved[$storedIdentifier] = true;
+        $this->resolvedByUrl[$request] = $resolved;
+    }
+
+    private function findByUrl(string $identifier): ?ClientInterface
+    {
         $storedIdentifier = self::storedIdentifier($identifier);
 
         // the token endpoint is public and stateful firewalls give it a session: only a signed-in user's authorization request may cause a fetch and a stored client
