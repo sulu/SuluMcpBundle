@@ -18,6 +18,7 @@ use Sulu\Mcp\Application\AdminLink\AdminLinkProviderInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkResourceResolverInterface;
 use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\DangerousToolsPass;
+use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\LoopbackAuthCodeGrantPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolPermissionMapPass;
 use Sulu\Mcp\Infrastructure\Symfony\HttpKernel\Compiler\ToolReferenceHandlerPass;
 use Sulu\Snippet\Infrastructure\Sulu\Admin\SnippetAdmin;
@@ -37,6 +38,7 @@ use Symfony\Component\HttpKernel\Bundle\AbstractBundle;
  *     dangerous_tools: array<string, bool>,
  *     media_upload: array{allowed_hosts: list<string>},
  *     dynamic_client_registration: array{enabled: bool},
+ *     client_id_metadata_documents: array{enabled: bool, trusted_hosts: list<string>},
  * }
  */
 class SuluMcpBundle extends AbstractBundle
@@ -93,6 +95,25 @@ class SuluMcpBundle extends AbstractBundle
                     ->info('Enables tools with hard-to-reverse effects per #[DangerousTool] category (built in: delete, publish, block_remove, media_upload). Unlisted categories stay off; one that no tool declares fails the build.')
                     ->booleanPrototype()->end()
                 ->end()
+                ->arrayNode('client_id_metadata_documents')
+                    ->addDefaultsIfNotSet()
+                    ->info('OAuth Client ID Metadata Documents: clients may identify themselves with an https URL that serves their metadata, instead of registering first.')
+                    ->children()
+                        ->booleanNode('enabled')
+                            ->defaultTrue()
+                            ->info('Set to false to stop advertising CIMD and to stop fetching client metadata. Dynamic client registration is not affected.')
+                        ->end()
+                        ->arrayNode('trusted_hosts')
+                            ->scalarPrototype()->end()
+                            ->defaultValue(['claude.ai', 'chatgpt.com'])
+                            ->validate()
+                                ->ifTrue(static fn (array $hosts): bool => [] !== \array_filter($hosts, static fn (mixed $host): bool => !\is_string($host) || 1 !== \preg_match('/^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$/i', $host)))
+                                ->thenInvalid('trusted_hosts takes bare host names such as "claude.ai", without scheme, port or path.')
+                            ->end()
+                            ->info('Hosts whose client_id URLs the consent page does not mark as "not verified". The match is exact, subdomains are not included. A list replaces the default, an empty list marks every URL client.')
+                        ->end()
+                    ->end()
+                ->end()
                 ->arrayNode('media_upload')
                     ->addDefaultsIfNotSet()
                     // Separate from the dangerous_tools flag on purpose: that node decides
@@ -142,6 +163,22 @@ class SuluMcpBundle extends AbstractBundle
             ]);
         }
 
+        if ($builder->hasExtension('doctrine')) {
+            $builder->prependExtensionConfig('doctrine', [
+                'orm' => [
+                    'mappings' => [
+                        'SuluMcp' => [
+                            'type' => 'attribute',
+                            'is_bundle' => false,
+                            'dir' => \dirname(__DIR__, 2) . '/League/Entity',
+                            'prefix' => 'Sulu\\Mcp\\Infrastructure\\League\\Entity',
+                            'alias' => 'SuluMcp',
+                        ],
+                    ],
+                ],
+            ]);
+        }
+
         if ($builder->hasExtension('league_oauth2_server')) {
             // Only `scopes.available`; everything else is the project's to configure.
             $builder->prependExtensionConfig('league_oauth2_server', [
@@ -161,6 +198,11 @@ class SuluMcpBundle extends AbstractBundle
         $builder->setParameter('sulu_mcp.server_url', $config['server_url']);
         $builder->setParameter('sulu_mcp.mcp_path', $config['mcp_path']);
         $builder->setParameter('sulu_mcp.oauth.scopes', self::SCOPES);
+        $builder->setParameter('sulu_mcp.cimd.enabled', $config['client_id_metadata_documents']['enabled']);
+        $builder->setParameter('sulu_mcp.cimd.trusted_hosts', \array_map(
+            static fn (string $host): string => \strtolower($host),
+            $config['client_id_metadata_documents']['trusted_hosts'],
+        ));
         $builder->setParameter('sulu_mcp.dangerous_tools', $config['dangerous_tools']);
 
         $builder->setParameter('sulu_mcp.media_upload.allowed_hosts', \array_map(
@@ -214,6 +256,7 @@ class SuluMcpBundle extends AbstractBundle
         $container->addCompilerPass(new DangerousToolsPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 100);
         $container->addCompilerPass(new ToolPermissionMapPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 90);
         $container->addCompilerPass(new ToolReferenceHandlerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 80);
+        $container->addCompilerPass(new LoopbackAuthCodeGrantPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, 70);
     }
 
     /**

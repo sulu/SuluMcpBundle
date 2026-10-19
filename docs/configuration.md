@@ -21,6 +21,11 @@ sulu_mcp:
         block_remove: false  # sulu_block_remove
         media_upload: false  # sulu_media_upload
 
+    # Let clients identify themselves with an https URL that serves their metadata (CIMD).
+    client_id_metadata_documents:
+        enabled: true
+        trusted_hosts: [claude.ai, chatgpt.com]   # client_id URLs on these hosts are not marked "not verified" on the consent page
+
     # Limits applied to sulu_media_upload once dangerous_tools.media_upload is true.
     media_upload:
         allowed_hosts: []     # empty allows any public host
@@ -178,6 +183,36 @@ Booleans gating high-impact tools, keyed by category. Each flag is independent â
 When a flag is `false`, the corresponding tool services are removed from the container at compile time â€” they don't appear in MCP `tools/list` and calls fail with "unknown tool" rather than running with an error. To change a flag, edit the YAML and clear the cache (`bin/console cache:clear`).
 
 `media_upload` is the odd one out. `sulu_media_upload` destroys nothing: it imports an image from a URL into a collection. It is gated because it is the only tool that makes the server issue an outbound request to an address the model chose, and that is the operator's decision, not the model's.
+
+### `client_id_metadata_documents.enabled`
+
+Default `true`. Clients may then send an `https://` URL as `client_id`; the server fetches the metadata document there. That is the second place, after `sulu_media_upload`, where the server requests an address a stranger chose, so the fetch is confined: https on the default port only, no IP literals, every resolved address must be public (and the request is pinned to the address that was checked), no redirects, 3 seconds idle and 5 seconds in total, at most 16 KB. Documents declaring a client secret or an authentication method other than `none` are refused. The exception is `private_key_jwt` in a document that also lists `none` as supported (ChatGPT): the server stores that client as public, with PKCE, and never checks a signature. The DNS lookup before the request uses PHP's resolver, which has no timeout of its own, so the 5 seconds start after it has answered. A slow resolver can hold the request longer. Set it to `false` to stop advertising CIMD and stop fetching; DCR keeps working.
+
+A client that identifies itself by URL is public and has no secret, so PKCE is what protects its authorization code. League requires a code challenge from public clients unless you set `require_code_challenge_for_public_clients` to `false` under `league_oauth2_server.authorization_server`. Keep it on when CIMD is enabled.
+
+Every URL client is stored as a row in League's client table, with a record in `sulu_mcp_cimd_client` that holds its URL, the user who first added it and the time of the last successful fetch. A user can add 20 new URL clients per day. A stored client keeps working at the token endpoint for 30 days after its last successful fetch. Every authorization that fetches the document again starts the 30 days anew. Run `bin/console sulu:mcp:cleanup-clients` from cron to remove the clients that ran out. `--dry-run` lists them first.
+
+`CimdClientManager` decorates League's client manager for the whole application, also when CIMD is switched off. It then passes everything on, with one exception: an authorization request cannot name a client by the `cimd_` identifier it is stored under.
+
+#### Upgrading
+
+The table `sulu_mcp_cimd_client` is new. Create a migration with `bin/console doctrine:migrations:diff` or run `doctrine:schema:update`.
+
+CIMD is on by default. The metadata of the authorization server now contains `client_id_metadata_document_supported: true`, so claude.ai registers with a URL instead of through dynamic client registration on its next connection. Clients that are already registered keep working. Set `client_id_metadata_documents.enabled` to `false` to keep the old behaviour.
+
+### `client_id_metadata_documents.trusted_hosts`
+
+Default `[claude.ai, chatgpt.com]`. The consent page shows a URL client as `Name (host, not verified)`, because the name is whatever the owner of the document wrote and anyone can host a document that calls itself "Claude". Clients on a trusted host are shown as `Name (host)` instead.
+
+A list you set replaces the default, so name every host you want. An empty list marks every URL client:
+
+```yaml
+sulu_mcp:
+    client_id_metadata_documents:
+        trusted_hosts: []
+```
+
+Entries are bare host names. The match is exact, so `claude.ai` does not cover `evil.claude.ai`. A host you trust has to be one where only the vendor can publish: every URL on it counts, not just the vendor's own metadata document.
 
 ### `media_upload.*`
 

@@ -15,6 +15,7 @@ namespace Sulu\Mcp\UserInterface\Controller\Admin;
 
 use Sulu\Component\Security\Authentication\UserInterface;
 use Sulu\Mcp\Domain\Model\OAuthConsentRequest;
+use Sulu\Mcp\Infrastructure\League\Manager\CimdClientManager;
 use Sulu\Mcp\Infrastructure\Symfony\Security\OAuthConsentStore;
 use Symfony\Bundle\SecurityBundle\Security;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -27,10 +28,14 @@ use Symfony\Contracts\Translation\TranslatorInterface;
  */
 final readonly class OAuthConsentController
 {
+    /**
+     * @param list<string> $trustedHosts lower-cased hosts whose client_id URLs are not marked unverified
+     */
     public function __construct(
         private OAuthConsentStore $consentStore,
         private TranslatorInterface $translator,
         private Security $security,
+        private array $trustedHosts = [],
     ) {
     }
 
@@ -49,7 +54,7 @@ final readonly class OAuthConsentController
 
         return new JsonResponse([
             'clientId' => $consentRequest->getClientId(),
-            'clientName' => $consentRequest->getClientName(),
+            'clientName' => $this->clientName($consentRequest),
             'redirectUri' => $consentRequest->getRedirectUri(),
             'scopes' => \array_map($this->scopePayload(...), $consentRequest->getScopes()),
             'state' => $consentRequest->getState(),
@@ -89,6 +94,29 @@ final readonly class OAuthConsentController
             'id' => $scope,
             'label' => $this->translator->trans($scope, [], 'sulu_mcp', $this->userLocale()),
         ];
+    }
+
+    /**
+     * A URL client's name is whatever its owner wrote, so it is shown with the host and marked unverified,
+     * unless the host is one the project trusts.
+     */
+    private function clientName(OAuthConsentRequest $consentRequest): string
+    {
+        $clientId = $consentRequest->getClientId();
+        if (!CimdClientManager::isMetadataUrl($clientId)) {
+            return $consentRequest->getClientName();
+        }
+
+        $host = \strtolower((string) \parse_url($clientId, \PHP_URL_HOST));
+        if (\in_array($host, $this->trustedHosts, true)) {
+            return \sprintf('%s (%s)', $consentRequest->getClientName(), $host);
+        }
+
+        return \sprintf(
+            '%s (%s)',
+            $consentRequest->getClientName(),
+            $this->translator->trans('cimd.unverified', ['%host%' => $host], 'sulu_mcp', $this->userLocale()),
+        );
     }
 
     private function userLocale(): ?string

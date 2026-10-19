@@ -1,0 +1,362 @@
+<?php
+
+declare(strict_types=1);
+
+/*
+ * This file is part of Sulu.
+ *
+ * (c) Sulu GmbH
+ *
+ * This source file is subject to the MIT license that is bundled
+ * with this source code in the file LICENSE.
+ */
+
+namespace Sulu\Mcp\Infrastructure\League\Manager;
+
+use League\Bundle\OAuth2ServerBundle\Manager\ClientFilter;
+use League\Bundle\OAuth2ServerBundle\Manager\ClientManagerInterface;
+use League\Bundle\OAuth2ServerBundle\Model\AbstractClient;
+use League\Bundle\OAuth2ServerBundle\Model\Client;
+use League\Bundle\OAuth2ServerBundle\Model\ClientInterface;
+use League\Bundle\OAuth2ServerBundle\ValueObject\Grant;
+use League\Bundle\OAuth2ServerBundle\ValueObject\RedirectUri;
+use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
+use Psr\Cache\CacheItemInterface;
+use Psr\Cache\CacheItemPoolInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+use Sulu\Mcp\Infrastructure\League\Entity\CimdClientRecord;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadata;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataFetcher;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataValidator;
+use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataException;
+use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataUnavailableException;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Lock\LockFactory;
+use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
+use Symfony\Component\Security\Core\User\UserInterface;
+
+/**
+ * League's tokens and codes reference `oauth2_client.identifier`, a 32 character column, so a URL cannot be
+ * stored as it is. The client is persisted under a stable 32 character identifier derived from the URL.
+ * Every other client_id goes to the decorated manager.
+ *
+ * @internal
+ */
+class CimdClientManager implements ClientManagerInterface
+{
+    public const FAILURE_TTL = 60;
+
+    /** a stored client is served without a refetch for this long, then it is gone until a signed-in user authorizes it again */
+    public const STORED_LIFETIME = 30 * 86400;
+
+    /** how many URL clients one user may add per day, because every one is a row nobody consents to */
+    public const MAX_NEW_CLIENTS_PER_USER_AND_DAY = 20;
+
+    private const CACHE_PREFIX = 'sulu_mcp_cimd_';
+
+    private const AUTHORIZE_ROUTE = 'sulu_mcp_oauth_authorize';
+
+    // random identifiers of other clients are plain hex, so this prefix tells a client stored from a URL apart
+    private const STORED_PREFIX = 'cimd_';
+
+    /** @var \WeakMap<Request, array<string, true>> */
+    private \WeakMap $resolvedByUrl;
+
+    /**
+     * @param list<non-empty-string> $scopes
+     * @param (\Closure(): int)|null $now
+     */
+    public function __construct(
+        private readonly ClientManagerInterface $inner,
+        private readonly ClientMetadataFetcher $fetcher,
+        private readonly ClientMetadataValidator $validator,
+        private readonly CacheItemPoolInterface $cache,
+        private readonly CimdClientRecords $records,
+        private readonly TokenStorageInterface $tokenStorage,
+        private readonly RequestStack $requestStack,
+        private readonly array $scopes,
+        private readonly bool $enabled = true,
+        private readonly LoggerInterface $logger = new NullLogger(),
+        private readonly ?\Closure $now = null,
+        private readonly ?LockFactory $lockFactory = null,
+    ) {
+        $this->resolvedByUrl = new \WeakMap();
+    }
+
+    /**
+     * @return non-empty-string
+     */
+    public static function storedIdentifier(string $clientIdUrl): string
+    {
+        return self::STORED_PREFIX . \substr(\hash('sha256', $clientIdUrl), 0, 32 - \strlen(self::STORED_PREFIX));
+    }
+
+    public static function isMetadataUrl(string $identifier): bool
+    {
+        return \str_starts_with($identifier, 'https://');
+    }
+
+    public static function isStoredIdentifier(string $identifier): bool
+    {
+        return \str_starts_with($identifier, self::STORED_PREFIX);
+    }
+
+    private static function loggable(string $clientId): string
+    {
+        return \preg_replace('/[^\x20-\x7e]/', '?', $clientId) ?? '';
+    }
+
+    public function find(string $identifier): ?ClientInterface
+    {
+        if (!self::isMetadataUrl($identifier)) {
+            if (!self::isStoredIdentifier($identifier)) {
+                return $this->inner->find($identifier);
+            }
+
+            // an authorization request names a URL client by its URL: the stored identifier would show it without its host and unverified marker.
+            // league looks the client up again by its stored identifier for the consent request, scopes and the code, so the request that resolved the URL may use it
+            if ($this->isAuthorizeRoute()) {
+                return $this->wasResolvedByUrl($identifier) ? $this->inner->find($identifier) : null;
+            }
+
+            // a request gets the same expiry under either name, only a lookup without a request (the cleanup command) sees the row as it is
+            return null === $this->requestStack->getCurrentRequest() ? $this->inner->find($identifier) : $this->servableClient($identifier);
+        }
+
+        if (!$this->enabled) {
+            return $this->inner->find($identifier);
+        }
+
+        $client = $this->findByUrl($identifier);
+        if ($client instanceof ClientInterface) {
+            $this->markResolvedByUrl($client->getIdentifier());
+        }
+
+        return $client;
+    }
+
+    private function wasResolvedByUrl(string $storedIdentifier): bool
+    {
+        $request = $this->requestStack->getCurrentRequest();
+
+        return null !== $request && isset($this->resolvedByUrl[$request][$storedIdentifier]);
+    }
+
+    private function markResolvedByUrl(string $storedIdentifier): void
+    {
+        $request = $this->requestStack->getCurrentRequest();
+        if (null === $request) {
+            return;
+        }
+
+        $resolved = $this->resolvedByUrl[$request] ?? [];
+        $resolved[$storedIdentifier] = true;
+        $this->resolvedByUrl[$request] = $resolved;
+    }
+
+    private function findByUrl(string $identifier): ?ClientInterface
+    {
+        $storedIdentifier = self::storedIdentifier($identifier);
+
+        // the token endpoint is public and stateful firewalls give it a session: only a signed-in user's authorization request may cause a fetch and a stored client
+        if (!$this->isAuthorizationRequest()) {
+            return $this->servableClient($storedIdentifier);
+        }
+
+        $item = $this->cache->getItem(self::CACHE_PREFIX . $storedIdentifier);
+
+        $entry = $item->isHit() ? $item->get() : null;
+        $now = $this->time();
+
+        // the deadline lives in the value, not the cache expiry: it is the document's own lifetime and stays testable
+        if (\is_array($entry) && $entry['expires'] > $now) {
+            if (!$entry['valid']) {
+                return null;
+            }
+
+            $client = $this->inner->find($storedIdentifier);
+            if (null !== $client) {
+                return $client;
+            }
+        }
+
+        // before the fetch: a user at the cap must not make the server fetch every new URL they send
+        if (null === $this->records->find($storedIdentifier) && $this->isOverTheCap()) {
+            return null;
+        }
+
+        try {
+            $fetched = $this->fetcher->fetch($identifier);
+            $metadata = $this->validator->validate($identifier, $fetched->body);
+        } catch (ClientMetadataUnavailableException $e) {
+            $this->logger->warning('OAuth client metadata document is unavailable.', ['client_id' => self::loggable($identifier), 'reason' => self::loggable($e->getMessage())]);
+
+            return $this->staleClient($item, $entry, $storedIdentifier);
+        } catch (ClientMetadataException $e) {
+            $this->logger->warning('Rejected OAuth client metadata document.', ['client_id' => self::loggable($identifier), 'reason' => self::loggable($e->getMessage())]);
+
+            // remembered briefly, so requests cannot make the server fetch the same URL over and over
+            $this->remember($item, false, self::FAILURE_TTL, $now + self::FAILURE_TTL);
+
+            return null;
+        }
+
+        // two first-time authorizations of one URL would both create the rows
+        $lock = $this->lockFactory?->createLock(self::CACHE_PREFIX . $storedIdentifier);
+        $lock?->acquire(true);
+
+        try {
+            $client = $this->store($storedIdentifier, $identifier, $metadata);
+        } finally {
+            $lock?->release();
+        }
+
+        if (!$client instanceof ClientInterface) {
+            return null;
+        }
+
+        $this->remember($item, true, $fetched->ttl, $now + ClientMetadataFetcher::MAX_TTL);
+
+        return $client;
+    }
+
+    public function save(ClientInterface $client): void
+    {
+        $this->inner->save($client);
+    }
+
+    public function remove(ClientInterface $client): void
+    {
+        $this->inner->remove($client);
+        $this->records->remove($client->getIdentifier());
+    }
+
+    public function list(?ClientFilter $clientFilter): array
+    {
+        return $this->inner->list($clientFilter);
+    }
+
+    /**
+     * Keeps a client working on its last fetched data while its host is down, as long as the entry is kept.
+     * Without it every token refresh of the client would fail during an outage.
+     */
+    private function staleClient(CacheItemInterface $item, mixed $entry, string $storedIdentifier): ?ClientInterface
+    {
+        $now = $this->time();
+        $keepUntil = \is_array($entry) && true === $entry['valid'] && \is_int($entry['keepUntil'] ?? null) ? $entry['keepUntil'] : 0;
+
+        $client = $keepUntil > $now ? $this->inner->find($storedIdentifier) : null;
+        if (!$client instanceof ClientInterface) {
+            $this->remember($item, false, self::FAILURE_TTL, $now + self::FAILURE_TTL);
+
+            return null;
+        }
+
+        $this->remember($item, true, self::FAILURE_TTL, $keepUntil);
+
+        return $client;
+    }
+
+    /**
+     * @param int $keepUntil timestamp after which the entry is dropped from the cache
+     */
+    private function remember(CacheItemInterface $item, bool $valid, int $ttl, int $keepUntil): void
+    {
+        $now = $this->time();
+
+        $this->cache->save($item->set(['valid' => $valid, 'expires' => $now + $ttl, 'keepUntil' => $keepUntil])->expiresAfter(\max(1, $keepUntil - $now)));
+    }
+
+    private function isOverTheCap(): bool
+    {
+        $user = $this->tokenStorage->getToken()?->getUserIdentifier() ?? '';
+        $since = (new \DateTimeImmutable())->setTimestamp($this->time())->modify('-1 day');
+
+        if ($this->records->countCreatedBy($user, $since) < self::MAX_NEW_CLIENTS_PER_USER_AND_DAY) {
+            return false;
+        }
+
+        $this->logger->warning('A user added too many OAuth clients by URL.', ['user' => self::loggable($user)]);
+
+        return true;
+    }
+
+    private function isAuthorizeRoute(): bool
+    {
+        return self::AUTHORIZE_ROUTE === $this->requestStack->getCurrentRequest()?->attributes->get('_route');
+    }
+
+    private function isAuthorizationRequest(): bool
+    {
+        return $this->isAuthorizeRoute() && $this->tokenStorage->getToken()?->getUser() instanceof UserInterface;
+    }
+
+    /**
+     * The stored client, unless its document has not been fetched for STORED_LIFETIME: without a signed-in
+     * user nothing refetches it, so a document that turned invalid or a host that changed hands would count forever.
+     */
+    private function servableClient(string $storedIdentifier): ?ClientInterface
+    {
+        $record = $this->records->find($storedIdentifier);
+        if (null === $record || $record->getLastFetchedAt()->getTimestamp() + self::STORED_LIFETIME <= $this->time()) {
+            return null;
+        }
+
+        $client = $this->inner->find($storedIdentifier);
+
+        return null !== $client && !$client->isConfidential() ? $client : null;
+    }
+
+    private function time(): int
+    {
+        return null === $this->now ? \time() : ($this->now)();
+    }
+
+    /**
+     * @param non-empty-string $storedIdentifier
+     */
+    private function store(string $storedIdentifier, string $url, ClientMetadata $metadata): ?ClientInterface
+    {
+        $client = $this->inner->find($storedIdentifier);
+        $record = $this->records->find($storedIdentifier);
+        $at = (new \DateTimeImmutable())->setTimestamp($this->time());
+
+        if (null !== $client && $client->isConfidential()) {
+            // a metadata document must never take over a client that has a secret
+            return null;
+        }
+
+        if (null === $client) {
+            if ($this->isOverTheCap()) {
+                return null;
+            }
+
+            // never given a secret: a client identifying itself by URL is public
+            $client = new Client($metadata->clientName, $storedIdentifier, null);
+        }
+
+        if ($client instanceof AbstractClient) {
+            $client->setName($metadata->clientName);
+        }
+
+        $client->setRedirectUris(...\array_map(static fn (string $uri): RedirectUri => new RedirectUri($uri), $metadata->redirectUris));
+        $client->setGrants(new Grant('authorization_code'), new Grant('refresh_token'));
+        $client->setScopes(...\array_map(static fn (string $scope): Scope => new Scope($scope), $this->scopes));
+        $client->setAllowPlainTextPkce(false);
+
+        if (null === $record) {
+            $record = new CimdClientRecord($storedIdentifier, $url, $this->tokenStorage->getToken()?->getUserIdentifier() ?? '', $at);
+        }
+        $record->fetched($at);
+
+        // the record first: a client without one would never be counted against the cap or found by the cleanup
+        $this->records->save($record);
+
+        // `active` is left alone: a client an administrator deactivated stays off
+        $this->inner->save($client);
+
+        return $client;
+    }
+}
