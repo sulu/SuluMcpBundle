@@ -22,7 +22,7 @@ Paste the contents of [`CONTENT_ASSISTANT_PROMPT.md`](../CONTENT_ASSISTANT_PROMP
 If you turned off `client_id_metadata_documents`, or you want a client with a secret, create one on the Sulu side:
 
 ```bash
-php bin/console sulu:mcp:create-client "Claude.ai"
+php bin/console sulu:mcp:create-client "Claude.ai" --client=claude-ai
 ```
 
 The command's default redirect URI is Claude.ai's callback (`https://claude.ai/api/mcp/auth_callback`). It prints a Client ID and Client Secret. Copy them now, the secret cannot be retrieved later. Enter both in the connector's OAuth fields.

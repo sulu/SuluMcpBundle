@@ -42,14 +42,26 @@ Most clients need nothing on the Sulu side:
 | Claude.ai, Claude Code, ChatGPT, Codex | [CIMD](#client-id-metadata-documents-cimd): the `client_id` is an https URL that serves the client's name and redirect URIs |
 | Mistral Le Chat | DCR: the client registers itself at `/admin/mcp/register` |
 
-Create a client up front only for a client that supports neither, such as Claude Cowork, or as the fallback for ChatGPT:
+Create a client up front only for a client that supports neither, such as Claude Cowork, or as the fallback for ChatGPT or for Le Chat when you turned DCR off:
 
 ```bash
 php bin/console sulu:mcp:create-client "Claude Cowork" --client=claude-cowork \
     --redirect-uri="<the callback URI Cowork shows in its connector setup screen>"
 ```
 
-The command prints the Client ID, Client Secret, and redirect URI to paste into the client's connector setup. ChatGPT's manual connector reveals its callback URL only after the connector is saved, so `sulu:mcp:create-client --client=chatgpt` keeps running and asks you to paste the callback URL before it finishes.
+`--client` picks the preset for the redirect URI:
+
+| `--client` | Redirect URI |
+|------------|--------------|
+| `claude-ai` | fixed, `https://claude.ai/api/mcp/auth_callback` |
+| `mistral-le-chat` | fixed, `https://callback.mistral.ai/v1/integrations_auth/oauth2_callback` |
+| `chatgpt` | asked after you saved the connector, because ChatGPT shows its callback only then |
+| `claude-cowork` | asked, or `--redirect-uri` |
+| `custom` | asked, or `--redirect-uri`. Use it for any other client that takes a Client ID and secret. |
+
+Without a terminal, `--client` is required. The command prints the Client ID, Client Secret, and redirect URI to paste into the client's connector setup. ChatGPT's manual connector reveals its callback URL only after the connector is saved, so `sulu:mcp:create-client --client=chatgpt` keeps running and asks you to paste the callback URL before it finishes.
+
+A client created this way compares redirect URIs exactly. A command line client that listens on a random `localhost` port cannot use it, so it needs CIMD or DCR.
 
 ### Client ID Metadata Documents (CIMD)
 

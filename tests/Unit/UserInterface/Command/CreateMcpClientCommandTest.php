@@ -46,7 +46,7 @@ final class CreateMcpClientCommandTest extends TestCase
     {
         $captured = $this->captureSavedClient();
 
-        $exitCode = $this->tester->execute(['name' => 'Claude.ai'], ['interactive' => false]);
+        $exitCode = $this->tester->execute(['name' => 'Claude.ai', '--client' => 'claude-ai'], ['interactive' => false]);
 
         self::assertSame(0, $exitCode);
 
@@ -109,17 +109,80 @@ final class CreateMcpClientCommandTest extends TestCase
         );
     }
 
-    public function testNonInteractiveDefaultsToClaudeCallback(): void
+    public function testClaudeAiUsesItsCallback(): void
     {
         $captured = $this->captureSavedClient();
 
-        $exitCode = $this->tester->execute(['name' => 'Claude.ai'], ['interactive' => false]);
+        $exitCode = $this->tester->execute(['name' => 'Claude.ai', '--client' => 'claude-ai'], ['interactive' => false]);
 
         self::assertSame(0, $exitCode);
         self::assertSame(
             ['https://claude.ai/api/mcp/auth_callback'],
             $this->stringValues($captured()->getRedirectUris()),
         );
+    }
+
+    public function testNonInteractiveWithoutClientFails(): void
+    {
+        $this->clientManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        $exitCode = $this->tester->execute(['name' => 'Anything'], ['interactive' => false]);
+
+        self::assertSame(2, $exitCode);
+        self::assertStringContainsString('--client', $this->tester->getDisplay());
+    }
+
+    public function testMistralLeChatUsesItsCallback(): void
+    {
+        $captured = $this->captureSavedClient();
+
+        $exitCode = $this->tester->execute(['name' => 'Le Chat', '--client' => 'mistral-le-chat'], ['interactive' => false]);
+
+        self::assertSame(0, $exitCode);
+        self::assertSame(
+            ['https://callback.mistral.ai/v1/integrations_auth/oauth2_callback'],
+            $this->stringValues($captured()->getRedirectUris()),
+        );
+        self::assertStringContainsString('Add a custom MCP connector in Mistral Le Chat', $this->tester->getDisplay());
+    }
+
+    public function testCustomClientTakesTheRedirectUriFromTheOption(): void
+    {
+        $captured = $this->captureSavedClient();
+
+        $exitCode = $this->tester->execute(
+            ['name' => 'My client', '--client' => 'custom', '--redirect-uri' => 'https://client.example/callback'],
+            ['interactive' => false],
+        );
+
+        self::assertSame(0, $exitCode);
+        self::assertSame(['https://client.example/callback'], $this->stringValues($captured()->getRedirectUris()));
+        self::assertStringContainsString('Add a custom MCP server in your client', $this->tester->getDisplay());
+        self::assertNotNull($captured()->getSecret());
+    }
+
+    public function testCustomClientAsksForTheRedirectUri(): void
+    {
+        $captured = $this->captureSavedClient();
+
+        $this->tester->setInputs(['custom', 'https://client.example/callback']);
+        $exitCode = $this->tester->execute(['name' => 'My client']);
+
+        self::assertSame(0, $exitCode);
+        self::assertSame(['https://client.example/callback'], $this->stringValues($captured()->getRedirectUris()));
+    }
+
+    public function testNonInteractiveCustomClientWithoutRedirectUriFails(): void
+    {
+        $this->clientManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        $exitCode = $this->tester->execute(
+            ['name' => 'My client', '--client' => 'custom'],
+            ['interactive' => false],
+        );
+
+        self::assertSame(2, $exitCode);
+        self::assertStringContainsString('--redirect-uri', $this->tester->getDisplay());
     }
 
     public function testNonInteractiveCoworkWithoutRedirectUriFails(): void
