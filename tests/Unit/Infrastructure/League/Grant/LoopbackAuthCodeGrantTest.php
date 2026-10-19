@@ -76,10 +76,26 @@ final class LoopbackAuthCodeGrantTest extends TestCase
         yield 'not a uri' => ['not a uri', ['http://localhost/callback']];
     }
 
+    public function testKeepsLeaguesExactComparisonForAClientThatDoesNotIdentifyItselfByUrl(): void
+    {
+        $this->expectException(OAuthServerException::class);
+        $this->expectExceptionMessage('Client authentication failed');
+
+        $this->validate('http://localhost:60020/callback', ['http://localhost/callback'], 'abc123');
+    }
+
+    public function testStillAcceptsAnExactAndAnIpLoopbackRedirectForAClientThatDoesNotIdentifyItselfByUrl(): void
+    {
+        $this->validate('http://localhost/callback', ['http://localhost/callback'], 'abc123');
+        $this->validate('http://127.0.0.1:60020/callback', ['http://127.0.0.1/callback'], 'abc123');
+
+        $this->addToAssertionCount(1);
+    }
+
     /**
      * @param list<string> $registered
      */
-    private function validate(string $requested, array $registered): void
+    private function validate(string $requested, array $registered, string $identifier = 'cimd_0123456789abcdef0123456789'): void
     {
         $grant = new LoopbackAuthCodeGrant(
             $this->createStub(AuthCodeRepositoryInterface::class),
@@ -89,6 +105,7 @@ final class LoopbackAuthCodeGrantTest extends TestCase
 
         $client = $this->createStub(ClientEntityInterface::class);
         $client->method('getRedirectUri')->willReturn($registered);
+        $client->method('getIdentifier')->willReturn($identifier);
 
         $method = new \ReflectionMethod($grant, 'validateRedirectUri');
         $method->invoke($grant, $requested, $client, $this->createStub(ServerRequestInterface::class));

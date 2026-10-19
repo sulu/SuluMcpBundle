@@ -98,6 +98,11 @@ class CimdClientManager implements ClientManagerInterface
         return \str_starts_with($identifier, 'https://');
     }
 
+    public static function isStoredIdentifier(string $identifier): bool
+    {
+        return \str_starts_with($identifier, self::STORED_PREFIX);
+    }
+
     private static function loggable(string $clientId): string
     {
         return \preg_replace('/[^\x20-\x7e]/', '?', $clientId) ?? '';
@@ -106,7 +111,7 @@ class CimdClientManager implements ClientManagerInterface
     public function find(string $identifier): ?ClientInterface
     {
         if (!self::isMetadataUrl($identifier)) {
-            if (!\str_starts_with($identifier, self::STORED_PREFIX)) {
+            if (!self::isStoredIdentifier($identifier)) {
                 return $this->inner->find($identifier);
             }
 
