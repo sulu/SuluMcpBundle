@@ -153,7 +153,8 @@ bin/console doctrine:migrations:migrate
 The MCP endpoint then answers at `/admin/mcp`. The [`docs/`](docs/) directory documents the
 [configuration reference](docs/configuration.md), the **required security setup**, and per-client connection guides for
 [Claude.ai](docs/clients/claude-ai.md), [Claude Code](docs/clients/claude-code.md),
-[Claude Cowork](docs/clients/claude-cowork.md), [ChatGPT](docs/clients/chatgpt.md) and [Codex](docs/clients/codex.md).
+[Claude Cowork](docs/clients/claude-cowork.md), [ChatGPT](docs/clients/chatgpt.md), [Codex](docs/clients/codex.md) and
+[Mistral Le Chat](docs/clients/mistral-le-chat.md).
 
 ## 💡&nbsp; Key Concepts
 
