@@ -30,6 +30,8 @@ use Symfony\Component\HttpClient\MockHttpClient;
 use Symfony\Component\HttpClient\Response\MockResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Lock\LockFactory;
+use Symfony\Component\Lock\Store\InMemoryStore;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorage;
 use Symfony\Component\Security\Core\Authentication\Token\UsernamePasswordToken;
 use Symfony\Component\Security\Core\User\InMemoryUser;
@@ -341,6 +343,33 @@ final class CimdClientManagerTest extends TestCase
         self::assertNotNull($client);
 
         self::assertNotNull($this->manager(route: 'sulu_mcp_oauth_token')->find($client->getIdentifier()));
+        self::assertNotNull($this->manager(route: null)->find($client->getIdentifier()));
+    }
+
+    public function testAppliesTheExpiryToAStoredIdentifierAtTheTokenEndpoint(): void
+    {
+        $this->respond($this->document(), 'Cache-Control: max-age=600');
+        $client = $this->manager()->find(self::URL);
+        self::assertNotNull($client);
+
+        $this->clock->sleep(CimdClientManager::STORED_LIFETIME + 1);
+
+        $manager = $this->manager(signedIn: false, route: 'sulu_mcp_oauth_token');
+        self::assertNull($manager->find(self::URL));
+        self::assertNull($manager->find($client->getIdentifier()), 'The stored identifier must not outlive the URL.');
+        self::assertNotNull($this->manager(route: null)->find($client->getIdentifier()), 'The cleanup command has to reach the row.');
+    }
+
+    public function testReleasesTheLockAfterStoringAClient(): void
+    {
+        $store = new InMemoryStore();
+        $this->respond($this->document());
+
+        $client = $this->manager(lockFactory: new LockFactory($store))->find(self::URL);
+
+        self::assertNotNull($client);
+        $lock = (new LockFactory($store))->createLock('sulu_mcp_cimd_' . $client->getIdentifier());
+        self::assertTrue($lock->acquire(), 'The client is stored, so the lock must be free again.');
     }
 
     public function testRefusesAStoredIdentifierSuppliedByARequest(): void
@@ -400,10 +429,12 @@ final class CimdClientManagerTest extends TestCase
         self::assertSame([], $this->requested);
     }
 
-    private function manager(bool $enabled = true, bool $signedIn = true, ?LoggerInterface $logger = null, string $route = 'sulu_mcp_oauth_authorize'): CimdClientManager
+    private function manager(bool $enabled = true, bool $signedIn = true, ?LoggerInterface $logger = null, ?string $route = 'sulu_mcp_oauth_authorize', ?LockFactory $lockFactory = null): CimdClientManager
     {
         $requestStack = new RequestStack();
-        $requestStack->push(new Request(attributes: ['_route' => $route]));
+        if (null !== $route) {
+            $requestStack->push(new Request(attributes: ['_route' => $route]));
+        }
 
         $tokenStorage = new TokenStorage();
         if ($signedIn) {
@@ -428,6 +459,7 @@ final class CimdClientManagerTest extends TestCase
             $enabled,
             logger: $logger ?? new NullLogger(),
             now: fn (): int => $this->clock->now()->getTimestamp(),
+            lockFactory: $lockFactory,
         );
     }
 

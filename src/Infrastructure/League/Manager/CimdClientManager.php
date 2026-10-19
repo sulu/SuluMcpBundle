@@ -32,6 +32,7 @@ use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataValidator;
 use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataException;
 use Sulu\Mcp\Infrastructure\OAuth\Exception\ClientMetadataUnavailableException;
 use Symfony\Component\HttpFoundation\RequestStack;
+use Symfony\Component\Lock\LockFactory;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
 
@@ -75,6 +76,7 @@ class CimdClientManager implements ClientManagerInterface
         private readonly bool $enabled = true,
         private readonly LoggerInterface $logger = new NullLogger(),
         private readonly ?\Closure $now = null,
+        private readonly ?LockFactory $lockFactory = null,
     ) {
     }
 
@@ -99,8 +101,17 @@ class CimdClientManager implements ClientManagerInterface
     public function find(string $identifier): ?ClientInterface
     {
         if (!self::isMetadataUrl($identifier)) {
+            if (!\str_starts_with($identifier, self::STORED_PREFIX)) {
+                return $this->inner->find($identifier);
+            }
+
             // an authorization request names a URL client by its URL: the stored identifier would show it without its host and unverified marker
-            return \str_starts_with($identifier, self::STORED_PREFIX) && $this->isAuthorizeRoute() ? null : $this->inner->find($identifier);
+            if ($this->isAuthorizeRoute()) {
+                return null;
+            }
+
+            // a request gets the same expiry under either name, only a lookup without a request (the cleanup command) sees the row as it is
+            return null === $this->requestStack->getCurrentRequest() ? $this->inner->find($identifier) : $this->servableClient($identifier);
         }
 
         if (!$this->enabled) {
@@ -147,7 +158,16 @@ class CimdClientManager implements ClientManagerInterface
             return null;
         }
 
-        $client = $this->store($storedIdentifier, $identifier, $metadata);
+        // two first-time authorizations of one URL would both create the rows
+        $lock = $this->lockFactory?->createLock(self::CACHE_PREFIX . $storedIdentifier);
+        $lock?->acquire(true);
+
+        try {
+            $client = $this->store($storedIdentifier, $identifier, $metadata);
+        } finally {
+            $lock?->release();
+        }
+
         if (!$client instanceof ClientInterface) {
             return null;
         }

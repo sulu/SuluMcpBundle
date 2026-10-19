@@ -29,6 +29,9 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class ClientMetadataFetcher
 {
     public const MAX_BODY_SIZE = 16384;
+
+    /** the length of the column that stores the URL */
+    public const MAX_URL_LENGTH = 2048;
     public const MIN_TTL = 300;
     public const MAX_TTL = 86400;
     public const DEFAULT_TTL = 3600;
@@ -142,6 +145,10 @@ class ClientMetadataFetcher
      */
     private function assertFetchable(string $url): string
     {
+        if (\strlen($url) > self::MAX_URL_LENGTH) {
+            throw new ClientMetadataException(\sprintf('The client_id URL must not be longer than %d characters.', self::MAX_URL_LENGTH));
+        }
+
         $parts = \parse_url($url);
 
         if (false === $parts || 'https' !== \strtolower($parts['scheme'] ?? '')) {

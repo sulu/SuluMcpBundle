@@ -94,6 +94,7 @@ final class ClientMetadataFetcherTest extends TestCase
         yield 'ipv6 literal' => ['https://[::1]/m.json'];
         yield 'metadata literal' => ['https://169.254.169.254/latest/meta-data'];
         yield 'garbage' => ['not a url'];
+        yield 'longer than the column that stores it' => ['https://client.example/' . \str_repeat('a', ClientMetadataFetcher::MAX_URL_LENGTH)];
     }
 
     /**

@@ -278,6 +278,7 @@ return static function(ContainerConfigurator $container): void {
         ->decorate(ClientManagerInterface::class)
         ->arg('$inner', new Reference('.inner'))
         ->arg('$records', new Reference(CimdClientRecords::class))
+        ->arg('$lockFactory', new Reference('lock.factory', ContainerInterface::NULL_ON_INVALID_REFERENCE))
         ->arg('$cache', new Reference('cache.app'))
         ->arg('$tokenStorage', new Reference('security.token_storage'))
         ->arg('$requestStack', new Reference('request_stack'))

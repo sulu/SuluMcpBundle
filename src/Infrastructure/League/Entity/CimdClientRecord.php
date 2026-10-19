@@ -14,6 +14,7 @@ declare(strict_types=1);
 namespace Sulu\Mcp\Infrastructure\League\Entity;
 
 use Doctrine\ORM\Mapping as ORM;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataFetcher;
 
 /**
  * What League's client row cannot hold: where a client identified by URL came from, who first stored
@@ -33,7 +34,7 @@ class CimdClientRecord
         #[ORM\Id]
         #[ORM\Column(length: 32)]
         private readonly string $identifier,
-        #[ORM\Column(length: 2048)]
+        #[ORM\Column(length: ClientMetadataFetcher::MAX_URL_LENGTH)]
         private readonly string $url,
         #[ORM\Column(length: 255)]
         private readonly string $createdBy,
