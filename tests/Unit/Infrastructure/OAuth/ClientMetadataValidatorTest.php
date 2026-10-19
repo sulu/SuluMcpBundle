@@ -74,6 +74,28 @@ final class ClientMetadataValidatorTest extends TestCase
         self::assertSame(['https://claude.ai/api/mcp/auth_callback'], $metadata->redirectUris);
     }
 
+    public function testAcceptsTheDocumentChatGptServes(): void
+    {
+        $url = 'https://chatgpt.com/oauth/pGoBoKXXQXag/client.json';
+        $document = \json_encode([
+            'client_id' => $url,
+            'client_uri' => 'https://chatgpt.com/',
+            'redirect_uris' => ['https://chatgpt.com/connector/oauth/pGoBoKXXQXag'],
+            'token_endpoint_auth_method' => 'private_key_jwt',
+            'token_endpoint_auth_methods_supported' => ['none', 'private_key_jwt'],
+            'grant_types' => ['authorization_code', 'refresh_token'],
+            'response_types' => ['code'],
+            'client_name' => 'ChatGPT',
+            'token_endpoint_auth_signing_alg' => 'RS256',
+            'jwks_uri' => 'https://chatgpt.com/oauth/jwks.json',
+        ], \JSON_THROW_ON_ERROR);
+
+        $metadata = (new ClientMetadataValidator())->validate($url, $document);
+
+        self::assertSame('ChatGPT', $metadata->clientName);
+        self::assertSame(['https://chatgpt.com/connector/oauth/pGoBoKXXQXag'], $metadata->redirectUris);
+    }
+
     public function testStripsLineSeparatorsFromTheName(): void
     {
         $metadata = (new ClientMetadataValidator())->validate(self::URL, $this->document(['client_name' => "Good\u{2028}Name\u{2029}"]));
@@ -142,6 +164,11 @@ final class ClientMetadataValidatorTest extends TestCase
         yield 'jwks_uri' => [['jwks_uri' => 'https://client.example/jwks'], 'only public clients'];
         yield 'client_secret_basic' => [['token_endpoint_auth_method' => 'client_secret_basic'], 'must be "none"'];
         yield 'private_key_jwt' => [['token_endpoint_auth_method' => 'private_key_jwt'], 'must be "none"'];
+        yield 'private_key_jwt without none supported' => [['token_endpoint_auth_method' => 'private_key_jwt', 'token_endpoint_auth_methods_supported' => ['private_key_jwt']], 'must be "none"'];
+        yield 'private_key_jwt with none in a non list' => [['token_endpoint_auth_method' => 'private_key_jwt', 'token_endpoint_auth_methods_supported' => ['a' => 'none']], 'must be "none"'];
+        yield 'client_secret_basic with none supported' => [['token_endpoint_auth_method' => 'client_secret_basic', 'token_endpoint_auth_methods_supported' => ['none']], 'must be "none"'];
+        yield 'private_key_jwt with a secret' => [['token_endpoint_auth_method' => 'private_key_jwt', 'token_endpoint_auth_methods_supported' => ['none'], 'client_secret' => 'x'], 'only public clients'];
+        yield 'jwks with auth method none' => [['token_endpoint_auth_method' => 'none', 'jwks' => ['keys' => []]], 'only public clients'];
         yield 'implicit grant' => [['grant_types' => ['implicit']], 'grant_types'];
         yield 'client credentials only' => [['grant_types' => ['client_credentials']], 'grant_types'];
         yield 'grant_types not a list' => [['grant_types' => 'authorization_code'], 'grant_types'];

@@ -28,6 +28,9 @@ class ClientMetadataValidator
 
     private const FORBIDDEN_FIELDS = ['client_secret', 'client_secret_expires_at', 'jwks', 'jwks_uri'];
 
+    // ChatGPT declares private_key_jwt next to "none": the server cannot verify a signature, so such a client is stored as public and its keys are ignored
+    private const KEY_FIELDS = ['jwks', 'jwks_uri'];
+
     /**
      * @throws ClientMetadataException
      */
@@ -55,14 +58,16 @@ class ClientMetadataValidator
             throw new ClientMetadataException('client_name is required.');
         }
 
+        $authMethod = $document['token_endpoint_auth_method'] ?? 'none';
+        $keyBased = 'private_key_jwt' === $authMethod && $this->supportsNone($document);
+
         foreach (self::FORBIDDEN_FIELDS as $field) {
-            if (\array_key_exists($field, $document)) {
+            if (\array_key_exists($field, $document) && !($keyBased && \in_array($field, self::KEY_FIELDS, true))) {
                 throw new ClientMetadataException(\sprintf('"%s" is not allowed: only public clients are supported.', $field));
             }
         }
 
-        $authMethod = $document['token_endpoint_auth_method'] ?? 'none';
-        if ('none' !== $authMethod) {
+        if ('none' !== $authMethod && !$keyBased) {
             throw new ClientMetadataException('token_endpoint_auth_method must be "none": only public clients are supported.');
         }
 
@@ -79,6 +84,16 @@ class ClientMetadataValidator
         }
 
         return new ClientMetadata($url, \mb_substr(\trim($name), 0, self::MAX_NAME_LENGTH), $this->redirectUris($document['redirect_uris'] ?? null));
+    }
+
+    /**
+     * @param array<array-key, mixed> $document
+     */
+    private function supportsNone(array $document): bool
+    {
+        $supported = $document['token_endpoint_auth_methods_supported'] ?? null;
+
+        return \is_array($supported) && \array_is_list($supported) && \in_array('none', $supported, true);
     }
 
     /**
