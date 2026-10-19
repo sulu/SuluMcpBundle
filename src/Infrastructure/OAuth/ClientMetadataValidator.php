@@ -28,7 +28,9 @@ class ClientMetadataValidator
 
     private const FORBIDDEN_FIELDS = ['client_secret', 'client_secret_expires_at', 'jwks', 'jwks_uri'];
 
-    // ChatGPT declares private_key_jwt next to "none": the server cannot verify a signature, so such a client is stored as public and its keys are ignored
+    // ChatGPT's own document asks for private_key_jwt and lists "none" in token_endpoint_auth_methods_supported. That field belongs to
+    // authorization server metadata (RFC 8414), not to client metadata (RFC 7591), so ChatGPT's document is the only source for it.
+    // The server cannot verify a signature, so such a client is stored as public and its keys are ignored.
     private const KEY_FIELDS = ['jwks', 'jwks_uri'];
 
     /**
