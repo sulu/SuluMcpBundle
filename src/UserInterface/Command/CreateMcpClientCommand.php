@@ -37,6 +37,7 @@ use Symfony\Component\PasswordHasher\PasswordHasherInterface;
 class CreateMcpClientCommand extends Command
 {
     private const CLAUDE_CALLBACK_URI = 'https://claude.ai/api/mcp/auth_callback';
+    private const MISTRAL_CALLBACK_URI = 'https://callback.mistral.ai/v1/integrations_auth/oauth2_callback';
 
     /**
      * @var array<string, string>
@@ -45,6 +46,8 @@ class CreateMcpClientCommand extends Command
         'claude-ai' => 'Claude.ai',
         'claude-cowork' => 'Claude Cowork',
         'chatgpt' => 'ChatGPT',
+        'mistral-le-chat' => 'Mistral Le Chat',
+        'custom' => 'Custom client',
     ];
 
     public function __construct(
@@ -82,6 +85,12 @@ class CreateMcpClientCommand extends Command
         $scopes = \is_array($scopeOption)
             ? \array_values(\array_filter($scopeOption, static fn ($s): bool => \is_string($s) && '' !== $s))
             : [];
+
+        if (null === $input->getOption('client') && !$input->isInteractive()) {
+            $io->error(\sprintf('Pass --client when the command runs without a terminal. Use one of: %s.', \implode(', ', \array_keys(self::CLIENTS))));
+
+            return Command::INVALID;
+        }
 
         $client = $this->resolveClient($input, $io);
         if (null === $client) {
@@ -152,10 +161,6 @@ class CreateMcpClientCommand extends Command
             return \is_string($client) && isset(self::CLIENTS[$client]) ? $client : null;
         }
 
-        if (!$input->isInteractive()) {
-            return 'claude-ai';
-        }
-
         $chosen = $io->choice('Which MCP client is this connector for?', \array_keys(self::CLIENTS), 'claude-ai');
 
         // choice() only declares `mixed`; a non-multiselect call always returns one choice
@@ -176,6 +181,10 @@ class CreateMcpClientCommand extends Command
             return self::CLAUDE_CALLBACK_URI;
         }
 
+        if ('mistral-le-chat' === $client) {
+            return self::MISTRAL_CALLBACK_URI;
+        }
+
         // ChatGPT only reveals its callback URL once the connector is saved, so create
         // the client first and prompt for the URL afterwards.
         if ('chatgpt' === $client) {
@@ -188,7 +197,7 @@ class CreateMcpClientCommand extends Command
 
         return $this->askRedirectUri(
             $io,
-            \sprintf('Paste the redirect URI that %s shows you', self::CLIENTS[$client]),
+            'custom' === $client ? 'Enter the redirect URI of your client' : \sprintf('Paste the redirect URI that %s shows you', self::CLIENTS[$client]),
         );
     }
 
@@ -237,6 +246,18 @@ class CreateMcpClientCommand extends Command
             if ($requiresCallbackAfterCreation) {
                 $io->text('Save the connector in ChatGPT. When ChatGPT shows its callback URL, paste it here to finish registration.');
             }
+
+            return;
+        }
+
+        if ('custom' === $client || 'mistral-le-chat' === $client) {
+            $io->listing([
+                'custom' === $client ? 'Add a custom MCP server in your client' : \sprintf('Add a custom MCP connector in %s', $label),
+                \sprintf('Name: %s', $name),
+                \sprintf('MCP Server URL: %s', $mcpUrl),
+                \sprintf('OAuth Client ID: %s', $identifier),
+                \sprintf('OAuth Client Secret: %s', $secret),
+            ]);
 
             return;
         }
