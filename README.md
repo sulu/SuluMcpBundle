@@ -132,12 +132,14 @@ it in `config/packages/mcp.yaml` yourself:
 
 ```yaml
 mcp:
-    http:
-        allowed_hosts:
-            - '%env(key:host:url:SULU_MCP_SERVER_URL)%'
-            - localhost
-            - 127.0.0.1
-            - '[::1]'
+    servers:
+        sulu:
+            http:
+                allowed_hosts:
+                    - '%env(key:host:url:SULU_MCP_SERVER_URL)%'
+                    - localhost
+                    - 127.0.0.1
+                    - '[::1]'
 ```
 
 Create the database tables. `league/oauth2-server-bundle` persists clients, authorization codes, access tokens and
