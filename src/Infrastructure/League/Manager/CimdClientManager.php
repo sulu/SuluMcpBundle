@@ -142,6 +142,11 @@ class CimdClientManager implements ClientManagerInterface
             }
         }
 
+        // before the fetch: a user at the cap must not make the server fetch every new URL they send
+        if (null === $this->records->find($storedIdentifier) && $this->isOverTheCap()) {
+            return null;
+        }
+
         try {
             $fetched = $this->fetcher->fetch($identifier);
             $metadata = $this->validator->validate($identifier, $fetched->body);
@@ -224,6 +229,20 @@ class CimdClientManager implements ClientManagerInterface
         $this->cache->save($item->set(['valid' => $valid, 'expires' => $now + $ttl, 'keepUntil' => $keepUntil])->expiresAfter(\max(1, $keepUntil - $now)));
     }
 
+    private function isOverTheCap(): bool
+    {
+        $user = $this->tokenStorage->getToken()?->getUserIdentifier() ?? '';
+        $since = (new \DateTimeImmutable())->setTimestamp($this->time())->modify('-1 day');
+
+        if ($this->records->countCreatedBy($user, $since) < self::MAX_NEW_CLIENTS_PER_USER_AND_DAY) {
+            return false;
+        }
+
+        $this->logger->warning('A user added too many OAuth clients by URL.', ['user' => self::loggable($user)]);
+
+        return true;
+    }
+
     private function isAuthorizeRoute(): bool
     {
         return self::AUTHORIZE_ROUTE === $this->requestStack->getCurrentRequest()?->attributes->get('_route');
@@ -270,12 +289,7 @@ class CimdClientManager implements ClientManagerInterface
         }
 
         if (null === $client) {
-            $user = $this->tokenStorage->getToken()?->getUserIdentifier() ?? '';
-            $since = $at->modify('-1 day');
-
-            if ($this->records->countCreatedBy($user, $since) >= self::MAX_NEW_CLIENTS_PER_USER_AND_DAY) {
-                $this->logger->warning('A user added too many OAuth clients by URL.', ['user' => self::loggable($user)]);
-
+            if ($this->isOverTheCap()) {
                 return null;
             }
 
@@ -292,14 +306,16 @@ class CimdClientManager implements ClientManagerInterface
         $client->setScopes(...\array_map(static fn (string $scope): Scope => new Scope($scope), $this->scopes));
         $client->setAllowPlainTextPkce(false);
 
-        // `active` is left alone: a client an administrator deactivated stays off
-        $this->inner->save($client);
-
         if (null === $record) {
             $record = new CimdClientRecord($storedIdentifier, $url, $this->tokenStorage->getToken()?->getUserIdentifier() ?? '', $at);
         }
         $record->fetched($at);
+
+        // the record first: a client without one would never be counted against the cap or found by the cleanup
         $this->records->save($record);
+
+        // `active` is left alone: a client an administrator deactivated stays off
+        $this->inner->save($client);
 
         return $client;
     }

@@ -372,6 +372,23 @@ final class CimdClientManagerTest extends TestCase
         self::assertTrue($lock->acquire(), 'The client is stored, so the lock must be free again.');
     }
 
+    public function testDoesNotFetchForAUserAtTheCap(): void
+    {
+        $manager = $this->manager();
+        for ($i = 0; $i < CimdClientManager::MAX_NEW_CLIENTS_PER_USER_AND_DAY; ++$i) {
+            $url = \sprintf('https://client.example/%d.json', $i);
+            $this->respond($this->document(['client_id' => $url]));
+            $manager->find($url);
+        }
+        $fetched = \count($this->requested);
+
+        $this->respond($this->document(['client_id' => 'https://client.example/more.json']));
+        $manager->find('https://client.example/more.json');
+        $manager->find('https://client.example/more.json');
+
+        self::assertCount($fetched, $this->requested, 'A refused URL must not cost a fetch, however often it is sent.');
+    }
+
     public function testRefusesAStoredIdentifierSuppliedByARequest(): void
     {
         $this->respond($this->document());

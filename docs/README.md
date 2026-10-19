@@ -44,7 +44,7 @@ The command prints the Client ID, Client Secret, and redirect URI to paste into 
 
 ### Client ID Metadata Documents (CIMD)
 
-A client may send an `https://` URL as its `client_id`. The server fetches the JSON document at that URL, which names the client and lists its redirect URIs, and treats the client as a public client (PKCE required, no secret). Nothing needs to be set up on the Sulu side. The authorization-server metadata advertises `client_id_metadata_document_supported`.
+A client may send an `https://` URL as its `client_id`. The server fetches the JSON document at that URL, which names the client and lists its redirect URIs, and treats the client as a public client (no secret, PKCE protects the code). CIMD is on by default and needs the table `sulu_mcp_cimd_client`, see [Upgrading](configuration.md#upgrading). The authorization-server metadata advertises `client_id_metadata_document_supported`.
 
 The document is only trusted to describe the client, not to prove who runs it, so the consent screen shows the name together with the host of the URL and marks it as *not verified*, unless the host is one of the `trusted_hosts` (default `claude.ai` and `chatgpt.com`). Check the host before you approve.
 

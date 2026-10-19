@@ -20,6 +20,9 @@ use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataFetcher;
  * What League's client row cannot hold: where a client identified by URL came from, who first stored
  * it and when its document was last fetched successfully.
  *
+ * The repository reads and writes the table with plain DBAL statements, so it never flushes the entity
+ * manager of the request it runs in. The mapping is there for the schema.
+ *
  * @internal
  */
 #[ORM\Entity]
@@ -27,18 +30,18 @@ use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataFetcher;
 #[ORM\Index(columns: ['created_by', 'created_at'])]
 class CimdClientRecord
 {
-    #[ORM\Column(type: 'datetime_immutable')]
+    #[ORM\Column(name: 'last_fetched_at', type: 'datetime_immutable')]
     private \DateTimeImmutable $lastFetchedAt;
 
     public function __construct(
         #[ORM\Id]
-        #[ORM\Column(length: 32)]
+        #[ORM\Column(name: 'identifier', length: 32)]
         private readonly string $identifier,
-        #[ORM\Column(length: ClientMetadataFetcher::MAX_URL_LENGTH)]
+        #[ORM\Column(name: 'url', length: ClientMetadataFetcher::MAX_URL_LENGTH)]
         private readonly string $url,
-        #[ORM\Column(length: 255)]
+        #[ORM\Column(name: 'created_by', length: 255)]
         private readonly string $createdBy,
-        #[ORM\Column(type: 'datetime_immutable')]
+        #[ORM\Column(name: 'created_at', type: 'datetime_immutable')]
         private readonly \DateTimeImmutable $createdAt,
     ) {
         $this->lastFetchedAt = $createdAt;
