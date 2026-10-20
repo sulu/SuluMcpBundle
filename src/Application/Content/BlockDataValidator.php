@@ -37,9 +37,9 @@ final readonly class BlockDataValidator
     private const GLOBAL_BLOCK_TAG = 'sulu.global_block';
 
     /**
-     * Keys every create and update tool sets itself, so a client repeating them in content
-     * loses nothing. `url` is not one: the snippet tools and the article tools leave it to
-     * the content, and Sulu drops it when the template has no route field.
+     * Keys the tools fill from their own parameters (title, locale, template). A client that
+     * repeats them in `content` is harmless, so they are not reported as unknown. `url` is
+     * missing on purpose: the snippet and article tools take it from `content`.
      */
     private const CONTENT_KEYS_SET_BY_TOOL = ['title', 'locale', 'template'];
 
@@ -197,7 +197,7 @@ final readonly class BlockDataValidator
                 \implode(', ', $invalidKeys),
                 \implode(', ', $validKeys),
             ),
-            'hint' => 'Content is a flat object whose keys are template field names; unknown keys would be dropped on save. Use sulu_get_context to inspect the template, or pick a template that has the field.',
+            'hint' => 'The top-level keys of content are the template\'s field names (blocks nest their own fields below); Sulu drops any other key on save. Use sulu_get_context to inspect the template, or pick a template that has the field.',
         ];
     }
 
