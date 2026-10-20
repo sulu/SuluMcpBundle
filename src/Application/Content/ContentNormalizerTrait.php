@@ -342,6 +342,43 @@ trait ContentNormalizerTrait
     }
 
     /**
+     * Remove the block with the given _id from the block tree, at any depth.
+     *
+     * Unlike the index paths of findBlockPath(), this walks the list that really holds the
+     * block, so a parent with several nested lists never loses the wrong block.
+     *
+     * @param list<array<string, mixed>> $blocks
+     *
+     * @return array{blocks: list<array<string, mixed>>, removedIndex: int, siblingCount: int}|null
+     */
+    private function removeBlockById(array $blocks, string $blockId): ?array
+    {
+        foreach ($blocks as $index => $block) {
+            if (isset($block['_id']) && $block['_id'] === $blockId) {
+                \array_splice($blocks, $index, 1);
+
+                return ['blocks' => $blocks, 'removedIndex' => $index, 'siblingCount' => \count($blocks)];
+            }
+
+            foreach ($block as $key => $value) {
+                if (!\is_array($value) || !\array_is_list($value) || !$this->looksLikeBlockList($value)) {
+                    continue;
+                }
+
+                /** @var list<array<string, mixed>> $value */
+                $removed = $this->removeBlockById($value, $blockId);
+                if (null !== $removed) {
+                    $blocks[$index][$key] = $removed['blocks'];
+
+                    return ['blocks' => $blocks, 'removedIndex' => $removed['removedIndex'], 'siblingCount' => $removed['siblingCount']];
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Find the first key in a block that holds a nested block list.
      *
      * @param array<string, mixed> $block

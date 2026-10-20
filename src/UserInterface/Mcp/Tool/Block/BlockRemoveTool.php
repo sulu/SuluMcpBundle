@@ -22,6 +22,7 @@ use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
+use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
@@ -44,6 +45,7 @@ use Symfony\Component\Messenger\MessageBusInterface;
 class BlockRemoveTool
 {
     use HandleTrait;
+    use ContentNormalizerTrait;
     use BlockDataNormalizerTrait;
     use ContentLocaleTrait;
 
@@ -63,7 +65,7 @@ class BlockRemoveTool
     #[McpTool(
         name: 'sulu_block_remove',
         title: 'Remove Block',
-        description: 'Remove a block from a content entity, by its 0-based index OR its _id (blockId). Pass "resourceKey" (one of {resourceKeys}) and the entity "uuid". Provide EITHER "blockIndex" (0-based) OR "blockId" (the block _id value). Prefer blockId — it is robust because ids do not shift as blocks are added/removed. Call sulu_block_list (or sulu_page_get / sulu_article_get / sulu_snippet_get) first to see the current blocks array and identify which block to remove. The blockProperty must match the template property name that holds blocks. Remaining blocks shift down to fill the gap. The entity must be re-published after removing blocks.',
+        description: 'Remove a block from a content entity, by its 0-based index OR its _id (blockId). Pass "resourceKey" (one of {resourceKeys}) and the entity "uuid". Provide EITHER "blockIndex" (0-based) OR "blockId" (the block _id value). Prefer blockId — ids do not shift as blocks are added/removed, and only blockId reaches nested blocks (blockProperty is still the top-level property). Call sulu_block_list (or sulu_page_get / sulu_article_get / sulu_snippet_get) first to see the current blocks array and identify which block to remove. The blockProperty must match the template property name that holds blocks. Remaining blocks shift down to fill the gap. The entity must be re-published after removing blocks.',
         annotations: new ToolAnnotations(readOnlyHint: false, destructiveHint: true, idempotentHint: false, openWorldHint: false),
     )]
     #[DangerousTool('block_remove')]
@@ -80,7 +82,7 @@ class BlockRemoveTool
         string $blockProperty,
         #[Schema(type: 'integer', description: '0-based index of the block to remove, e.g. 2. Provide this OR blockId.')]
         ?int $blockIndex = null,
-        #[Schema(type: 'string', description: 'The block\'s _id value, e.g. "c6c22b89". Provide this OR blockIndex. Prefer blockId — ids do not shift as blocks are added/removed.')]
+        #[Schema(type: 'string', description: 'The block\'s _id value, e.g. "c6c22b89". Provide this OR blockIndex. Prefer blockId — ids do not shift, and only blockId addresses nested blocks.')]
         ?string $blockId = null,
     ): array {
         try {
@@ -127,29 +129,32 @@ class BlockRemoveTool
             $blocks = $currentData[$blockProperty] ?? [];
 
             if (null !== $blockId) {
-                $resolvedIndex = $this->resolveBlockIndexById($blockId, $blocks);
-                if (null === $resolvedIndex) {
+                $nestedRemoval = $this->removeBlockById($blocks, $blockId);
+                if (null === $nestedRemoval) {
                     return [
-                        'error' => \sprintf('Block _id "%s" not found in %s %s.', $blockId, $resourceKey, $uuid),
-                        'hint' => 'Use sulu_block_list to see the current block _id values.',
+                        'error' => \sprintf('Block _id "%s" not found in %s %s, property "%s".', $blockId, $resourceKey, $uuid, $blockProperty),
+                        'hint' => 'Use sulu_block_list to see the current block _id values. blockProperty must be the top-level property that holds the block, also for nested blocks.',
                     ];
                 }
-                $blockIndex = $resolvedIndex;
-            }
+                $blocks = $nestedRemoval['blocks'];
+                $blockIndex = $nestedRemoval['removedIndex'];
+                $blockCount = $nestedRemoval['siblingCount'];
+            } else {
+                if ($blockIndex < 0 || $blockIndex >= \count($blocks)) {
+                    return [
+                        'error' => \sprintf(
+                            'Block index %d out of range. %s has %d block(s) (valid indices: 0-%d).',
+                            $blockIndex,
+                            \ucfirst($resourceKey),
+                            \count($blocks),
+                            \max(0, \count($blocks) - 1),
+                        ),
+                    ];
+                }
 
-            if ($blockIndex < 0 || $blockIndex >= \count($blocks)) {
-                return [
-                    'error' => \sprintf(
-                        'Block index %d out of range. %s has %d block(s) (valid indices: 0-%d).',
-                        $blockIndex,
-                        \ucfirst($resourceKey),
-                        \count($blocks),
-                        \max(0, \count($blocks) - 1),
-                    ),
-                ];
+                \array_splice($blocks, $blockIndex, 1);
+                $blockCount = \count($blocks);
             }
-
-            \array_splice($blocks, $blockIndex, 1);
 
             $data = [
                 'locale' => $locale,
@@ -170,7 +175,7 @@ class BlockRemoveTool
                 'uuid' => $uuid,
                 'resourceKey' => $resourceKey,
                 'removedIndex' => $blockIndex,
-                'blockCount' => \count($blocks),
+                'blockCount' => $blockCount,
             ];
         } catch (PermissionDeniedException $e) {
             throw new ToolCallException($e->getMessage(), 0, $e);
@@ -180,22 +185,5 @@ class BlockRemoveTool
                 'hint' => 'Use sulu_block_list to see current blocks and their indices and _id values before removing.',
             ];
         }
-    }
-
-    /**
-     * Resolve a block _id to its current 0-based index.
-     * Returns null when the id cannot be found.
-     *
-     * @param list<array<string, mixed>> $blocks
-     */
-    private function resolveBlockIndexById(string $blockId, array $blocks): ?int
-    {
-        foreach ($blocks as $index => $block) {
-            if (isset($block['_id']) && $block['_id'] === $blockId) {
-                return $index;
-            }
-        }
-
-        return null;
     }
 }
