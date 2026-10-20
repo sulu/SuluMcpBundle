@@ -37,10 +37,11 @@ final readonly class BlockDataValidator
     private const GLOBAL_BLOCK_TAG = 'sulu.global_block';
 
     /**
-     * Keys the create and update tools overwrite with their own parameters, so a client
-     * repeating them in content loses nothing.
+     * Keys every create and update tool sets itself, so a client repeating them in content
+     * loses nothing. `url` is not one: the snippet tools and the article tools leave it to
+     * the content, and Sulu drops it when the template has no route field.
      */
-    private const CONTENT_KEYS_SET_BY_TOOL = ['title', 'url', 'locale', 'template'];
+    private const CONTENT_KEYS_SET_BY_TOOL = ['title', 'locale', 'template'];
 
     public function __construct(
         private MetadataProviderInterface $formMetadataProvider,

@@ -102,9 +102,17 @@ final class BlockDataValidatorTest extends TestCase
 
     public function testAllowsKeysTheToolsSetThemselves(): void
     {
-        $content = ['title' => 'Hello', 'url' => '/hello', 'blocks' => []];
+        $content = ['title' => 'Hello', 'locale' => 'en', 'template' => 'default', 'blocks' => []];
 
         $this->assertNull($this->validator->validateContentTree($content, 'page', 'default'));
+    }
+
+    public function testRejectsUrlWhenTheTemplateHasNoRouteField(): void
+    {
+        $result = $this->validator->validateContentTree(['url' => '/hello', 'blocks' => []], 'page', 'default');
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('Unknown content field(s)', $result['error']);
     }
 
     public function testSkipsContentKeysWhenTheTemplateIsUnknown(): void
