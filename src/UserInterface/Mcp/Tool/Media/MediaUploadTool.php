@@ -34,6 +34,7 @@ use Sulu\Mcp\Application\Media\Dto\DownloadedFile;
 use Sulu\Mcp\Application\Media\Dto\MediaSource;
 use Sulu\Mcp\Application\Media\MediaDownloader;
 use Sulu\Mcp\Application\Media\MediaFileNamer;
+use Sulu\Mcp\Application\Media\MediaFormatUris;
 use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\MediaDownloadException;
@@ -62,6 +63,7 @@ class MediaUploadTool
         private readonly TokenStorageInterface $tokenStorage,
         private readonly AdminLinkGeneratorInterface $adminLinkGenerator,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
+        private readonly MediaFormatUris $formatUris,
     ) {
     }
 
@@ -317,8 +319,7 @@ class MediaUploadTool
             'url' => $media->getUrl(),
             'mimeType' => $media->getMimeType(),
             'size' => $media->getSize(),
-            'formats' => $media->getFormats(),
-        ];
+        ] + $this->formatUris->describe($media);
 
         $adminUrl = $this->adminLinkGenerator->generate('media', ['locale' => $locale, 'id' => $media->getId()]);
 

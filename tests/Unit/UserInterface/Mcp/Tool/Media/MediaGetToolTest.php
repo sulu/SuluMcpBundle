@@ -24,9 +24,12 @@ use Sulu\Bundle\MediaBundle\Api\Media;
 use Sulu\Bundle\MediaBundle\Entity\Collection;
 use Sulu\Bundle\MediaBundle\Entity\CollectionType;
 use Sulu\Bundle\MediaBundle\Entity\Media as MediaEntity;
+use Sulu\Bundle\MediaBundle\Media\FormatCache\FormatCacheInterface;
+use Sulu\Bundle\MediaBundle\Media\ImageConverter\ImageConverterInterface;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Media\MediaFormatUris;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaGetTool;
 
@@ -38,6 +41,12 @@ final class MediaGetToolTest extends TestCase
     /** @var ObjectProphecy<MediaManagerInterface> */
     private ObjectProphecy $mediaManager;
 
+    /** @var ObjectProphecy<FormatCacheInterface> */
+    private ObjectProphecy $formatCache;
+
+    /** @var ObjectProphecy<ImageConverterInterface> */
+    private ObjectProphecy $imageConverter;
+
     private FakeToolPermissionChecker $permissionChecker;
     private MediaGetTool $tool;
 
@@ -45,7 +54,14 @@ final class MediaGetToolTest extends TestCase
     {
         $this->mediaManager = $this->prophesize(MediaManagerInterface::class);
         $this->permissionChecker = FakeToolPermissionChecker::grantingAll();
-        $this->tool = new MediaGetTool($this->mediaManager->reveal(), $this->permissionChecker);
+        $this->formatCache = $this->prophesize(FormatCacheInterface::class);
+        $this->imageConverter = $this->prophesize(ImageConverterInterface::class);
+        $this->imageConverter->getSupportedOutputImageFormats(Argument::any())->willReturn([]);
+        $this->tool = new MediaGetTool(
+            $this->mediaManager->reveal(),
+            $this->permissionChecker,
+            new MediaFormatUris($this->formatCache->reveal(), $this->imageConverter->reveal()),
+        );
     }
 
     /**
@@ -87,7 +103,6 @@ final class MediaGetToolTest extends TestCase
         $media->getMimeType()->willReturn(null);
         $media->getSize()->willReturn(0);
         $media->getUrl()->willReturn('');
-        $media->getFormats()->willReturn([]);
 
         return $media;
     }
@@ -104,10 +119,12 @@ final class MediaGetToolTest extends TestCase
         $media->getMimeType()->willReturn('image/png');
         $media->getSize()->willReturn(54321);
         $media->getUrl()->willReturn('/media/42/hero.png');
-        $media->getFormats()->willReturn([
-            'sulu-100x100' => '/media/42/hero.png?v=1-0&inline=1',
-            'sulu-400x400' => '/media/42/hero.png?v=1-0',
-        ]);
+        $media->getName()->willReturn('hero.png');
+        $media->getVersion()->willReturn(1);
+        $media->getSubVersion()->willReturn(0);
+        $this->imageConverter->getSupportedOutputImageFormats('image/png')->willReturn(['png', 'webp']);
+        $this->formatCache->getMediaUrl(42, 'hero.extension', '{format}', 1, 0)
+            ->willReturn('/uploads/media/{format}/01/42-hero.extension?v=1-0');
 
         $this->mediaManager->getById(Argument::cetera())->willReturn($media->reveal());
 
@@ -127,7 +144,10 @@ final class MediaGetToolTest extends TestCase
         $this->assertSame('image/png', $result['mimeType']);
         $this->assertSame(54321, $result['size']);
         $this->assertSame('/media/42/hero.png', $result['url']);
-        $this->assertCount(2, $result['formats']);
+        $this->assertSame('/uploads/media/{format}/01/42-hero.{extension}?v=1-0', $result['formatUri']);
+        $this->assertSame('png', $result['formatPreferredExtension']);
+        $this->assertSame(['png', 'webp'], $result['formatExtensions']);
+        $this->assertArrayNotHasKey('formats', $result);
     }
 
     public function testGetMediaReturnsErrorForMissingMedia(): void

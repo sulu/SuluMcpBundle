@@ -26,6 +26,7 @@ use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
 use Sulu\Mcp\Application\Media\MediaDownloader;
 use Sulu\Mcp\Application\Media\MediaFileNamer;
+use Sulu\Mcp\Application\Media\MediaFormatUris;
 use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
 use Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
@@ -95,6 +96,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentPublishTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\ContentSearchTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaFormatListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUpdateTool;
@@ -398,6 +400,10 @@ return static function(ContainerConfigurator $container): void {
     // Media tools
     $services->set(MediaListTool::class);
     $services->set(MediaGetTool::class);
+    $services->set(MediaFormatUris::class)
+        ->args([service('sulu_media.format_cache'), service('sulu_media.image.converter')]);
+    $services->set(MediaFormatListTool::class)
+        ->arg('$formatManager', service('sulu_media.format_manager'));
     $services->set(MediaUpdateTool::class);
 
     $services->set(MediaSourceUrlResolver::class)

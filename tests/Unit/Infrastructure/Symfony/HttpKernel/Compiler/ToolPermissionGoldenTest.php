@@ -35,6 +35,7 @@ use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentPublishTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Content\ContentUnpublishTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\ContentSearchTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\GetContextTool;
+use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaFormatListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaGetTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaListTool;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Media\MediaUpdateTool;
@@ -85,6 +86,7 @@ final class ToolPermissionGoldenTest extends TestCase
         ContentDeleteTool::class => ['sulu_content_delete', [['#context#', PermissionTypes::EDIT], ['#context#', PermissionTypes::DELETE]]],
         ContentPublishTool::class => ['sulu_content_publish', [['#context#', PermissionTypes::EDIT], ['#context#', PermissionTypes::LIVE]]],
         ContentUnpublishTool::class => ['sulu_content_unpublish', [['#context#', PermissionTypes::EDIT], ['#context#', PermissionTypes::LIVE]]],
+        MediaFormatListTool::class => ['sulu_media_format_list', [['sulu.media.collections', PermissionTypes::VIEW]]],
         MediaGetTool::class => ['sulu_media_get', [['sulu.media.collections', PermissionTypes::VIEW]]],
         MediaListTool::class => ['sulu_media_list', [['sulu.media.collections', PermissionTypes::VIEW]]],
         MediaUpdateTool::class => ['sulu_media_update', [['sulu.media.collections', PermissionTypes::EDIT]]],
