@@ -36,6 +36,12 @@ final readonly class BlockDataValidator
 {
     private const GLOBAL_BLOCK_TAG = 'sulu.global_block';
 
+    /**
+     * Keys the create and update tools overwrite with their own parameters, so a client
+     * repeating them in content loses nothing.
+     */
+    private const CONTENT_KEYS_SET_BY_TOOL = ['title', 'url', 'locale', 'template'];
+
     public function __construct(
         private MetadataProviderInterface $formMetadataProvider,
         private MetadataLocaleResolver $localeResolver,
@@ -148,7 +154,65 @@ final readonly class BlockDataValidator
      */
     public function validateContentTree(array $content, string $templateType, ?string $templateKey): ?array
     {
+        if ($error = $this->validateContentKeys($content, $templateType, $templateKey)) {
+            return $error;
+        }
+
         return $this->validateBlockLists($content, $this->templateForms($templateType, $templateKey));
+    }
+
+    /**
+     * Reject a content key the template has no field for: Sulu drops it on save and
+     * still reports success, so the caller would never learn the content is gone.
+     * A template that cannot be resolved is skipped, like an undiscoverable block type.
+     *
+     * @param array<string, mixed> $content
+     *
+     * @return array<string, mixed>|null
+     */
+    private function validateContentKeys(array $content, string $templateType, ?string $templateKey): ?array
+    {
+        $form = $this->templateForm($templateType, $templateKey);
+        if (!$form instanceof FormMetadata) {
+            return null;
+        }
+
+        $validKeys = $this->extractFieldNames($form);
+        $invalidKeys = [];
+        foreach (\array_keys($content) as $key) {
+            if (!\in_array($key, self::CONTENT_KEYS_SET_BY_TOOL, true) && !\in_array((string) $key, $validKeys, true)) {
+                $invalidKeys[] = (string) $key;
+            }
+        }
+
+        if ([] === $invalidKeys) {
+            return null;
+        }
+
+        return [
+            'error' => \sprintf(
+                'Unknown content field(s) for template "%s": %s. Valid fields: %s.',
+                $templateKey,
+                \implode(', ', $invalidKeys),
+                \implode(', ', $validKeys),
+            ),
+            'hint' => 'Content is a flat object whose keys are template field names; unknown keys would be dropped on save. Use sulu_get_context to inspect the template, or pick a template that has the field.',
+        ];
+    }
+
+    private function templateForm(string $templateType, ?string $templateKey): ?FormMetadata
+    {
+        if (null === $templateKey) {
+            return null;
+        }
+
+        try {
+            $typed = $this->formMetadataProvider->getMetadata($templateType, $this->localeResolver->resolve(), []);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $typed instanceof TypedFormMetadata ? ($typed->getForms()[$templateKey] ?? null) : null;
     }
 
     /**

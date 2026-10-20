@@ -86,9 +86,31 @@ final class BlockDataValidatorTest extends TestCase
 
     public function testContentWithoutBlocksReturnsNull(): void
     {
-        $content = ['article' => '<p>Just text, no blocks.</p>'];
+        $content = ['blocks' => []];
 
         $this->assertNull($this->validator->validateContentTree($content, 'page', 'default'));
+    }
+
+    public function testRejectsContentKeyTheTemplateDoesNotDeclare(): void
+    {
+        $result = $this->validator->validateContentTree(['article' => '<p>Text</p>', 'blocks' => []], 'page', 'default');
+
+        $this->assertNotNull($result);
+        $this->assertStringContainsString('Unknown content field(s) for template "default": article', $result['error']);
+        $this->assertStringContainsString('Valid fields: blocks', $result['error']);
+    }
+
+    public function testAllowsKeysTheToolsSetThemselves(): void
+    {
+        $content = ['title' => 'Hello', 'url' => '/hello', 'blocks' => []];
+
+        $this->assertNull($this->validator->validateContentTree($content, 'page', 'default'));
+    }
+
+    public function testSkipsContentKeysWhenTheTemplateIsUnknown(): void
+    {
+        $this->assertNull($this->validator->validateContentTree(['article' => 'x'], 'page', 'missing-template'));
+        $this->assertNull($this->validator->validateContentTree(['article' => 'x'], 'page', null));
     }
 
     public function testRejectsUnknownKeyInTopLevelBlock(): void
