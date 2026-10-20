@@ -43,6 +43,8 @@ Do NOT rely on assumptions about available templates or block types — the CMS 
 
 ## Available MCP Tools
 
+Some tools are off unless the project enabled them: delete, publish, unpublish, preview link revoke, page move and reorder, block remove and media upload. A disabled tool is missing from the tool list. If you need one, say so and ask the user to enable it. Do not look for a workaround.
+
 ### Context and Connection
 
 | Tool | Description |
