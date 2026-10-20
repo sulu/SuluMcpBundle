@@ -57,7 +57,7 @@ class PageListTool
     #[McpTool(
         name: 'sulu_page_list',
         title: 'List Pages',
-        description: 'List pages in a webspace with optional filters. Returns lightweight summaries (uuid, resourceKey, title, template, URL, workflow state, dates) — no blocks or HTML content. Use sulu_page_get with a UUID to fetch the full content of a specific page. Use "template" to filter by template key (e.g. "default", "homepage"). Use "parentId" with a page UUID to list only direct children. Results are paginated — use "page" and "limit" to control.',
+        description: 'List pages in a webspace with optional filters. Returns lightweight summaries (uuid, resourceKey, title, template, URL, workflow state, dates) — no blocks or HTML content. Use sulu_page_get with a UUID to fetch the full content of a specific page. Use "template" to filter by template key (e.g. "default", "homepage"). Without "parentId" it lists every page of the webspace at any depth, so it also answers "latest pages" across the site. Use "parentId" with a page UUID to list only direct children. Get the UUIDs, the homepage\'s included, from sulu_page_tree. Results are paginated — use "page" and "limit" to control.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -69,7 +69,7 @@ class PageListTool
         string $webspace,
         string $locale,
         ?string $template = null,
-        #[Schema(description: 'UUID of the parent page (a string). Omit for root-level pages. Get UUIDs from sulu_page_tree or sulu_page_list.')]
+        #[Schema(description: 'UUID of the parent page (a string). Omit to list every page of the webspace, at any depth. The homepage is the root of sulu_page_tree: pass its uuid to list the top-level pages, or any other page\'s uuid to list that page\'s children.')]
         ?string $parentId = null,
         int $page = 1,
         int $limit = 20,
