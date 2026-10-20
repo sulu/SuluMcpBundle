@@ -36,13 +36,6 @@ final readonly class BlockDataValidator
 {
     private const GLOBAL_BLOCK_TAG = 'sulu.global_block';
 
-    /**
-     * Keys the tools fill from their own parameters (title, locale, template). A client that
-     * repeats them in `content` is harmless, so they are not reported as unknown. `url` is
-     * missing on purpose: the snippet and article tools take it from `content`.
-     */
-    private const CONTENT_KEYS_SET_BY_TOOL = ['title', 'locale', 'template'];
-
     public function __construct(
         private MetadataProviderInterface $formMetadataProvider,
         private MetadataLocaleResolver $localeResolver,
@@ -155,7 +148,7 @@ final readonly class BlockDataValidator
      */
     public function validateContentTree(array $content, string $templateType, ?string $templateKey): ?array
     {
-        if ($error = $this->validateContentKeys($content, $templateType, $templateKey)) {
+        if ($error = $this->validateBlockListKeys($content, $templateType, $templateKey)) {
             return $error;
         }
 
@@ -163,42 +156,62 @@ final readonly class BlockDataValidator
     }
 
     /**
-     * Reject a content key the template has no field for: Sulu drops it on save and
-     * still reports success, so the caller would never learn the content is gone.
-     * A template that cannot be resolved is skipped, like an undiscoverable block type.
+     * Reject a block list under a key the template declares no block field for: Sulu drops it
+     * on save and still reports success, so the caller would never learn the blocks are gone.
+     * Other unknown keys are left alone. A template that cannot be resolved is skipped, like
+     * an undiscoverable block type.
      *
      * @param array<string, mixed> $content
      *
      * @return array<string, mixed>|null
      */
-    private function validateContentKeys(array $content, string $templateType, ?string $templateKey): ?array
+    private function validateBlockListKeys(array $content, string $templateType, ?string $templateKey): ?array
     {
         $form = $this->templateForm($templateType, $templateKey);
         if (!$form instanceof FormMetadata) {
             return null;
         }
 
-        $validKeys = $this->extractFieldNames($form);
-        $invalidKeys = [];
-        foreach (\array_keys($content) as $key) {
-            if (!\in_array($key, self::CONTENT_KEYS_SET_BY_TOOL, true) && !\in_array((string) $key, $validKeys, true)) {
-                $invalidKeys[] = (string) $key;
+        $fields = $form->getFlatFieldMetadata();
+        $blockProperties = [];
+        foreach ($fields as $name => $field) {
+            if ([] !== $field->getTypes()) {
+                $blockProperties[] = $name;
             }
         }
 
-        if ([] === $invalidKeys) {
-            return null;
+        foreach ($content as $key => $value) {
+            if (isset($fields[$key]) || !$this->isBlockList($value)) {
+                continue;
+            }
+
+            return [
+                'error' => \sprintf(
+                    'Template "%s" has no block field "%s", so these blocks would be dropped on save. Block fields of this template: %s.',
+                    $templateKey,
+                    $key,
+                    [] === $blockProperties ? 'none' : \implode(', ', $blockProperties),
+                ),
+                'hint' => 'Pick a template that has a block field, or use sulu_get_context to see where this content belongs.',
+            ];
         }
 
-        return [
-            'error' => \sprintf(
-                'Unknown content field(s) for template "%s": %s. Valid fields: %s.',
-                $templateKey,
-                \implode(', ', $invalidKeys),
-                \implode(', ', $validKeys),
-            ),
-            'hint' => 'The top-level keys of content are the template\'s field names (blocks nest their own fields below); Sulu drops any other key on save. Use sulu_get_context to inspect the template, or pick a template that has the field.',
-        ];
+        return null;
+    }
+
+    private function isBlockList(mixed $value): bool
+    {
+        if (!\is_array($value) || !\array_is_list($value)) {
+            return false;
+        }
+
+        foreach ($value as $item) {
+            if (\is_array($item) && isset($item['type']) && \is_string($item['type'])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function templateForm(string $templateType, ?string $templateKey): ?FormMetadata

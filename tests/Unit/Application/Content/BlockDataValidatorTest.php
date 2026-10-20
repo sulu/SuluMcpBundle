@@ -86,39 +86,37 @@ final class BlockDataValidatorTest extends TestCase
 
     public function testContentWithoutBlocksReturnsNull(): void
     {
-        $content = ['blocks' => []];
+        $content = ['article' => '<p>Just text, no blocks.</p>'];
 
         $this->assertNull($this->validator->validateContentTree($content, 'page', 'default'));
     }
 
-    public function testRejectsContentKeyTheTemplateDoesNotDeclare(): void
+    public function testRejectsBlocksUnderAKeyTheTemplateHasNoBlockFieldFor(): void
     {
-        $result = $this->validator->validateContentTree(['article' => '<p>Text</p>', 'blocks' => []], 'page', 'default');
+        $result = $this->validator->validateContentTree(
+            ['content' => [['type' => 'text', 'title' => 'Hello']], 'blocks' => []],
+            'page',
+            'default',
+        );
 
         $this->assertNotNull($result);
-        $this->assertStringContainsString('Unknown content field(s) for template "default": article', $result['error']);
-        $this->assertStringContainsString('Valid fields: blocks', $result['error']);
+        $this->assertStringContainsString('Template "default" has no block field "content"', $result['error']);
+        $this->assertStringContainsString('Block fields of this template: blocks', $result['error']);
     }
 
-    public function testAllowsKeysTheToolsSetThemselves(): void
+    public function testLeavesOtherUnknownKeysAlone(): void
     {
-        $content = ['title' => 'Hello', 'locale' => 'en', 'template' => 'default', 'blocks' => []];
+        $content = ['article' => '<p>Text</p>', 'anything' => ['a' => 1], 'empty' => [], 'blocks' => []];
 
         $this->assertNull($this->validator->validateContentTree($content, 'page', 'default'));
     }
 
-    public function testRejectsUrlWhenTheTemplateHasNoRouteField(): void
+    public function testSkipsTheBlockFieldCheckWhenTheTemplateIsUnknown(): void
     {
-        $result = $this->validator->validateContentTree(['url' => '/hello', 'blocks' => []], 'page', 'default');
+        $content = ['content' => [['type' => 'text']]];
 
-        $this->assertNotNull($result);
-        $this->assertStringContainsString('Unknown content field(s)', $result['error']);
-    }
-
-    public function testSkipsContentKeysWhenTheTemplateIsUnknown(): void
-    {
-        $this->assertNull($this->validator->validateContentTree(['article' => 'x'], 'page', 'missing-template'));
-        $this->assertNull($this->validator->validateContentTree(['article' => 'x'], 'page', null));
+        $this->assertNull($this->validator->validateContentTree($content, 'page', 'missing-template'));
+        $this->assertNull($this->validator->validateContentTree($content, 'page', null));
     }
 
     public function testRejectsUnknownKeyInTopLevelBlock(): void

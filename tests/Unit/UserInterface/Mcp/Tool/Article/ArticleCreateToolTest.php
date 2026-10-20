@@ -568,12 +568,8 @@ final class ArticleCreateToolTest extends TestCase
         $blocksField->setType('block');
         $blocksField->addType($textBlock);
 
-        $urlField = new FieldMetadata('url');
-        $urlField->setType('route');
-
         $template = new FormMetadata();
         $template->setKey('blog');
-        $template->addItem($urlField);
         $template->addItem($blocksField);
 
         $typed = new TypedFormMetadata();
