@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Application\Metadata;
 
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
+use Sulu\Mcp\Application\Content\StrippedContentFields;
 
 /**
  * Exposes the project's live `seo` and `excerpt` field definitions so AI clients
@@ -26,12 +27,10 @@ use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
  */
 class ExtensionFieldsProvider
 {
-    private const SEO_FORM_KEYS = ['content_seo_metadata'];
-    private const EXCERPT_FORM_KEYS = ['content_excerpt_metadata', 'content_excerpt_taxonomies'];
-
     public function __construct(
         private readonly MetadataProviderInterface $formMetadataProvider,
         private readonly MetadataLocaleResolver $localeResolver,
+        private readonly ExtensionFormKeys $formKeys,
     ) {
     }
 
@@ -41,8 +40,8 @@ class ExtensionFieldsProvider
     public function getExtensionFields(): array
     {
         return [
-            'seo' => $this->fields(self::SEO_FORM_KEYS, 'seo'),
-            'excerpt' => $this->fields(self::EXCERPT_FORM_KEYS, 'excerpt'),
+            'seo' => $this->fields($this->formKeys->seo(), 'seo'),
+            'excerpt' => $this->fields($this->formKeys->excerpt(), 'excerpt'),
         ];
     }
 
@@ -67,8 +66,13 @@ class ExtensionFieldsProvider
             }
             foreach ($metadata->getFlatFieldMetadata() as $item) {
                 $rawName = $item->getName();
+                if (\in_array($rawName, StrippedContentFields::NAMES, true)) {
+                    continue;
+                }
                 $name = \str_starts_with($rawName, $prefix) ? \substr($rawName, \strlen($prefix)) : $rawName;
-                $fields[] = [
+                // A form may redefine a field of a higher-priority one (e.g. excerpt/image): the last one
+                // wins, as in the admin, which merges the sub-forms in priority order.
+                $fields[$name] = [
                     'name' => $name,
                     'type' => $item->getType(),
                     'label' => $item->getLabel($locale) ?? $name,
@@ -77,6 +81,6 @@ class ExtensionFieldsProvider
             }
         }
 
-        return $fields;
+        return \array_values($fields);
     }
 }

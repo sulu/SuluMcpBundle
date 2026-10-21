@@ -37,6 +37,7 @@ use Sulu\Mcp\Infrastructure\Sulu\AdminLink\PageAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\CoreExtensionFormKeys;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\Tests\Unit\Fixture\FixedBlockIdGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Page\PageCreateTool;
@@ -112,7 +113,7 @@ final class PageCreateToolTest extends TestCase
             $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             $this->adminLinkGenerator,
             $this->pageRepository->reveal(),
             $this->permissionChecker,
@@ -439,7 +440,7 @@ final class PageCreateToolTest extends TestCase
             $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($mapperMetadataProvider),
+            new ContentMetadataMapper($mapperMetadataProvider, CoreExtensionFormKeys::create()),
             $this->adminLinkGenerator,
             $this->pageRepository->reveal(),
             $this->permissionChecker,
@@ -669,7 +670,7 @@ final class PageCreateToolTest extends TestCase
             $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             $this->adminLinkGenerator,
             $this->pageRepository->reveal(),
             $this->permissionChecker,
@@ -781,7 +782,7 @@ final class PageCreateToolTest extends TestCase
             $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             $this->adminLinkGenerator,
             $this->pageRepository->reveal(),
             $this->permissionChecker,
@@ -833,7 +834,7 @@ final class PageCreateToolTest extends TestCase
             $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             $this->adminLinkGenerator,
             $this->pageRepository->reveal(),
             $this->permissionChecker,
@@ -867,7 +868,7 @@ final class PageCreateToolTest extends TestCase
             $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($mapperMetadataProvider),
+            new ContentMetadataMapper($mapperMetadataProvider, CoreExtensionFormKeys::create()),
             $this->adminLinkGenerator,
             $this->pageRepository->reveal(),
             $this->permissionChecker,

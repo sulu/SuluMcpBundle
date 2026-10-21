@@ -40,6 +40,7 @@ use Sulu\Mcp\Infrastructure\Sulu\Security\SnippetSecurityContextResolver;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
+use Sulu\Mcp\Tests\Unit\Fixture\CoreExtensionFormKeys;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\Tests\Unit\Fixture\TestUser;
 use Sulu\Mcp\UserInterface\Mcp\Resource\GlobalBlocksResource;
@@ -216,7 +217,7 @@ final class GetContextToolTest extends TestCase
             $this->globalBlocksResource(),
             $this->webspacesResource(),
             new FieldValueExampleProvider(),
-            new ExtensionFieldsProvider(new ArrayMetadataProvider(), new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            new ExtensionFieldsProvider(new ArrayMetadataProvider(), new MetadataLocaleResolver(new TokenStorage(), 'en'), CoreExtensionFormKeys::create()),
             $this->toolVisibilityResolver(),
             $this->webspacePermissionResolver(),
         );
@@ -260,7 +261,7 @@ final class GetContextToolTest extends TestCase
             $this->globalBlocksResource(),
             $this->webspacesResource(),
             new FieldValueExampleProvider(),
-            new ExtensionFieldsProvider(new ArrayMetadataProvider(), new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            new ExtensionFieldsProvider(new ArrayMetadataProvider(), new MetadataLocaleResolver(new TokenStorage(), 'en'), CoreExtensionFormKeys::create()),
             $this->toolVisibilityResolver(),
             $this->webspacePermissionResolver(),
         );
@@ -279,7 +280,7 @@ final class GetContextToolTest extends TestCase
             $this->globalBlocksResource(),
             $this->webspacesResource(),
             new FieldValueExampleProvider(),
-            new ExtensionFieldsProvider(new ArrayMetadataProvider(), new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            new ExtensionFieldsProvider(new ArrayMetadataProvider(), new MetadataLocaleResolver(new TokenStorage(), 'en'), CoreExtensionFormKeys::create()),
             $this->toolVisibilityResolver(),
             $this->webspacePermissionResolver(),
         );
@@ -331,7 +332,7 @@ final class GetContextToolTest extends TestCase
             $this->globalBlocksResource(),
             $this->webspacesResource(),
             new FieldValueExampleProvider(),
-            new ExtensionFieldsProvider(new ArrayMetadataProvider(), new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            new ExtensionFieldsProvider(new ArrayMetadataProvider(), new MetadataLocaleResolver(new TokenStorage(), 'en'), CoreExtensionFormKeys::create()),
             $visibilityResolver,
             $this->webspacePermissionResolver(),
         );
@@ -356,7 +357,7 @@ final class GetContextToolTest extends TestCase
             $this->globalBlocksResource(),
             $this->webspacesResource($webspaces),
             new FieldValueExampleProvider(),
-            new ExtensionFieldsProvider(new ArrayMetadataProvider(), new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            new ExtensionFieldsProvider(new ArrayMetadataProvider(), new MetadataLocaleResolver(new TokenStorage(), 'en'), CoreExtensionFormKeys::create()),
             $this->toolVisibilityResolver(),
             $resolver,
         );

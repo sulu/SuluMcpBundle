@@ -20,21 +20,6 @@ namespace Sulu\Mcp\Application\Content;
 trait ContentNormalizerTrait
 {
     /**
-     * Fields that are never useful for AI content operations.
-     */
-    private const STRIP_FIELDS = [
-        'id',                           // duplicate of uuid
-        'customizeWebspaceSettings',
-        'additionalWebspaces',
-        'excerptAudienceTargetGroups',
-        'excerptSegment',
-        'lastModified',
-        'lastModifiedEnabled',
-        'version',
-        'stage',                        // always 'draft' in our context
-    ];
-
-    /**
      * @param array<string, mixed> $normalized
      * @param list<string> $blockProperties Block property names to summarize (e.g. ['blocks', 'homeBlocks'])
      *
@@ -43,7 +28,7 @@ trait ContentNormalizerTrait
     private function compactContent(array $normalized, array $blockProperties = []): array
     {
         // Remove fields that are never useful
-        foreach (self::STRIP_FIELDS as $field) {
+        foreach (StrippedContentFields::NAMES as $field) {
             unset($normalized[$field]);
         }
 

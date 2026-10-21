@@ -42,6 +42,7 @@ use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ContentTypes;
+use Sulu\Mcp\Tests\Unit\Fixture\CoreExtensionFormKeys;
 use Sulu\Mcp\Tests\Unit\Fixture\FakeToolPermissionChecker;
 use Sulu\Mcp\Tests\Unit\Fixture\FixedBlockIdGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleUpdateTool;
@@ -102,7 +103,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleRepository->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             $adminLinkGenerator,
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
@@ -330,7 +331,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleRepository->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
@@ -374,7 +375,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleRepository->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
@@ -424,7 +425,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleRepository->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
@@ -483,7 +484,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleRepository->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
@@ -567,7 +568,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleRepository->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
@@ -773,7 +774,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleRepository->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
@@ -1012,7 +1013,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->articleRepository->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),

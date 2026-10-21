@@ -29,6 +29,7 @@ use Sulu\Mcp\Application\Media\MediaFileNamer;
 use Sulu\Mcp\Application\Media\MediaFormatUris;
 use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
 use Sulu\Mcp\Application\Metadata\ExtensionFieldsProvider;
+use Sulu\Mcp\Application\Metadata\ExtensionFormKeys;
 use Sulu\Mcp\Application\Metadata\FieldNormalizer;
 use Sulu\Mcp\Application\Metadata\FieldValueExampleProvider;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
@@ -244,6 +245,9 @@ return static function(ContainerConfigurator $container): void {
     $services->set(GlobalBlocksResource::class)
         ->arg('$formMetadataProvider', new Reference('sulu_admin.form_metadata_provider'));
     $services->set(WebspacesResource::class);
+    $services->set(ExtensionFormKeys::class)
+        ->arg('$excerptForms', '%sulu_content.content_excerpt_forms%')
+        ->arg('$seoForms', '%sulu_content.content_seo_forms%');
     $services->set(ExtensionFieldsProvider::class)
         ->arg('$formMetadataProvider', new Reference('sulu_admin.form_metadata_provider'));
     $services->set(WellKnownController::class)

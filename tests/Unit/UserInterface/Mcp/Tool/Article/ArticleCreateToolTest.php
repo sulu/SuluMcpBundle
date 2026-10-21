@@ -39,6 +39,7 @@ use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
 use Sulu\Mcp\Tests\Application\TestBundle\Metadata\TestGroupProvider;
 use Sulu\Mcp\Tests\Unit\Fixture\ArrayMetadataProvider;
+use Sulu\Mcp\Tests\Unit\Fixture\CoreExtensionFormKeys;
 use Sulu\Mcp\Tests\Unit\Fixture\FixedBlockIdGenerator;
 use Sulu\Mcp\UserInterface\Mcp\Tool\Article\ArticleCreateTool;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
@@ -88,7 +89,7 @@ final class ArticleCreateToolTest extends TestCase
             $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             $adminLinkGenerator,
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
@@ -262,7 +263,7 @@ final class ArticleCreateToolTest extends TestCase
             $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             new ArticleGroupResolver($groupProvider, $this->contentManager->reveal()),
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
@@ -585,7 +586,7 @@ final class ArticleCreateToolTest extends TestCase
             $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($this->mapperMetadataProvider),
+            new ContentMetadataMapper($this->mapperMetadataProvider, CoreExtensionFormKeys::create()),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
@@ -657,7 +658,7 @@ final class ArticleCreateToolTest extends TestCase
             $this->contentManager->reveal(),
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
-            new ContentMetadataMapper($mapperMetadataProvider),
+            new ContentMetadataMapper($mapperMetadataProvider, CoreExtensionFormKeys::create()),
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
