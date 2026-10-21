@@ -29,11 +29,14 @@ use Sulu\Bundle\MediaBundle\FileInspector\FileInspectorInterface;
 use Sulu\Bundle\MediaBundle\FileInspector\SvgFileInspector;
 use Sulu\Bundle\MediaBundle\FileInspector\SvgSanitizerFactory;
 use Sulu\Bundle\MediaBundle\Media\Exception\MediaNotFoundException;
+use Sulu\Bundle\MediaBundle\Media\FormatCache\FormatCacheInterface;
+use Sulu\Bundle\MediaBundle\Media\ImageConverter\ImageConverterInterface;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\Media\MediaDownloader;
 use Sulu\Mcp\Application\Media\MediaFileNamer;
+use Sulu\Mcp\Application\Media\MediaFormatUris;
 use Sulu\Mcp\Application\Media\MediaSourceUrlResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\MediaAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
@@ -572,6 +575,9 @@ final class MediaUploadToolTest extends TestCase
     {
         $client ??= $this->clientRespondingTo([]);
 
+        $imageConverter = $this->prophesize(ImageConverterInterface::class);
+        $imageConverter->getSupportedOutputImageFormats(Argument::any())->willReturn([]);
+
         return new MediaUploadTool(
             $this->mediaManager->reveal(),
             new MediaSourceUrlResolver(self::LOCAL_SERVER),
@@ -582,6 +588,7 @@ final class MediaUploadToolTest extends TestCase
             $this->tokenStorage,
             new AdminLinkGenerator($this->router(), [new MediaAdminLinkProvider(new TestViewRegistry())]),
             $this->permissionChecker,
+            new MediaFormatUris($this->prophesize(FormatCacheInterface::class)->reveal(), $imageConverter->reveal()),
         );
     }
 

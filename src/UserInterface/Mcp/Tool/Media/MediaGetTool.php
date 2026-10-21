@@ -21,6 +21,7 @@ use Sulu\Bundle\MediaBundle\Entity\MediaInterface;
 use Sulu\Bundle\MediaBundle\Media\Manager\MediaManagerInterface;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Media\MediaFormatUris;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -34,6 +35,7 @@ class MediaGetTool
     public function __construct(
         private readonly MediaManagerInterface $mediaManager,
         private readonly ToolPermissionCheckerInterface $permissionChecker,
+        private readonly MediaFormatUris $formatUris,
     ) {
     }
 
@@ -43,7 +45,7 @@ class MediaGetTool
     #[McpTool(
         name: 'sulu_media_get',
         title: 'Get Media',
-        description: 'Get detailed information about a media file by ID. Returns the id, resourceKey, metadata (title, description, copyright, credits, origin, mime type, size), the original URL, and all available format/thumbnail URLs.',
+        description: 'Get detailed information about a media file by ID. Returns the id, resourceKey, metadata (title, description, copyright, credits, origin, mime type, size), the original URL, and "formatUri", the URI of a resized image with {format} and {extension} placeholders. Fill {format} with a key from sulu_media_format_list and {extension} with one of "formatExtensions" ("formatPreferredExtension" is the default). Only images have them.',
         annotations: new ToolAnnotations(readOnlyHint: true, openWorldHint: false),
     )]
     #[RequiresPermission(
@@ -82,8 +84,7 @@ class MediaGetTool
                 'mimeType' => $media->getMimeType(),
                 'size' => $media->getSize(),
                 'url' => $media->getUrl(),
-                'formats' => $media->getFormats(),
-            ];
+            ] + $this->formatUris->describe($media);
         } catch (PermissionDeniedException $e) {
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable) {
