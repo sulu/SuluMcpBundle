@@ -210,6 +210,35 @@ final class BlockRemoveToolTest extends TestCase
         $this->assertNotContains('bbb', $remainingIds);
     }
 
+    public function testRemoveByBlockIdRemovesNestedBlock(): void
+    {
+        $this->setupEntityWithBlocks('pages', [
+            ['_id' => 'aaa', 'type' => 'text', 'title' => 'First'],
+            [
+                '_id' => 'bbb',
+                'type' => 'section',
+                'intro' => [['_id' => 'ddd', 'type' => 'text', 'title' => 'Intro']],
+                'blocks' => [
+                    ['_id' => 'eee', 'type' => 'text', 'title' => 'One'],
+                    ['_id' => 'fff', 'type' => 'text', 'title' => 'Two'],
+                ],
+            ],
+        ]);
+
+        $dispatched = $this->expectMessageDispatch();
+
+        $result = $this->tool->removeBlock('pages', 'test-uuid', 'en', 'blocks', blockId: 'fff');
+
+        $this->assertTrue($result['success']);
+        $this->assertSame(1, $result['removedIndex']);
+        $this->assertSame(1, $result['blockCount'], 'counts the siblings left in the nested list');
+
+        $remaining = $dispatched->envelope->getMessage()->getData()['blocks'];
+        $this->assertCount(2, $remaining);
+        $this->assertSame(['eee'], \array_column($remaining[1]['blocks'], '_id'));
+        $this->assertSame(['ddd'], \array_column($remaining[1]['intro'], '_id'), 'the other nested list stays untouched');
+    }
+
     public function testRemoveByBlockIdReturnsErrorForUnknownId(): void
     {
         $this->setupEntityWithBlocks('pages', [
