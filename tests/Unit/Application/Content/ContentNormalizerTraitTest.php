@@ -31,8 +31,8 @@ final class ContentNormalizerTraitTest extends TestCase
             'stage' => 'draft',
             'customizeWebspaceSettings' => false,
             'additionalWebspaces' => [],
-            'excerptAudienceTargetGroups' => [],
-            'excerptSegment' => null,
+            'excerptAudienceTargetGroups' => [3],
+            'excerptSegment' => ['sulu_io' => 'summer'],
             'lastModified' => null,
             'lastModifiedEnabled' => false,
         ];
@@ -40,13 +40,13 @@ final class ContentNormalizerTraitTest extends TestCase
         $result = $this->compactContent($normalized);
 
         $this->assertSame('Test', $result['title']);
+        $this->assertSame([3], $result['excerptAudienceTargetGroups']);
+        $this->assertSame(['sulu_io' => 'summer'], $result['excerptSegment']);
         $this->assertArrayNotHasKey('id', $result);
         $this->assertArrayNotHasKey('version', $result);
         $this->assertArrayNotHasKey('stage', $result);
         $this->assertArrayNotHasKey('customizeWebspaceSettings', $result);
         $this->assertArrayNotHasKey('additionalWebspaces', $result);
-        $this->assertArrayNotHasKey('excerptAudienceTargetGroups', $result);
-        $this->assertArrayNotHasKey('excerptSegment', $result);
         $this->assertArrayNotHasKey('lastModified', $result);
         $this->assertArrayNotHasKey('lastModifiedEnabled', $result);
     }

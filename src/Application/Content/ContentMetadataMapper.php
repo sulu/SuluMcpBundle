@@ -15,6 +15,7 @@ namespace Sulu\Mcp\Application\Content;
 
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
+use Sulu\Mcp\Application\Metadata\ExtensionFormKeys;
 
 /**
  * Maps the MCP `excerpt` / `seo` objects onto the content `$data` shape Sulu's
@@ -27,14 +28,12 @@ use Sulu\Bundle\AdminBundle\Metadata\MetadataProviderInterface;
  */
 final readonly class ContentMetadataMapper
 {
-    private const SEO_FORM_KEYS = ['content_seo_metadata'];
-    private const EXCERPT_FORM_KEYS = ['content_excerpt_metadata', 'content_excerpt_taxonomies'];
-
     /** Fixed Sulu-core columns stored at the top level (outside the seo/excerpt sub-arrays). */
     private const TOP_LEVEL_FIELDS = ['seoNoIndex', 'seoNoFollow', 'seoHideInSitemap', 'excerptCategories', 'excerptTags'];
 
     public function __construct(
         private MetadataProviderInterface $formMetadataProvider,
+        private ExtensionFormKeys $formKeys,
     ) {
     }
 
@@ -46,7 +45,7 @@ final readonly class ContentMetadataMapper
      */
     public function applyExcerpt(array $data, ?array $excerpt, string $locale): array
     {
-        return $this->apply($data, $excerpt, 'excerpt', self::EXCERPT_FORM_KEYS, $locale);
+        return $this->apply($data, $excerpt, 'excerpt', $this->formKeys->excerpt(), $locale);
     }
 
     /**
@@ -57,7 +56,7 @@ final readonly class ContentMetadataMapper
      */
     public function applySeo(array $data, ?array $seo, string $locale): array
     {
-        return $this->apply($data, $seo, 'seo', self::SEO_FORM_KEYS, $locale);
+        return $this->apply($data, $seo, 'seo', $this->formKeys->seo(), $locale);
     }
 
     /**
@@ -156,11 +155,11 @@ final readonly class ContentMetadataMapper
                 continue;
             }
             foreach ($metadata->getFlatFieldMetadata() as $item) {
-                $names[] = $item->getName();
+                $names[$item->getName()] = true;
             }
         }
 
-        return $names;
+        return \array_keys($names);
     }
 
     /**

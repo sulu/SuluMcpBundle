@@ -26,8 +26,6 @@ trait ContentNormalizerTrait
         'id',                           // duplicate of uuid
         'customizeWebspaceSettings',
         'additionalWebspaces',
-        'excerptAudienceTargetGroups',
-        'excerptSegment',
         'lastModified',
         'lastModifiedEnabled',
         'version',
