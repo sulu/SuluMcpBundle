@@ -13,6 +13,8 @@ declare(strict_types=1);
 
 namespace Sulu\Mcp\Infrastructure\OAuth;
 
+use League\Bundle\OAuth2ServerBundle\ValueObject\RedirectUri;
+
 /**
  * Which redirect URIs an OAuth client may use: HTTPS, an HTTP loopback address (RFC 8252
  * section 7.3) or a private-use scheme for native apps (section 7.1), never with a fragment.
@@ -24,6 +26,22 @@ final class RedirectUriPolicy
     private const LOOPBACK_HOSTS = ['localhost', '127.0.0.1', '::1'];
 
     public static function isAllowed(string $uri): bool
+    {
+        if ('' === $uri || !self::matchesPolicy($uri)) {
+            return false;
+        }
+
+        // League throws on a URI its own pattern rejects, e.g. a private-use scheme without a path.
+        try {
+            new RedirectUri($uri);
+        } catch (\Throwable) {
+            return false;
+        }
+
+        return true;
+    }
+
+    private static function matchesPolicy(string $uri): bool
     {
         $parts = \parse_url($uri);
         if (false === $parts || !isset($parts['scheme']) || isset($parts['fragment'])) {

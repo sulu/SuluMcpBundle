@@ -157,6 +157,7 @@ final class ClientMetadataValidatorTest extends TestCase
         yield 'redirect_uri javascript' => [['redirect_uris' => ['javascript:alert(1)']], 'redirect_uris must be'];
         yield 'redirect_uri private-use scheme with an empty label' => [['redirect_uris' => ['com..example:/cb']], 'redirect_uris must be'];
         yield 'redirect_uri private-use scheme ending in a dot' => [['redirect_uris' => ['com.example.:/cb']], 'redirect_uris must be'];
+        yield 'redirect_uri private-use scheme without a path' => [['redirect_uris' => ['com.example.app:foo']], 'redirect_uris must be'];
         yield 'redirect_uri without scheme' => [['redirect_uris' => ['client.example/cb']], 'redirect_uris must be'];
         yield 'too many redirect_uris' => [['redirect_uris' => \array_map(static fn (int $i): string => 'https://client.example/cb' . $i, \range(1, 11))], 'at most'];
         yield 'client_secret' => [['client_secret' => 'x'], 'only public clients'];
