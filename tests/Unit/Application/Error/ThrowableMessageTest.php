@@ -48,7 +48,12 @@ final class ThrowableMessageTest extends TestCase
 
     public function testAnOrmErrorHidesItsText(): void
     {
-        $orm = new class('A new entity was found through the relationship Sulu\Page\Domain\Model\Page#x') extends \Exception implements ORMException {
+        $text = 'A new entity was found through the relationship Sulu\Page\Domain\Model\Page#x';
+        // ORMException is a class in the lowest supported doctrine/orm and an interface in newer ones.
+        $orm = \interface_exists(ORMException::class)
+            ? new class($text) extends \Exception implements ORMException {
+            }
+        : new class($text) extends ORMException {
         };
 
         self::assertStringNotContainsString('Sulu\Page', ThrowableMessage::of($orm));
