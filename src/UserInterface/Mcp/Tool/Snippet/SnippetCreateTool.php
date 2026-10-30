@@ -23,6 +23,7 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocales;
 use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
@@ -47,6 +48,7 @@ class SnippetCreateTool
         private readonly BlockDataValidator $blockDataValidator,
         private readonly BlockIdGeneratorInterface $blockIdGenerator,
         private readonly AdminLinkGeneratorInterface $adminLinkGenerator,
+        private readonly ContentLocales $contentLocales,
     ) {
         $this->messageBus = $messageBus;
     }
@@ -76,6 +78,10 @@ class SnippetCreateTool
         #[Schema(type: 'object', description: 'Template field values as key-value pairs, e.g. {"body": "<p>HTML content</p>"}', additionalProperties: true)]
         ?array $content = null,
     ): array {
+        if (null !== $refusal = $this->contentLocales->refusal($locale)) {
+            return $refusal;
+        }
+
         try {
             $normalizedContent = null !== $content ? self::normalizeContent($content) : [];
 

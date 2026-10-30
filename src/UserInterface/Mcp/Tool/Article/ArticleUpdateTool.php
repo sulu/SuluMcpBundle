@@ -30,6 +30,7 @@ use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Article\ArticleRouteValidator;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocales;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
@@ -70,6 +71,7 @@ class ArticleUpdateTool
         private readonly ToolPermissionCheckerInterface $permissionChecker,
         private readonly ArticleSecurityContextResolver $articleContextResolver,
         private readonly ContentSecurityContextResolver $contentSecurityContextResolver,
+        private readonly ContentLocales $contentLocales,
     ) {
         $this->messageBus = $messageBus;
     }
@@ -108,6 +110,10 @@ class ArticleUpdateTool
         #[Schema(type: 'string', description: 'The locale mirrored when shadowOn is true, e.g. "en". The eligible locales are returned as "shadowLocales" by the matching get tool.')]
         ?string $shadowLocale = null,
     ): array {
+        if (null !== $refusal = $this->contentLocales->refusal($locale)) {
+            return $refusal;
+        }
+
         try {
             // Read current article state to get template and existing content.
             // loadGhost also matches a locale the article has no content in yet.

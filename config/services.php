@@ -20,6 +20,7 @@ use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
 use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocales;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
@@ -175,6 +176,9 @@ return static function(ContainerConfigurator $container): void {
 
     $services->set(ContentTypeExtensionRegistry::class)
         ->arg('$extensions', tagged_iterator('sulu_mcp.content_type_extension'));
+
+    $services->set(ContentLocales::class)
+        ->arg('$locales', '%sulu_core.locales%');
 
     $services->set(AccessControlFilterFactory::class)
         ->arg('$security', new Reference('security.helper'))

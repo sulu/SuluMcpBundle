@@ -24,6 +24,7 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocales;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
@@ -61,6 +62,7 @@ class SnippetUpdateTool
         private readonly ToolPermissionCheckerInterface $permissionChecker,
         private readonly ContentSecurityContextResolver $contentSecurityContextResolver,
         private readonly SnippetSecurityContextResolver $snippetContextResolver,
+        private readonly ContentLocales $contentLocales,
     ) {
         $this->messageBus = $messageBus;
     }
@@ -89,6 +91,10 @@ class SnippetUpdateTool
         #[Schema(type: 'object', description: 'Template field values as key-value pairs, e.g. {"body": "<p>HTML content</p>"}', additionalProperties: true)]
         ?array $content = null,
     ): array {
+        if (null !== $refusal = $this->contentLocales->refusal($locale)) {
+            return $refusal;
+        }
+
         try {
             $snippet = $this->contentTypeResolver->loadDraft('snippets', $uuid, $locale, loadGhost: true);
 

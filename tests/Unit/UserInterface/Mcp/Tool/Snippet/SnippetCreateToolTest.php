@@ -25,6 +25,7 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocales;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
@@ -79,6 +80,7 @@ final class SnippetCreateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             $adminLinkGenerator,
+            new ContentLocales(['en', 'de']),
         );
     }
 
@@ -295,6 +297,7 @@ final class SnippetCreateToolTest extends TestCase
             new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
             $this->blockIdGenerator,
             new AdminLinkGenerator($this->router(), [new SnippetAdminLinkProvider(new TestViewRegistry())]),
+            new ContentLocales(['en', 'de']),
         );
 
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
@@ -329,5 +332,13 @@ final class SnippetCreateToolTest extends TestCase
             [],
             new RequestContext(host: 'example.com', scheme: 'https'),
         );
+    }
+
+    public function testCreateSnippetRefusesALocaleOfNoSite(): void
+    {
+        $result = $this->tool->createSnippet('xx', 'default', 'Title');
+
+        $this->assertSame('"xx" is not a locale of this site.', $result['error'] ?? null);
+        $this->assertSame('Use one of: en, de.', $result['hint'] ?? null);
     }
 }
