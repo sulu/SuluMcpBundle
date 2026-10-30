@@ -28,6 +28,7 @@ use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocales;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\SnippetAdminLinkProvider;
@@ -103,6 +104,7 @@ final class SnippetUpdateToolTest extends TestCase
             FakeToolPermissionChecker::grantingAll(),
             new ContentSecurityContextResolver($contentTypeResolver),
             new SnippetSecurityContextResolver(new TestGroupProvider([])),
+            new ContentLocales(['en', 'de']),
         );
     }
 
@@ -155,6 +157,7 @@ final class SnippetUpdateToolTest extends TestCase
             $permissionChecker,
             new ContentSecurityContextResolver($contentTypeResolver),
             $snippetContextResolver,
+            new ContentLocales(['en', 'de']),
         );
     }
 
@@ -403,6 +406,7 @@ final class SnippetUpdateToolTest extends TestCase
             FakeToolPermissionChecker::grantingAll(),
             new ContentSecurityContextResolver($contentTypeResolver),
             new SnippetSecurityContextResolver(new TestGroupProvider([])),
+            new ContentLocales(['en', 'de']),
         );
 
         $existingSnippet = new Snippet('uuid-1');
@@ -540,5 +544,13 @@ final class SnippetUpdateToolTest extends TestCase
         $this->assertStringContainsString('has no "en" content yet', $result['error']);
         $this->assertStringContainsString('title and template', $result['hint']);
         $this->assertStringContainsString('de, fr', $result['hint']);
+    }
+
+    public function testUpdateSnippetRefusesALocaleOfNoSite(): void
+    {
+        $result = $this->tool->updateSnippet('snippet-uuid', 'xx', 'Title');
+
+        $this->assertSame('"xx" is not a locale of this site.', $result['error'] ?? null);
+        $this->assertSame('Use one of: en, de.', $result['hint'] ?? null);
     }
 }

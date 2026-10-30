@@ -17,6 +17,7 @@ use Mcp\Capability\Attribute\McpTool;
 use Mcp\Capability\Attribute\Schema;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
@@ -87,7 +88,7 @@ class NavigationGetTool
             ];
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to get navigation for webspace "%s": %s', $webspace, $e->getMessage()),
+                'error' => \sprintf('Failed to get navigation for webspace "%s": %s', $webspace, ThrowableMessage::of($e)),
                 'hint' => \sprintf('Call sulu_get_context to see the navigation contexts the webspace declares and verify "%s" is among them and that pages are published.', $navigationContext),
             ];
         }

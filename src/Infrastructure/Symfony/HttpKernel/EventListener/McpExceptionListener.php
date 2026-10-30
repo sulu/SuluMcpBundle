@@ -18,7 +18,9 @@ use Psr\Log\NullLogger;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Symfony\Component\EventDispatcher\Attribute\AsEventListener;
 use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Symfony\Component\HttpKernel\KernelEvents;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
@@ -97,6 +99,12 @@ class McpExceptionListener
             return;
         }
 
+        if ($exception instanceof HttpExceptionInterface && $exception->getStatusCode() < 500) {
+            $event->setResponse($this->clientErrorResponse($exception));
+
+            return;
+        }
+
         $this->logger->error('Unhandled exception on MCP endpoint', ['exception' => $exception]);
 
         $detail = $this->debug ? $exception->getMessage() : 'An internal error occurred.';
@@ -115,5 +123,42 @@ class McpExceptionListener
         ], 500);
 
         $event->setResponse($response);
+    }
+
+    /**
+     * A malformed body or a method the route does not accept is the caller's mistake.
+     * The router's own message names the full request URL, so only the 400 from the
+     * transport keeps its text.
+     */
+    private function clientErrorResponse(HttpExceptionInterface $exception): JsonResponse
+    {
+        $status = $exception->getStatusCode();
+
+        if (Response::HTTP_BAD_REQUEST === $status && \str_contains(\strtolower($exception->getMessage()), 'json')) {
+            $code = -32700;
+            $message = 'Parse error';
+            $detail = $exception->getMessage();
+        } elseif (Response::HTTP_METHOD_NOT_ALLOWED === $status) {
+            $code = -32600;
+            $message = 'Invalid Request';
+            $detail = 'Method not allowed.';
+        } else {
+            $code = -32600;
+            $message = 'Invalid Request';
+            $detail = Response::$statusTexts[$status] ?? 'Client error';
+        }
+
+        return new JsonResponse([
+            'jsonrpc' => '2.0',
+            'error' => [
+                'code' => $code,
+                'message' => $message,
+                'data' => [
+                    'type' => 'invalid_request',
+                    'detail' => $detail,
+                ],
+            ],
+            'id' => null,
+        ], $status, $exception->getHeaders());
     }
 }

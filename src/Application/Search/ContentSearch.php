@@ -16,6 +16,7 @@ namespace Sulu\Mcp\Application\Search;
 use CmsIg\Seal\Search\Condition\Condition;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Content\ContentTypeExtensionInterface;
@@ -99,7 +100,7 @@ final class ContentSearch
             return $this->websiteSearch->run($builder, $page, $limit);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Content search failed: %s', $e->getMessage()),
+                'error' => \sprintf('Content search failed: %s', ThrowableMessage::of($e)),
                 'hint' => \sprintf(
                     'Only published content is indexed. Verify the locale is correct and resourceKey is one of %s (or omit to search all).',
                     \implode(', ', \array_map(static fn (string $key): string => \sprintf('"%s"', $key), $this->extensionRegistry->searchableResourceKeys())),

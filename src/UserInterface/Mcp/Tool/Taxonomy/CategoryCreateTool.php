@@ -20,6 +20,8 @@ use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
 use Sulu\Bundle\CategoryBundle\Entity\CategoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
+use Sulu\Mcp\Application\Content\ContentLocales;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Symfony\Component\Security\Core\Authentication\Token\Storage\TokenStorageInterface;
@@ -34,6 +36,7 @@ class CategoryCreateTool
         private readonly CategoryManagerInterface $categoryManager,
         private readonly TokenStorageInterface $tokenStorage,
         private readonly AdminLinkGeneratorInterface $adminLinkGenerator,
+        private readonly ContentLocales $contentLocales,
     ) {
     }
 
@@ -57,6 +60,10 @@ class CategoryCreateTool
         #[Schema(description: 'Integer id of the parent category (NOT a UUID). Omit for a top-level category. Get ids from sulu_category_list.')]
         ?int $parentId = null,
     ): array {
+        if (null !== $refusal = $this->contentLocales->refusal($locale)) {
+            return $refusal;
+        }
+
         try {
             $user = $this->tokenStorage->getToken()?->getUser();
             if (!$user instanceof UserInterface || !\method_exists($user, 'getId')) {
@@ -93,7 +100,7 @@ class CategoryCreateTool
             return $result;
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to create category "%s": %s', $name, $e->getMessage()),
+                'error' => \sprintf('Failed to create category "%s": %s', $name, ThrowableMessage::of($e)),
                 'hint' => 'The key must be unique. Use sulu_category_list to check existing categories and verify the parentId is a valid integer category id.',
             ];
         }

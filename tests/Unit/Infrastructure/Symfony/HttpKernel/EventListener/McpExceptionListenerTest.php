@@ -26,6 +26,10 @@ use Sulu\Mcp\Infrastructure\Symfony\Security\EntryPoint\McpAuthenticationEntryPo
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Event\ExceptionEvent;
+use Symfony\Component\HttpKernel\Exception\BadRequestHttpException;
+use Symfony\Component\HttpKernel\Exception\MethodNotAllowedHttpException;
+use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
+use Symfony\Component\HttpKernel\Exception\ServiceUnavailableHttpException;
 use Symfony\Component\HttpKernel\HttpKernelInterface;
 use Symfony\Component\Security\Core\Exception\AccessDeniedException;
 use Symfony\Component\Security\Core\Exception\AuthenticationException;
@@ -106,6 +110,60 @@ final class McpExceptionListenerTest extends TestCase
         $body = \json_decode($response->getContent(), true);
         $this->assertSame(-32603, $body['error']['code']);
         $this->assertSame('internal_error', $body['error']['data']['type']);
+    }
+
+    public function testMalformedJsonBodyReturns400WithParseError(): void
+    {
+        $event = $this->createExceptionEvent(new BadRequestHttpException('Invalid json message received'));
+
+        $this->listener->onKernelException($event);
+
+        $response = $event->getResponse();
+        $this->assertNotNull($response);
+        $this->assertSame(400, $response->getStatusCode());
+        $body = \json_decode((string) $response->getContent(), true);
+        $this->assertSame(-32700, $body['error']['code']);
+        $this->assertSame('Invalid json message received', $body['error']['data']['detail']);
+    }
+
+    public function testMethodNotAllowedReturns405WithAllowHeaderAndNoRequestUrl(): void
+    {
+        $exception = new MethodNotAllowedHttpException(['GET', 'POST'], 'No route found for "PUT http://sulu.example.com/_mcp": Method Not Allowed');
+        $event = $this->createExceptionEvent($exception);
+
+        $this->listener->onKernelException($event);
+
+        $response = $event->getResponse();
+        $this->assertNotNull($response);
+        $this->assertSame(405, $response->getStatusCode());
+        $this->assertSame('GET, POST', $response->headers->get('Allow'));
+        $body = \json_decode((string) $response->getContent(), true);
+        $this->assertSame(-32600, $body['error']['code']);
+        $this->assertStringNotContainsString('sulu.example.com', (string) $response->getContent());
+    }
+
+    public function testOtherClientErrorKeepsItsStatusWithoutTheExceptionMessage(): void
+    {
+        $event = $this->createExceptionEvent(new NotFoundHttpException('No route found for "GET http://sulu.example.com/_mcp"'));
+
+        $this->listener->onKernelException($event);
+
+        $response = $event->getResponse();
+        $this->assertNotNull($response);
+        $this->assertSame(404, $response->getStatusCode());
+        $this->assertStringNotContainsString('sulu.example.com', (string) $response->getContent());
+    }
+
+    public function testServerErrorFromTheHttpLayerStaysAnInternalError(): void
+    {
+        $event = $this->createExceptionEvent(new ServiceUnavailableHttpException(null, 'database host db.internal is down'));
+
+        $this->listener->onKernelException($event);
+
+        $response = $event->getResponse();
+        $this->assertNotNull($response);
+        $this->assertSame(500, $response->getStatusCode());
+        $this->assertStringNotContainsString('db.internal', (string) $response->getContent());
     }
 
     public function testGenericExceptionInDebugModeIncludesExceptionMessageInDetail(): void

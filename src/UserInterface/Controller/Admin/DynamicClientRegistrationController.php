@@ -18,6 +18,7 @@ use League\Bundle\OAuth2ServerBundle\Model\Client;
 use League\Bundle\OAuth2ServerBundle\ValueObject\Grant;
 use League\Bundle\OAuth2ServerBundle\ValueObject\RedirectUri;
 use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
+use Sulu\Mcp\Infrastructure\OAuth\ClientMetadataValidator;
 use Sulu\Mcp\Infrastructure\OAuth\RedirectUriPolicy;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -64,15 +65,25 @@ class DynamicClientRegistrationController
             return $this->invalidClientMetadata('redirect_uris is required.');
         }
 
+        if (\count($redirectUris) > ClientMetadataValidator::MAX_REDIRECT_URIS) {
+            return $this->invalidClientMetadata(\sprintf('redirect_uris may contain at most %d entries.', ClientMetadataValidator::MAX_REDIRECT_URIS));
+        }
+
         foreach ($redirectUris as $redirectUri) {
+            if (\strlen($redirectUri) > ClientMetadataValidator::MAX_REDIRECT_URI_LENGTH) {
+                return $this->invalidClientMetadata(\sprintf('A redirect URI may be at most %d characters long.', ClientMetadataValidator::MAX_REDIRECT_URI_LENGTH));
+            }
             if (!RedirectUriPolicy::isAllowed($redirectUri)) {
-                return $this->invalidClientMetadata(\sprintf('Invalid redirect URI "%s". Use HTTPS or an HTTP loopback URI, without fragments.', $redirectUri));
+                return $this->invalidClientMetadata(\sprintf('Invalid redirect URI "%s". Use HTTPS, an HTTP loopback URI or a private-use scheme with a path, without fragments.', \mb_substr($redirectUri, 0, 100)));
             }
         }
 
         $clientName = $body['client_name'] ?? 'MCP Client';
         if (!\is_string($clientName) || '' === $clientName) {
             return $this->invalidClientMetadata('client_name must be a non-empty string.');
+        }
+        if (\mb_strlen($clientName) > ClientMetadataValidator::MAX_NAME_LENGTH) {
+            return $this->invalidClientMetadata(\sprintf('client_name may be at most %d characters long.', ClientMetadataValidator::MAX_NAME_LENGTH));
         }
 
         $grantTypes = $this->listOfStrings($body['grant_types'] ?? ['authorization_code']);

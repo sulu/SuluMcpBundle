@@ -76,6 +76,28 @@ final class StatelessProtocolTest extends FunctionalTestCase
         self::assertSame(-32602, $this->decode($response)['error']['code']);
     }
 
+    public function testABodyThatIsNoJsonIsABadRequestNotAServerError(): void
+    {
+        $request = Request::create('/admin/mcp', 'POST', server: ['CONTENT_TYPE' => 'application/json', 'HTTP_ACCEPT' => 'application/json, text/event-stream'], content: '{not json');
+        $request->headers->set('Authorization', 'Bearer ' . $this->accessToken());
+
+        $response = $this->handle($request);
+
+        self::assertSame(400, $response->getStatusCode(), (string) $response->getContent());
+        self::assertSame(-32700, $this->decode($response)['error']['code']);
+    }
+
+    public function testAMethodTheEndpointDoesNotAcceptIsMethodNotAllowed(): void
+    {
+        $request = Request::create('/admin/mcp', 'PUT', server: ['CONTENT_TYPE' => 'application/json'], content: '{}');
+        $request->headers->set('Authorization', 'Bearer ' . $this->accessToken());
+
+        $response = $this->handle($request);
+
+        self::assertSame(405, $response->getStatusCode(), (string) $response->getContent());
+        self::assertNotEmpty($response->headers->get('Allow'));
+    }
+
     public function testTheHandshakeEraStillOpensASession(): void
     {
         $response = $this->send($this->accessToken(), [

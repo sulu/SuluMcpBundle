@@ -32,6 +32,7 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
 use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocales;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ArticleAdminLinkProvider;
@@ -93,6 +94,7 @@ final class ArticleCreateToolTest extends TestCase
             $adminLinkGenerator,
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            new ContentLocales(['en', 'de']),
         );
     }
 
@@ -267,6 +269,7 @@ final class ArticleCreateToolTest extends TestCase
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             new ArticleGroupResolver($groupProvider, $this->contentManager->reveal()),
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            new ContentLocales(['en', 'de']),
         );
 
         $result = $tool->createArticle('en', 'blog', 'Custom', null, ['url' => '/custom']);
@@ -590,6 +593,7 @@ final class ArticleCreateToolTest extends TestCase
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            new ContentLocales(['en', 'de']),
         );
 
         $this->messageBus->dispatch(Argument::cetera())->shouldNotBeCalled();
@@ -662,6 +666,7 @@ final class ArticleCreateToolTest extends TestCase
             new AdminLinkGenerator($router->reveal(), [new ArticleAdminLinkProvider(new TestViewRegistry())]),
             $this->articleGroupResolver,
             new ArticleRouteTypeResolver($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            new ContentLocales(['en', 'de']),
         );
 
         $capturedData = null;
@@ -688,5 +693,13 @@ final class ArticleCreateToolTest extends TestCase
 
         $this->assertTrue($result['success']);
         $this->assertSame('blog', $capturedData['template']);
+    }
+
+    public function testCreateArticleRefusesALocaleOfNoSite(): void
+    {
+        $result = $this->tool->createArticle('xx', 'default', 'Title');
+
+        $this->assertSame('"xx" is not a locale of this site.', $result['error'] ?? null);
+        $this->assertSame('Use one of: en, de.', $result['hint'] ?? null);
     }
 }

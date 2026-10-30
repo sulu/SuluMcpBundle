@@ -33,6 +33,7 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\Article\ArticleGroupResolver;
 use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocales;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Metadata\MetadataLocaleResolver;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\ArticleAdminLinkProvider;
@@ -110,6 +111,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->permissionChecker,
             $this->articleContextResolver,
             ContentTypes::securityResolver($this->articleContextResolver),
+            new ContentLocales(['en', 'de']),
         );
     }
 
@@ -338,6 +340,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->permissionChecker,
             $contextResolver,
             ContentTypes::securityResolver($contextResolver),
+            new ContentLocales(['en', 'de']),
         );
 
         $currentArticle = new Article();
@@ -382,6 +385,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->permissionChecker,
             $contextResolver,
             ContentTypes::securityResolver($contextResolver),
+            new ContentLocales(['en', 'de']),
         );
 
         $currentArticle = new Article();
@@ -432,6 +436,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->permissionChecker,
             $contextResolver,
             ContentTypes::securityResolver($contextResolver),
+            new ContentLocales(['en', 'de']),
         );
 
         $currentArticle = new Article();
@@ -491,6 +496,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->permissionChecker,
             $contextResolver,
             ContentTypes::securityResolver($contextResolver),
+            new ContentLocales(['en', 'de']),
         );
 
         $currentArticle = new Article();
@@ -575,6 +581,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->permissionChecker,
             $contextResolver,
             ContentTypes::securityResolver($contextResolver),
+            new ContentLocales(['en', 'de']),
         );
 
         $currentArticle = new Article();
@@ -781,6 +788,7 @@ final class ArticleUpdateToolTest extends TestCase
             $this->permissionChecker,
             $this->articleContextResolver,
             ContentTypes::securityResolver($this->articleContextResolver),
+            new ContentLocales(['en', 'de']),
         );
 
         $currentArticle = new Article();
@@ -1020,6 +1028,15 @@ final class ArticleUpdateToolTest extends TestCase
             $this->permissionChecker,
             $contextResolver,
             ContentTypes::securityResolver($contextResolver),
+            new ContentLocales(['en', 'de']),
         );
+    }
+
+    public function testUpdateArticleRefusesALocaleOfNoSite(): void
+    {
+        $result = $this->tool->updateArticle('article-uuid', 'xx', 'Title');
+
+        $this->assertSame('"xx" is not a locale of this site.', $result['error'] ?? null);
+        $this->assertSame('Use one of: en, de.', $result['hint'] ?? null);
     }
 }

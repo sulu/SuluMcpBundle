@@ -30,10 +30,12 @@ use Sulu\Mcp\Application\Article\ArticleRouteTypeResolver;
 use Sulu\Mcp\Application\Article\ArticleRouteValidator;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Content\ContentLocales;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ShadowTrait;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
@@ -69,6 +71,7 @@ class ArticleUpdateTool
         private readonly ToolPermissionCheckerInterface $permissionChecker,
         private readonly ArticleSecurityContextResolver $articleContextResolver,
         private readonly ContentSecurityContextResolver $contentSecurityContextResolver,
+        private readonly ContentLocales $contentLocales,
     ) {
         $this->messageBus = $messageBus;
     }
@@ -107,6 +110,10 @@ class ArticleUpdateTool
         #[Schema(type: 'string', description: 'The locale mirrored when shadowOn is true, e.g. "en". The eligible locales are returned as "shadowLocales" by the matching get tool.')]
         ?string $shadowLocale = null,
     ): array {
+        if (null !== $refusal = $this->contentLocales->refusal($locale)) {
+            return $refusal;
+        }
+
         try {
             // Read current article state to get template and existing content.
             // loadGhost also matches a locale the article has no content in yet.
@@ -272,7 +279,7 @@ class ArticleUpdateTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to update article %s: %s', $uuid, $e->getMessage()),
+                'error' => \sprintf('Failed to update article %s: %s', $uuid, ThrowableMessage::of($e)),
                 'hint' => 'Verify the UUID exists (use sulu_article_get) and content fields match the template schema (use sulu_get_context). Pass content as a flat object: content={"article": "<p>...</p>"}.',
             ];
         }

@@ -16,6 +16,7 @@ namespace Sulu\Mcp\Tests\Unit\UserInterface\Controller\Admin;
 use League\Bundle\OAuth2ServerBundle\Manager\ClientManagerInterface;
 use League\Bundle\OAuth2ServerBundle\Model\ClientInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Prophecy\Argument;
 use Prophecy\PhpUnit\ProphecyTrait;
@@ -120,6 +121,45 @@ final class DynamicClientRegistrationControllerTest extends TestCase
 
         self::assertSame(400, $response->getStatusCode());
         self::assertSame('invalid_client_metadata', $this->json($response->getContent())['error']);
+    }
+
+    /**
+     * @param array<string, mixed> $body
+     */
+    #[DataProvider('metadataThatWouldFailInsideLeagueOrTheDatabase')]
+    public function testRegisterRefusesMetadataThatWouldOtherwiseEndInAServerError(array $body): void
+    {
+        $this->clientManager->save(Argument::cetera())->shouldNotBeCalled();
+
+        $response = $this->controller->register($this->jsonRequest($body));
+
+        self::assertSame(400, $response->getStatusCode());
+        self::assertSame('invalid_client_metadata', $this->json($response->getContent())['error']);
+        self::assertLessThan(1000, \strlen((string) $response->getContent()), 'the refusal must not echo the whole input back');
+    }
+
+    /**
+     * @return iterable<string, array{array<string, mixed>}>
+     */
+    public static function metadataThatWouldFailInsideLeagueOrTheDatabase(): iterable
+    {
+        yield 'scheme with a dot and no path' => [['redirect_uris' => ['vbscript.x:foo']]];
+        yield 'line break in the redirect URI' => [['redirect_uris' => ["http://localhost/cb\r\nX: y"]]];
+        yield 'redirect URI over the length limit' => [['redirect_uris' => ['http://localhost/' . \str_repeat('a', 2000)]]];
+        yield 'too many redirect URIs' => [['redirect_uris' => \array_map(static fn (int $i): string => 'http://localhost/cb' . $i, \range(1, 11))]];
+        yield 'client_name over the column length' => [['client_name' => \str_repeat('n', 129), 'redirect_uris' => ['http://localhost/cb']]];
+    }
+
+    public function testRegisterAcceptsTheLongestClientNameTheColumnTakes(): void
+    {
+        $this->clientManager->save(Argument::type(ClientInterface::class))->shouldBeCalledOnce();
+
+        $response = $this->controller->register($this->jsonRequest([
+            'client_name' => \str_repeat('n', 128),
+            'redirect_uris' => ['http://localhost/cb'],
+        ]));
+
+        self::assertSame(201, $response->getStatusCode());
     }
 
     public function testRegisterRejectsUnsupportedGrantType(): void

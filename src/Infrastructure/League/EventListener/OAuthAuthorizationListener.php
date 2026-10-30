@@ -48,7 +48,7 @@ final readonly class OAuthAuthorizationListener
         }
 
         $requestId = $this->consentStore->getRequestId($request);
-        if (null !== $requestId) {
+        if (null !== $requestId && $this->consentStore->isForRequest($request, $requestId)) {
             $decision = $this->consentStore->consumeDecision($request, $requestId);
             if (null !== $decision) {
                 $event->resolveAuthorization($decision);

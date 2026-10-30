@@ -18,6 +18,7 @@ use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\TagBundle\Tag\TagInterface;
 use Sulu\Bundle\TagBundle\Tag\TagManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
@@ -59,7 +60,7 @@ class TagDeleteTool
             ];
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to delete tag %d: %s', $id, $e->getMessage()),
+                'error' => \sprintf('Failed to delete tag %d: %s', $id, ThrowableMessage::of($e)),
                 'hint' => 'Verify the tag id exists (use sulu_tag_list). Deleting a tag does not delete content that referenced it.',
             ];
         }

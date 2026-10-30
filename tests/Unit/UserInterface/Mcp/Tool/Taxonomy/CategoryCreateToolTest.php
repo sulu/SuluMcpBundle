@@ -22,6 +22,7 @@ use Prophecy\PhpUnit\ProphecyTrait;
 use Prophecy\Prophecy\ObjectProphecy;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
 use Sulu\Bundle\CategoryBundle\Entity\CategoryInterface;
+use Sulu\Mcp\Application\Content\ContentLocales;
 use Sulu\Mcp\Infrastructure\Sulu\AdminLink\CategoryAdminLinkProvider;
 use Sulu\Mcp\Infrastructure\Symfony\Routing\AdminLinkGenerator;
 use Sulu\Mcp\Tests\Application\TestBundle\Admin\TestViewRegistry;
@@ -51,7 +52,7 @@ final class CategoryCreateToolTest extends TestCase
         $router->generate(Argument::cetera())->willReturn('https://example.com/admin/');
         $adminLinkGenerator = new AdminLinkGenerator($router->reveal(), [new CategoryAdminLinkProvider(new TestViewRegistry())]);
 
-        $this->tool = new CategoryCreateTool($this->categoryManager->reveal(), $this->tokenStorage->reveal(), $adminLinkGenerator);
+        $this->tool = new CategoryCreateTool($this->categoryManager->reveal(), $this->tokenStorage->reveal(), $adminLinkGenerator, new ContentLocales(['en', 'de']));
     }
 
     public function testCreateCategoryReturnsSuccess(): void
@@ -171,5 +172,13 @@ final class CategoryCreateToolTest extends TestCase
         $token = $this->prophesize(TokenInterface::class);
         $token->getUser(Argument::cetera())->willReturn($user);
         $this->tokenStorage->getToken(Argument::cetera())->willReturn($token->reveal());
+    }
+
+    public function testCreateCategoryRefusesALocaleOfNoSite(): void
+    {
+        $result = $this->tool->createCategory('xx', 'Title');
+
+        $this->assertSame('"xx" is not a locale of this site.', $result['error'] ?? null);
+        $this->assertSame('Use one of: en, de.', $result['hint'] ?? null);
     }
 }

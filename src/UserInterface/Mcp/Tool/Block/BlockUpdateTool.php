@@ -28,6 +28,7 @@ use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -209,7 +210,7 @@ class BlockUpdateTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to update block "%s" in %s %s: %s', $blockId ?? '#' . $blockIndex, $resourceKey, $uuid, $e->getMessage()),
+                'error' => \sprintf('Failed to update block "%s" in %s %s: %s', $blockId ?? '#' . $blockIndex, $resourceKey, $uuid, ThrowableMessage::of($e)),
                 'hint' => 'Verify the UUID exists and the block _id or index is correct (use sulu_block_list to check).',
             ];
         }

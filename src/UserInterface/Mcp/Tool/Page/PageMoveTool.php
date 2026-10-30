@@ -20,6 +20,7 @@ use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
@@ -179,7 +180,7 @@ class PageMoveTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to move page %s below %s: %s', $uuid, $targetParentId, $e->getMessage()),
+                'error' => \sprintf('Failed to move page %s below %s: %s', $uuid, $targetParentId, ThrowableMessage::of($e)),
                 'hint' => 'Verify both UUIDs exist and belong to the same webspace (use sulu_page_tree).',
             ];
         }

@@ -20,6 +20,7 @@ use Sulu\Bundle\ContactBundle\Entity\AccountRepositoryInterface;
 use Sulu\Bundle\ContactBundle\Entity\ContactInterface;
 use Sulu\Bundle\ContactBundle\Entity\ContactRepositoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 
@@ -84,7 +85,7 @@ class ContactListTool
             return ['items' => $results, 'type' => 'contact'];
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to list %ss: %s', $type, $e->getMessage()),
+                'error' => \sprintf('Failed to list %ss: %s', $type, ThrowableMessage::of($e)),
                 'hint' => 'The ContactBundle may not be installed in this Sulu installation.',
             ];
         }

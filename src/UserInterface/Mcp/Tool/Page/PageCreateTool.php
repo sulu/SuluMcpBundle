@@ -29,6 +29,7 @@ use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\LinkDataTrait;
 use Sulu\Mcp\Application\Content\NavigationContextTrait;
 use Sulu\Mcp\Application\Content\ShadowTrait;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
@@ -224,7 +225,7 @@ class PageCreateTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to create page "%s" in webspace "%s": %s', $title, $webspace, $e->getMessage()),
+                'error' => \sprintf('Failed to create page "%s" in webspace "%s": %s', $title, $webspace, ThrowableMessage::of($e)),
                 'hint' => 'Verify the template key exists (use sulu_get_context), parentId is a valid page UUID (use sulu_page_tree), and content fields match the template schema.',
             ];
         }
