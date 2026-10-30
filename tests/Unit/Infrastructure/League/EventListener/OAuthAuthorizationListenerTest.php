@@ -18,6 +18,7 @@ use League\Bundle\OAuth2ServerBundle\Model\Client;
 use League\Bundle\OAuth2ServerBundle\ValueObject\Scope;
 use League\OAuth2\Server\RequestTypes\AuthorizationRequest;
 use PHPUnit\Framework\Attributes\CoversClass;
+use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
 use Sulu\Mcp\Domain\Model\OAuthConsentRequest;
 use Sulu\Mcp\Infrastructure\League\EventListener\OAuthAuthorizationListener;
@@ -102,6 +103,38 @@ final class OAuthAuthorizationListenerTest extends TestCase
         self::assertInstanceOf(RedirectResponse::class, $response);
         self::assertSame('/admin/#/mcp/authorize/' . $consentRequest->getId(), $response->getTargetUrl());
         self::assertNotNull($store->get($request, $consentRequest->getId()));
+    }
+
+    /**
+     * @param callable(string): string $tamper receives the continuation URL
+     */
+    #[DataProvider('tamperedContinuations')]
+    public function testADecisionDoesNotCarryOverToAChangedAuthorizationRequest(callable $tamper): void
+    {
+        $store = new OAuthConsentStore();
+        $request = $this->request('/admin/mcp/authorize?response_type=code&client_id=client-1&scope=mcp%3Atools&redirect_uri=https%3A%2F%2Fchatgpt.com%2Foauth%2Fcallback&state=state-1');
+        $consentRequest = $store->create($request, $this->event());
+        $store->decide($request, $consentRequest->getId(), true);
+
+        $event = $this->event();
+        $this->listener($store, $this->request($tamper($consentRequest->getContinuationUrl()), $request->getSession()))($event);
+
+        $response = $event->getResponse();
+        self::assertInstanceOf(RedirectResponse::class, $response, 'the changed request has to ask again');
+        self::assertNotSame('/admin/#/mcp/authorize/' . $consentRequest->getId(), $response->getTargetUrl());
+        self::assertFalse($event->getAuthorizationResolution());
+        self::assertNotNull($store->get($request, $consentRequest->getId()), 'the original consent stays untouched');
+    }
+
+    /**
+     * @return iterable<string, array{callable(string): string}>
+     */
+    public static function tamperedContinuations(): iterable
+    {
+        yield 'wider scope' => [static fn (string $url): string => \str_replace('scope=mcp%3Atools', 'scope=mcp%3Atools+mcp%3Aresources', $url)];
+        yield 'dropped scope' => [static fn (string $url): string => \str_replace('scope=mcp%3Atools&', '', $url)];
+        yield 'other client' => [static fn (string $url): string => \str_replace('client_id=client-1', 'client_id=client-2', $url)];
+        yield 'other redirect uri' => [static fn (string $url): string => \str_replace('chatgpt.com', 'evil.example', $url)];
     }
 
     public function testIgnoresAuthorizationRequestOfAnotherRoute(): void

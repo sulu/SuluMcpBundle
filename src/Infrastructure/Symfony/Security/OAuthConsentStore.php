@@ -79,6 +79,19 @@ final readonly class OAuthConsentStore
         return OAuthConsentRequest::fromArray($entry);
     }
 
+    /**
+     * Whether the request carries the very query the user was asked about. A decision covers
+     * that authorization request and nothing else: another scope, client or redirect URI
+     * with the same id starts a new consent.
+     */
+    public function isForRequest(Request $request, string $id): bool
+    {
+        $consentRequest = $this->get($request, $id);
+
+        return $consentRequest instanceof OAuthConsentRequest
+            && \hash_equals($consentRequest->getAuthorizationUrl(), $this->authorizationUrl($request));
+    }
+
     public function decide(Request $request, string $id, bool $approved): ?OAuthConsentRequest
     {
         $consentRequest = $this->get($request, $id);
