@@ -27,7 +27,7 @@ final class ToolErrorResultsTest extends TestCase
      * Messages of exceptions the bundle throws itself and words for the caller.
      */
     private const OWN_EXCEPTION_RESULTS = [
-        'Media/MediaUploadTool.php' => ["refused as unsafe: %s'", "'error' => \$e->getMessage(),", 'could not be recorded: %s'],
+        'Media/MediaUploadTool.php' => ["refused as unsafe: %s'", "'error' => \$e->getMessage(),"],
     ];
 
     public function testNoToolResultCarriesTheRawTextOfACaughtException(): void

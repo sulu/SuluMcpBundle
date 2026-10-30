@@ -211,7 +211,7 @@ class MediaUploadTool
                     // The media exists by this point. Reporting the whole call as failed would
                     // invite a retry that imports the file a second time, so the shortfall is
                     // named instead.
-                    $result['warning'] = \sprintf('The media was created but its source URL could not be recorded: %s', $e->getMessage());
+                    $result['warning'] = \sprintf('The media was created but its source URL could not be recorded: %s', ThrowableMessage::of($e));
                 }
             }
 
