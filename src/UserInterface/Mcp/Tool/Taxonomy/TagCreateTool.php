@@ -19,6 +19,7 @@ use Sulu\Bundle\TagBundle\Tag\TagInterface;
 use Sulu\Bundle\TagBundle\Tag\TagManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 
@@ -68,7 +69,7 @@ class TagCreateTool
             return $result;
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to create tag "%s": %s', $name, $e->getMessage()),
+                'error' => \sprintf('Failed to create tag "%s": %s', $name, ThrowableMessage::of($e)),
                 'hint' => 'Tag names must be unique. Use sulu_tag_list to check existing tags before creating.',
             ];
         }

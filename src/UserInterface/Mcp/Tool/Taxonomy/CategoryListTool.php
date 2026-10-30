@@ -20,6 +20,7 @@ use Sulu\Bundle\CategoryBundle\Api\Category as ApiCategory;
 use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
 use Sulu\Bundle\CategoryBundle\Entity\CategoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 
@@ -61,7 +62,7 @@ class CategoryListTool
             ];
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to list categories: %s', $e->getMessage()),
+                'error' => \sprintf('Failed to list categories: %s', ThrowableMessage::of($e)),
                 'hint' => 'Verify the locale is valid.',
             ];
         }

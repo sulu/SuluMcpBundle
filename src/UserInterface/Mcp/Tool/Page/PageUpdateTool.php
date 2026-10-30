@@ -31,6 +31,7 @@ use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\LinkDataTrait;
 use Sulu\Mcp\Application\Content\NavigationContextTrait;
 use Sulu\Mcp\Application\Content\ShadowTrait;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
@@ -263,7 +264,7 @@ class PageUpdateTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to update page %s: %s', $uuid, $e->getMessage()),
+                'error' => \sprintf('Failed to update page %s: %s', $uuid, ThrowableMessage::of($e)),
                 'hint' => 'Verify the UUID exists (use sulu_page_get) and content fields match the template schema (use sulu_get_context). Pass content as a flat object: content={"article": "<p>...</p>"}.',
             ];
         }

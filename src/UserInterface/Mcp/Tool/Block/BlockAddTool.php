@@ -28,6 +28,7 @@ use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -195,7 +196,7 @@ class BlockAddTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to add %s block to %s %s: %s', $blockType, $resourceKey, $uuid, $e->getMessage()),
+                'error' => \sprintf('Failed to add %s block to %s %s: %s', $blockType, $resourceKey, $uuid, ThrowableMessage::of($e)),
                 'hint' => 'Verify the UUID exists (use sulu_page_get, sulu_article_get, or sulu_snippet_get), the blockProperty matches a block field in the template, and blockType is a valid block type (use sulu_get_context to see available types).',
             ];
         }

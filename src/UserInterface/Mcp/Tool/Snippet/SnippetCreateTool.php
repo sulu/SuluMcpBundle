@@ -23,6 +23,7 @@ use Sulu\Content\Domain\Model\DimensionContentInterface;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
 use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
@@ -121,7 +122,7 @@ class SnippetCreateTool
             return $result;
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to create snippet "%s": %s', $title, $e->getMessage()),
+                'error' => \sprintf('Failed to create snippet "%s": %s', $title, ThrowableMessage::of($e)),
                 'hint' => 'Verify the template key exists (use sulu_get_context) and content fields match the template schema.',
             ];
         }

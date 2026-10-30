@@ -25,6 +25,7 @@ use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -199,7 +200,7 @@ class BlockReorderTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to reorder blocks on %s %s: %s', $resourceKey, $uuid, $e->getMessage()),
+                'error' => \sprintf('Failed to reorder blocks on %s %s: %s', $resourceKey, $uuid, ThrowableMessage::of($e)),
                 'hint' => 'Use sulu_block_list to see current blocks. Provide newOrder or blockIds covering every block exactly once.',
             ];
         }

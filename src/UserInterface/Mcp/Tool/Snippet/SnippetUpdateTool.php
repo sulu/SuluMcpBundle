@@ -27,6 +27,7 @@ use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentLocaleTrait;
 use Sulu\Mcp\Application\Content\ContentNormalizerTrait;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
@@ -196,7 +197,7 @@ class SnippetUpdateTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to update snippet %s: %s', $uuid, $e->getMessage()),
+                'error' => \sprintf('Failed to update snippet %s: %s', $uuid, ThrowableMessage::of($e)),
                 'hint' => 'Verify the UUID exists (use sulu_snippet_get) and content fields match the template schema (use sulu_get_context). Pass content as a flat object: content={"body": "<p>...</p>"}.',
             ];
         }

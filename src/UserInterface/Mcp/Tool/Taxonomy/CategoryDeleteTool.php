@@ -19,6 +19,7 @@ use Sulu\Bundle\CategoryBundle\Category\CategoryManagerInterface;
 use Sulu\Bundle\CategoryBundle\Domain\Exception\RemoveCategoryDependantResourcesFoundException;
 use Sulu\Bundle\CategoryBundle\Entity\CategoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Domain\Security\DangerousTool;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
@@ -67,7 +68,7 @@ class CategoryDeleteTool
             }
 
             return [
-                'error' => \sprintf('Failed to delete category %d: %s', $id, $e->getMessage()),
+                'error' => \sprintf('Failed to delete category %d: %s', $id, ThrowableMessage::of($e)),
                 'hint' => 'Verify the category id exists (use sulu_category_list). A category with children cannot be deleted.',
             ];
         }

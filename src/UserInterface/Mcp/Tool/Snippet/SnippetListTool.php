@@ -18,6 +18,7 @@ use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Snippet\Domain\Model\SnippetInterface;
@@ -120,7 +121,7 @@ class SnippetListTool
             ];
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to list snippets: %s', $e->getMessage()),
+                'error' => \sprintf('Failed to list snippets: %s', ThrowableMessage::of($e)),
             ];
         }
     }

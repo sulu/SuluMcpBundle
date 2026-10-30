@@ -21,6 +21,7 @@ use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -106,7 +107,7 @@ class PreviewLinkRevokeTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to revoke preview link: %s', $e->getMessage()),
+                'error' => \sprintf('Failed to revoke preview link: %s', ThrowableMessage::of($e)),
                 'hint' => 'Verify a preview link exists for this resource. Use sulu_preview_link_generate to create one first.',
             ];
         }

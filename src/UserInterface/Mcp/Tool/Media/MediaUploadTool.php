@@ -30,6 +30,7 @@ use Sulu\Bundle\SecurityBundle\Entity\User;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Media\Dto\DownloadedFile;
 use Sulu\Mcp\Application\Media\Dto\MediaSource;
 use Sulu\Mcp\Application\Media\MediaDownloader;
@@ -150,7 +151,7 @@ class MediaUploadTool
             ];
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to upload media from "%s": %s', $url, $e->getMessage()),
+                'error' => \sprintf('Failed to upload media from "%s": %s', $url, ThrowableMessage::of($e)),
                 'hint' => 'Verify the collection id exists (use sulu_media_list) and the locale is valid.',
             ];
         }

@@ -25,6 +25,7 @@ use Sulu\Bundle\SecurityBundle\Entity\User;
 use Sulu\Component\Media\SystemCollections\SystemCollectionManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\AdminLink\AdminLinkGeneratorInterface;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
 use Sulu\Mcp\Domain\Model\MediaOrigin;
@@ -177,7 +178,7 @@ class MediaUpdateTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to update media %d: %s', $id, $e->getMessage()),
+                'error' => \sprintf('Failed to update media %d: %s', $id, ThrowableMessage::of($e)),
                 'hint' => 'Verify the media id exists (use sulu_media_list) and the locale is valid.',
             ];
         }

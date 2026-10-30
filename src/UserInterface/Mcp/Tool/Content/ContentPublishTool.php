@@ -21,6 +21,7 @@ use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\Content\ContentTypeExtensionRegistry;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -115,7 +116,7 @@ class ContentPublishTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to publish %s %s: %s', $resourceKey, $uuid, $e->getMessage()),
+                'error' => \sprintf('Failed to publish %s %s: %s', $resourceKey, $uuid, ThrowableMessage::of($e)),
                 'hint' => 'Verify the content exists and is in draft state (use the matching get tool, e.g. sulu_page_get, to check workflowPlace).',
             ];
         }

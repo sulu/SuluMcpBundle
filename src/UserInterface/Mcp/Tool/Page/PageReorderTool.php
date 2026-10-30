@@ -19,6 +19,7 @@ use Mcp\Exception\ToolCallException;
 use Mcp\Schema\ToolAnnotations;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Domain\Model\DimensionContentInterface;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
 use Sulu\Mcp\Domain\Exception\PermissionDeniedException;
@@ -138,7 +139,7 @@ class PageReorderTool
             throw new ToolCallException($e->getMessage(), 0, $e);
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to reorder page %s to position %d: %s', $uuid, $position, $e->getMessage()),
+                'error' => \sprintf('Failed to reorder page %s to position %d: %s', $uuid, $position, ThrowableMessage::of($e)),
                 'hint' => 'Verify the UUID exists and the position is within the sibling count (use sulu_page_tree).',
             ];
         }

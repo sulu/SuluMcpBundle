@@ -21,6 +21,7 @@ use Sulu\Bundle\PreviewBundle\Application\Manager\PreviewLinkManagerInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Mcp\Application\Content\ContentTypeResolver;
 use Sulu\Mcp\Application\Content\ContentTypeSchemaExpander;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Application\Security\ContentSecurityContextResolver;
 use Sulu\Mcp\Application\Security\ToolPermissionCheckerInterface;
 use Sulu\Mcp\Application\Security\WebspacePermissionResolver;
@@ -138,7 +139,7 @@ class PreviewLinkGenerateTool
             ];
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to generate preview link: %s', $e->getMessage()),
+                'error' => \sprintf('Failed to generate preview link: %s', ThrowableMessage::of($e)),
                 'hint' => 'Verify the resource exists, the resourceKey is correct, and the webspace is valid (use sulu_ping to list webspaces).',
             ];
         }

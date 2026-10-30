@@ -18,6 +18,7 @@ use Mcp\Schema\ToolAnnotations;
 use Sulu\Bundle\TagBundle\Tag\TagInterface;
 use Sulu\Bundle\TagBundle\Tag\TagRepositoryInterface;
 use Sulu\Component\Security\Authorization\PermissionTypes;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 
@@ -62,7 +63,7 @@ class TagListTool
             ];
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to list tags: %s', $e->getMessage()),
+                'error' => \sprintf('Failed to list tags: %s', ThrowableMessage::of($e)),
                 'hint' => 'Verify the database connection.',
             ];
         }

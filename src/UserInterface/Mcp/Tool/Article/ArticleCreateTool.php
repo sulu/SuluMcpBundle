@@ -30,6 +30,7 @@ use Sulu\Mcp\Application\Content\BlockDataNormalizerTrait;
 use Sulu\Mcp\Application\Content\BlockDataValidator;
 use Sulu\Mcp\Application\Content\ContentMetadataMapper;
 use Sulu\Mcp\Application\Content\ShadowTrait;
+use Sulu\Mcp\Application\Error\ThrowableMessage;
 use Sulu\Mcp\Domain\Security\PermissionRequirement;
 use Sulu\Mcp\Domain\Security\RequiresPermission;
 use Sulu\Messenger\Infrastructure\Symfony\Messenger\FlushMiddleware\EnableFlushStamp;
@@ -193,7 +194,7 @@ class ArticleCreateTool
             return $result;
         } catch (\Throwable $e) {
             return [
-                'error' => \sprintf('Failed to create article "%s": %s', $title, $e->getMessage()),
+                'error' => \sprintf('Failed to create article "%s": %s', $title, ThrowableMessage::of($e)),
                 'hint' => 'Verify the template key exists (use sulu_get_context) and content fields match the template schema.',
             ];
         }
