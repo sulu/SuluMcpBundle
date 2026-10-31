@@ -148,7 +148,85 @@ final readonly class BlockDataValidator
      */
     public function validateContentTree(array $content, string $templateType, ?string $templateKey): ?array
     {
+        if ($error = $this->validateBlockListKeys($content, $templateType, $templateKey)) {
+            return $error;
+        }
+
         return $this->validateBlockLists($content, $this->templateForms($templateType, $templateKey));
+    }
+
+    /**
+     * Reject a block list under a key the template declares no block field for: Sulu drops it
+     * on save and still reports success, so the caller would never learn the blocks are gone.
+     * Other unknown keys are left alone. A template that cannot be resolved is skipped, like
+     * an undiscoverable block type.
+     *
+     * @param array<string, mixed> $content
+     *
+     * @return array<string, mixed>|null
+     */
+    private function validateBlockListKeys(array $content, string $templateType, ?string $templateKey): ?array
+    {
+        $form = $this->templateForm($templateType, $templateKey);
+        if (!$form instanceof FormMetadata) {
+            return null;
+        }
+
+        $fields = $form->getFlatFieldMetadata();
+        $blockProperties = [];
+        foreach ($fields as $name => $field) {
+            if ([] !== $field->getTypes()) {
+                $blockProperties[] = $name;
+            }
+        }
+
+        foreach ($content as $key => $value) {
+            if (isset($fields[$key]) || !$this->isBlockList($value)) {
+                continue;
+            }
+
+            return [
+                'error' => \sprintf(
+                    'Template "%s" has no block field "%s", so these blocks would be dropped on save. Block fields of this template: %s.',
+                    $templateKey,
+                    $key,
+                    [] === $blockProperties ? 'none' : \implode(', ', $blockProperties),
+                ),
+                'hint' => 'Pick a template that has a block field, or use sulu_get_context to see where this content belongs.',
+            ];
+        }
+
+        return null;
+    }
+
+    private function isBlockList(mixed $value): bool
+    {
+        if (!\is_array($value) || !\array_is_list($value)) {
+            return false;
+        }
+
+        foreach ($value as $item) {
+            if (\is_array($item) && isset($item['type']) && \is_string($item['type'])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private function templateForm(string $templateType, ?string $templateKey): ?FormMetadata
+    {
+        if (null === $templateKey) {
+            return null;
+        }
+
+        try {
+            $typed = $this->formMetadataProvider->getMetadata($templateType, $this->localeResolver->resolve(), []);
+        } catch (\Throwable) {
+            return null;
+        }
+
+        return $typed instanceof TypedFormMetadata ? ($typed->getForms()[$templateKey] ?? null) : null;
     }
 
     /**
