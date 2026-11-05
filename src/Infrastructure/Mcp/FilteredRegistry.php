@@ -104,6 +104,11 @@ final readonly class FilteredRegistry implements RegistryInterface
         $this->inner->unregisterPrompt($name);
     }
 
+    public function publishesListChanges(): bool
+    {
+        return $this->inner->publishesListChanges();
+    }
+
     public function hasTool(string $name): bool
     {
         return $this->inner->hasTool($name);
@@ -134,8 +139,7 @@ final readonly class FilteredRegistry implements RegistryInterface
         /** @var array<string, Tool> $tools */
         $tools = [];
         foreach ($this->inner->getTools(null, null)->references as $name => $tool) {
-            // getTools() only ever populates $references with Tool instances here
-            if ($tool instanceof Tool && $this->visibilityResolver->isVisible((string) $name)) {
+            if ($this->visibilityResolver->isVisible((string) $name)) {
                 $tools[$name] = $this->expandTool($tool);
             }
         }
@@ -169,7 +173,7 @@ final readonly class FilteredRegistry implements RegistryInterface
 
         $resources = [];
         foreach ($page->references as $key => $resource) {
-            $resources[$key] = $resource instanceof ResourceDefinition ? $this->expandResource($resource) : $resource;
+            $resources[$key] = $this->expandResource($resource);
         }
 
         return new Page($resources, $page->nextCursor);
