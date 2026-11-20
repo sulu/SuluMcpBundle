@@ -27,6 +27,7 @@ use Sulu\Article\Domain\Model\Article;
 use Sulu\Article\Domain\Repository\ArticleRepositoryInterface;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FieldMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\FormMetadata;
+use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TagMetadata;
 use Sulu\Bundle\AdminBundle\Metadata\FormMetadata\TypedFormMetadata;
 use Sulu\Component\Security\Authorization\PermissionTypes;
 use Sulu\Content\Application\ContentManager\ContentManagerInterface;
@@ -419,6 +420,87 @@ final class BlockAddToolTest extends TestCase
             'title' => 'Test',
             'blocks' => $blocks,
         ]);
+    }
+
+    public function testAddBlockGivesNestedItemsTheirTypeAndId(): void
+    {
+        // A global block "offers" whose nested "cards" list has the single type "card":
+        // clients send the cards as plain objects, without "type" and "_id".
+        $this->setupEntityWithBlocks('pages', []);
+        $this->formMetadataProvider->set('page', $this->templateWithGlobalOffersBlock());
+        $this->formMetadataProvider->set('block', $this->globalOffersBlock());
+        $this->blockIdGenerator = FixedBlockIdGenerator::returning('offers-id', 'card-1', 'card-2');
+        $this->tool = $this->toolWithCurrentGenerator();
+
+        $captured = $this->expectMessageDispatch();
+
+        $result = $this->tool->addBlock('pages', 'test-uuid', 'en', 'offers', 'blocks', [
+            'title' => 'Our offers',
+            'cards' => [['title' => 'First offer'], ['title' => 'Second offer']],
+        ]);
+
+        $this->assertTrue($result['success']);
+        $this->assertSame('offers-id', $result['blockId']);
+
+        $block = $captured->envelope->getMessage()->getData()['blocks'][0];
+        $this->assertEquals([
+            ['type' => 'card', '_id' => 'card-1', 'title' => 'First offer'],
+            ['type' => 'card', '_id' => 'card-2', 'title' => 'Second offer'],
+        ], $block['cards']);
+    }
+
+    private function toolWithCurrentGenerator(): BlockAddTool
+    {
+        return new BlockAddTool(
+            $this->messageBus->reveal(),
+            ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal()),
+            $this->contentManager->reveal(),
+            $this->blockIdGenerator,
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            $this->permissionChecker,
+            $this->contentSecurityContextResolver,
+        );
+    }
+
+    private function templateWithGlobalOffersBlock(): TypedFormMetadata
+    {
+        $globalBlockTag = new TagMetadata();
+        $globalBlockTag->setName('sulu.global_block');
+        $globalBlockTag->setAttributes(['global_block' => 'offers']);
+
+        $reference = new FormMetadata();
+        $reference->setKey('offers');
+        $reference->addTag($globalBlockTag);
+
+        $blocksField = new FieldMetadata('blocks');
+        $blocksField->setType('block');
+        $blocksField->addType($reference);
+
+        $template = new FormMetadata();
+        $template->setKey('default');
+        $template->addItem($blocksField);
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('default', $template);
+
+        return $typed;
+    }
+
+    private function globalOffersBlock(): TypedFormMetadata
+    {
+        $cards = new FieldMetadata('cards');
+        $cards->setType('block');
+        $cards->addType($this->blockType('card', [$this->textField('title')]));
+
+        $offers = new FormMetadata();
+        $offers->setKey('offers');
+        $offers->addItem($this->textField('title'));
+        $offers->addItem($cards);
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('offers', $offers);
+
+        return $typed;
     }
 
     public function testRejectsLocaleWithoutContentInsteadOfReportingNotFound(): void

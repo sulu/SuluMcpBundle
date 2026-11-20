@@ -657,6 +657,117 @@ final class BlockDataValidatorTest extends TestCase
         return $type;
     }
 
+    public function testFillsMissingTypeOfNestedItemsWithTheOnlyTypeTheListOffers(): void
+    {
+        $validator = $this->validatorWithNestedCards(['card']);
+
+        $filled = $validator->fillNestedBlockTypes('page', 'default', [['property' => 'content', 'type' => 'offers']], [
+            'title' => 'Our offers',
+            'cards' => [['title' => 'First'], ['title' => 'Second']],
+        ]);
+
+        $this->assertSame([
+            ['type' => 'card', 'title' => 'First'],
+            ['type' => 'card', 'title' => 'Second'],
+        ], $filled['cards']);
+        $this->assertSame('Our offers', $filled['title']);
+    }
+
+    public function testFillsMissingTypeOfNestedItemsWithTheDefaultType(): void
+    {
+        $validator = $this->validatorWithNestedCards(['card', 'banner'], 'banner');
+
+        $filled = $validator->fillNestedBlockTypes('page', 'default', [['property' => 'content', 'type' => 'offers']], [
+            'cards' => [['title' => 'First'], ['type' => 'card', 'title' => 'Second']],
+        ]);
+
+        $this->assertSame('banner', $filled['cards'][0]['type']);
+        $this->assertSame('card', $filled['cards'][1]['type'], 'an explicit type must win over the default type');
+    }
+
+    public function testLeavesNestedItemsWithoutTypeWhenTheListOffersSeveralTypesAndNoDefault(): void
+    {
+        $validator = $this->validatorWithNestedCards(['card', 'banner']);
+        $path = [['property' => 'content', 'type' => 'offers']];
+        $data = ['cards' => [['title' => 'First']]];
+
+        $this->assertSame($data, $validator->fillNestedBlockTypes('page', 'default', $path, $data));
+
+        $error = $validator->validate('page', 'default', 'offers', $path, $validator->fillNestedBlockTypes('page', 'default', $path, $data));
+
+        $this->assertNotNull($error);
+        $this->assertStringContainsString('"cards" has no "type"', $error['error']);
+        $this->assertStringContainsString('card, banner', $error['error']);
+    }
+
+    public function testFilledNestedItemsPassValidation(): void
+    {
+        $validator = $this->validatorWithNestedCards(['card']);
+        $path = [['property' => 'content', 'type' => 'offers']];
+
+        $filled = $validator->fillNestedBlockTypes('page', 'default', $path, ['cards' => [['title' => 'First']]]);
+
+        $this->assertNull($validator->validate('page', 'default', 'offers', $path, $filled));
+    }
+
+    public function testFillWithoutBlockPathReturnsTheDataUnchanged(): void
+    {
+        $validator = $this->validatorWithNestedCards(['card']);
+        $data = ['cards' => [['title' => 'First']]];
+
+        $this->assertSame($data, $validator->fillNestedBlockTypes('page', 'default', [], $data));
+    }
+
+    public function testFillDoesNotTouchListsThatAreNotBlockFields(): void
+    {
+        $validator = $this->validatorWithNestedCards(['card']);
+        $data = ['title' => 'Offers', 'tags' => [['title' => 'not a block']], 'cards' => []];
+
+        $this->assertSame($data, $validator->fillNestedBlockTypes('page', 'default', [['property' => 'content', 'type' => 'offers']], $data));
+    }
+
+    /**
+     * Template "default" with a global block "offers" whose "cards" list offers the given
+     * types, each with a "title" field. The global block reference is how a project shares
+     * a block between templates, and the shape of the report.
+     *
+     * @param list<string> $cardTypes
+     */
+    private function validatorWithNestedCards(array $cardTypes, ?string $defaultType = null): BlockDataValidator
+    {
+        $globalBlockTag = new TagMetadata();
+        $globalBlockTag->setName('sulu.global_block');
+        $globalBlockTag->setAttributes(['global_block' => 'offers']);
+
+        $reference = new FormMetadata();
+        $reference->setKey('offers');
+        $reference->addTag($globalBlockTag);
+
+        $template = new FormMetadata();
+        $template->setKey('default');
+        $template->addItem($this->blockField('content', $reference));
+
+        $typed = new TypedFormMetadata();
+        $typed->addForm('default', $template);
+
+        $cards = $this->blockField('cards', ...\array_map(fn (string $type) => $this->blockType($type, ['title']), $cardTypes));
+        $cards->setDefaultType($defaultType);
+
+        $globalBlock = new FormMetadata();
+        $globalBlock->setKey('offers');
+        $globalBlock->addItem($this->field('title'));
+        $globalBlock->addItem($cards);
+
+        $globalBlocks = new TypedFormMetadata();
+        $globalBlocks->addForm('offers', $globalBlock);
+
+        $provider = new ArrayMetadataProvider();
+        $provider->set('page', $typed);
+        $provider->set('block', $globalBlocks);
+
+        return new BlockDataValidator($provider, new MetadataLocaleResolver(new TokenStorage(), 'en'));
+    }
+
     /**
      * Validator whose "default" template exposes an "image" block with a REQUIRED
      * "image" field and an optional "caption", nested also inside a "section" block.
