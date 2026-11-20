@@ -170,6 +170,7 @@ class BlockUpdateTool
                 ? $currentData['template']
                 : null;
             $blockPath = $this->blockTypePath($currentData, $foundProperty, $foundIndices);
+            $blockData = $this->blockDataValidator->fillNestedBlockTypes($extension->getTemplateType(), $templateKey, $blockPath, $blockData);
             if (null !== $blockType && $validationError = $this->blockDataValidator->validate($extension->getTemplateType(), $templateKey, $blockType, $blockPath, $blockData)) {
                 return $validationError;
             }

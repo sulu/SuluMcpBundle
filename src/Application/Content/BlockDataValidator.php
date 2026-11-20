@@ -79,7 +79,37 @@ final readonly class BlockDataValidator
 
         // Name the type the schema was actually resolved for, which is what the message
         // describes, rather than the caller's label for the same block.
-        return $this->validateKeys($blockPath[\array_key_last($blockPath)]['type'], $blockData, $form);
+        $blockType = $blockPath[\array_key_last($blockPath)]['type'];
+
+        return $this->validateKeys($blockType, $blockData, $form)
+            ?? $this->validateNestedTypes($blockData, $form);
+    }
+
+    /**
+     * Give every item of a nested block list that arrives without a `type` the type its
+     * list declares: the `default-type`, or the only type the list offers.
+     *
+     * AI clients send nested items as plain objects holding field values only. Stored
+     * like that, Sulu drops the items on render and the admin form cannot open the block.
+     * Items that already carry a `type`, and items whose list gives no single answer,
+     * are left as they are; {@see validate()} rejects the latter.
+     *
+     * @param list<array{property: string, type: string}> $blockPath Same chain {@see validate()} takes. Empty
+     *                                                               when the caller cannot locate the block:
+     *                                                               the data is then returned unchanged
+     * @param array<string, mixed> $blockData Normalized blockData (flat object form)
+     *
+     * @return array<string, mixed>
+     */
+    public function fillNestedBlockTypes(string $templateType, ?string $templateKey, array $blockPath, array $blockData): array
+    {
+        if ([] === $blockPath) {
+            return $blockData;
+        }
+
+        $form = $this->resolveBlockPath($templateType, $templateKey, $blockPath);
+
+        return $form instanceof FormMetadata ? $this->fillTypes($blockData, $form) : $blockData;
     }
 
     /**
@@ -186,6 +216,116 @@ final readonly class BlockDataValidator
             ),
             'hint' => 'Pass blockData as a flat object whose keys are template field names, e.g. blockData={"title": "...", "description": "<p>...</p>"}. Use sulu_get_context to inspect block type field schemas.',
         ];
+    }
+
+    /**
+     * Reject a nested block item that has no `type` and none could be derived for it,
+     * which is the case when its list offers several types and declares no default.
+     *
+     * @param array<array-key, mixed> $node
+     *
+     * @return array<string, mixed>|null
+     */
+    private function validateNestedTypes(array $node, FormMetadata $form): ?array
+    {
+        foreach ($node as $key => $value) {
+            if (!\is_array($value) || null === $field = $this->blockListField($form, (string) $key, $value)) {
+                continue;
+            }
+
+            foreach ($value as $item) {
+                if (!\is_array($item)) {
+                    continue;
+                }
+
+                $type = $item['type'] ?? null;
+                if (!\is_string($type) || '' === $type) {
+                    return [
+                        'error' => \sprintf(
+                            'A nested block item in "%s" has no "type", and the list offers several types without a default: %s.',
+                            $key,
+                            \implode(', ', \array_map('strval', \array_keys($field->getTypes()))),
+                        ),
+                        'hint' => 'Set "type" on every item of the nested list, e.g. {"type": "card", "title": "..."}. Use sulu_get_context to see the types a block offers.',
+                    ];
+                }
+
+                $typeForm = $field->getTypes()[$type] ?? null;
+                $itemForm = $typeForm instanceof FormMetadata ? $this->dereferenceGlobalBlock($typeForm) : null;
+                if ($itemForm instanceof FormMetadata && $error = $this->validateNestedTypes($item, $itemForm)) {
+                    return $error;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @template TKey of array-key
+     *
+     * @param array<TKey, mixed> $node
+     *
+     * @return array<TKey, mixed>
+     */
+    private function fillTypes(array $node, FormMetadata $form): array
+    {
+        foreach ($node as $key => $value) {
+            if (!\is_array($value) || null === $field = $this->blockListField($form, (string) $key, $value)) {
+                continue;
+            }
+
+            $node[$key] = \array_map(
+                fn (mixed $item) => \is_array($item) ? $this->fillItemType($item, $field) : $item,
+                $value,
+            );
+        }
+
+        return $node;
+    }
+
+    /**
+     * @param array<array-key, mixed> $item
+     *
+     * @return array<array-key, mixed>
+     */
+    private function fillItemType(array $item, FieldMetadata $field): array
+    {
+        $types = $field->getTypes();
+
+        if (!\is_string($item['type'] ?? null) || '' === $item['type']) {
+            $default = $field->getDefaultType();
+            if (null !== $default && isset($types[$default])) {
+                $type = $default;
+            } elseif (1 === \count($types)) {
+                $type = (string) \array_key_first($types);
+            } else {
+                return $item;
+            }
+
+            $item = ['type' => $type] + $item;
+        }
+
+        $typeForm = $types[$item['type']] ?? null;
+        $itemForm = $typeForm instanceof FormMetadata ? $this->dereferenceGlobalBlock($typeForm) : null;
+
+        return $itemForm instanceof FormMetadata ? $this->fillTypes($item, $itemForm) : $item;
+    }
+
+    /**
+     * The block field of $form named $key when $value is a non-empty list that field holds.
+     *
+     * @param array<array-key, mixed> $value
+     */
+    private function blockListField(FormMetadata $form, string $key, array $value): ?FieldMetadata
+    {
+        if ([] === $value || !\array_is_list($value)) {
+            return null;
+        }
+
+        $field = $form->getFlatFieldMetadata()[$key] ?? null;
+
+        return $field instanceof FieldMetadata && [] !== $field->getTypes() ? $field : null;
     }
 
     /**

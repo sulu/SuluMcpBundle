@@ -506,6 +506,64 @@ final class BlockUpdateToolTest extends TestCase
         $this->assertTrue($result['success']);
     }
 
+    public function testUpdateGivesNestedItemsTheirTypeAndId(): void
+    {
+        $this->setupPageWithTimelineProcess();
+
+        $stage = new FormMetadata();
+        $stage->setKey('step');
+        $stage->addItem($this->textField('title'));
+        $stepsField = new FieldMetadata('steps');
+        $stepsField->setType('block');
+        $stepsField->addType($stage);
+
+        // "stage" blocks may now hold a nested list of "step" items, the only type it offers.
+        $globalBlocks = $this->formMetadataProvider->getMetadata('block', 'en', []);
+        $stageForm = $globalBlocks->getForms()['timeline_process']->getFlatFieldMetadata()['stages']->getTypes()['stage'];
+        $stageForm->addItem($stepsField);
+
+        $this->blockIdGenerator = FixedBlockIdGenerator::returning('step-1', 'step-2');
+        $this->tool = new BlockUpdateTool(
+            $this->messageBus->reveal(),
+            ContentTypes::resolver($this->pageRepository->reveal(), $this->articleRepository->reveal(), $this->snippetRepository->reveal(), new TestGroupProvider([])),
+            $this->contentManager->reveal(),
+            $this->blockIdGenerator,
+            new BlockDataValidator($this->formMetadataProvider, new MetadataLocaleResolver(new TokenStorage(), 'en')),
+            $this->permissionChecker,
+            $this->contentSecurityContextResolver,
+        );
+
+        $captured = null;
+        $updatedPage = new Page('page-uuid');
+        $updatedPage->setWebspaceKey('example');
+        $this->messageBus->dispatch(Argument::that(function(Envelope $envelope) use (&$captured): bool {
+            $captured = $envelope->getMessage();
+
+            return true;
+        }), Argument::cetera())->shouldBeCalledOnce()
+            ->willReturn(new Envelope($updatedPage, [new HandledStamp($updatedPage, 'handler')]));
+
+        $result = $this->tool->updateBlock('pages', 'page-uuid', 'en', blockId: 'stage-1', blockData: [
+            'steps' => [['title' => 'Plan'], ['title' => 'Ship']],
+        ]);
+
+        $this->assertTrue($result['success']);
+
+        $steps = $captured->getData()['content'][0]['stages'][0]['steps'];
+        $this->assertEquals([
+            ['type' => 'step', '_id' => 'step-1', 'title' => 'Plan'],
+            ['type' => 'step', '_id' => 'step-2', 'title' => 'Ship'],
+        ], $steps);
+    }
+
+    private function textField(string $name): FieldMetadata
+    {
+        $field = new FieldMetadata($name);
+        $field->setType('text_line');
+
+        return $field;
+    }
+
     /**
      * A page whose "content" holds the global block "timeline_process" with a nested
      * "stage" block, plus the metadata that only describes "stage" inside that global

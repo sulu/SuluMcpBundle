@@ -148,6 +148,7 @@ class BlockAddTool
                 ? $this->nestedTargetProperty($currentData, $extension->getTemplateType(), $templateKey, $blockType, $parentPath)
                 : null;
             $blockPath = $this->newBlockTypePath($currentData, $blockProperty, $blockType, $parentPath, $nestedProperty);
+            $blockData = $this->blockDataValidator->fillNestedBlockTypes($extension->getTemplateType(), $templateKey, $blockPath, $blockData);
             if ($validationError = $this->blockDataValidator->validate($extension->getTemplateType(), $templateKey, $blockType, $blockPath, $blockData)) {
                 return $validationError;
             }
